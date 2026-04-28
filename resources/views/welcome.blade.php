@@ -1,3 +1,139 @@
+<!doctype html>
+<html lang="es">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>SICES v2</title>
+    <style>
+        :root {
+            --bg: #070b14;
+            --bg-soft: #10192b;
+            --card: rgba(16, 25, 43, 0.72);
+            --line: rgba(148, 163, 184, 0.25);
+            --text: #e2e8f0;
+            --muted: #94a3b8;
+            --brand-a: #2563eb;
+            --brand-b: #1d4ed8;
+        }
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            min-height: 100vh;
+            color: var(--text);
+            font-family: "Segoe UI", Roboto, Arial, sans-serif;
+            background:
+                radial-gradient(900px 500px at 10% 10%, rgba(37, 99, 235, 0.22), transparent 60%),
+                radial-gradient(900px 500px at 90% 90%, rgba(15, 23, 42, 0.8), transparent 65%),
+                linear-gradient(160deg, var(--bg) 0%, #0b1220 60%, var(--bg-soft) 100%);
+            display: grid;
+            place-items: center;
+            padding: 20px;
+        }
+        .wrap {
+            width: min(1080px, 100%);
+            border: 1px solid var(--line);
+            border-radius: 20px;
+            background: var(--card);
+            backdrop-filter: blur(6px);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
+            overflow: hidden;
+        }
+        .content {
+            padding: 34px;
+            display: grid;
+            gap: 24px;
+        }
+        h1 {
+            margin: 0;
+            font-size: clamp(1.8rem, 3vw, 2.4rem);
+            letter-spacing: .2px;
+        }
+        h2 {
+            margin: 8px 0 0;
+            color: #bfdbfe;
+            font-size: clamp(1rem, 2vw, 1.2rem);
+            font-weight: 600;
+        }
+        p {
+            margin: 0;
+            color: var(--muted);
+            line-height: 1.6;
+        }
+        .cta {
+            display: inline-block;
+            margin-top: 18px;
+            text-decoration: none;
+            color: #fff;
+            font-weight: 700;
+            padding: 12px 20px;
+            border-radius: 12px;
+            background: linear-gradient(135deg, var(--brand-a), var(--brand-b));
+            box-shadow: 0 10px 24px rgba(37, 99, 235, 0.35);
+        }
+        .small {
+            font-size: .92rem;
+            color: #cbd5e1;
+        }
+        .flow {
+            display: grid;
+            gap: 14px;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+        .step {
+            border: 1px solid var(--line);
+            border-radius: 14px;
+            padding: 16px;
+            background: rgba(15, 23, 42, 0.55);
+        }
+        .step b {
+            display: block;
+            margin-bottom: 8px;
+            color: #dbeafe;
+            font-size: .96rem;
+        }
+        .step span {
+            color: #cbd5e1;
+            font-size: .9rem;
+            line-height: 1.45;
+        }
+        @media (max-width: 900px) {
+            .flow { grid-template-columns: 1fr; }
+            .content { padding: 22px; }
+        }
+    </style>
+</head>
+<body>
+    <main class="wrap">
+        <section class="content">
+            <div>
+                <h1>SICES v2</h1>
+                <h2>Plataforma de Certificación y Control Escolar de Nivel Superior</h2>
+                <p style="margin-top:14px;">
+                    Sistema institucional para la captura, revisión, validación y seguimiento de documentos académicos,
+                    con flujo preparado para certificación, trazabilidad documental y procesos de firma controlada.
+                </p>
+                <a class="cta" href="/login">Iniciar sesión</a>
+                <p class="small" style="margin-top:10px;">Acceso exclusivo para usuarios autorizados.</p>
+            </div>
+
+            <div class="flow">
+                <article class="step">
+                    <b>1. Control Escolar Escuela</b>
+                    <span>Captura expediente, materias, calificaciones, trayectoria y solicitud documental.</span>
+                </article>
+                <article class="step">
+                    <b>2. Educación Superior</b>
+                    <span>Revisa, observa, devuelve, valida y aprueba documentos académicos.</span>
+                </article>
+                <article class="step">
+                    <b>3. Sistemas</b>
+                    <span>Gestiona integración técnica, trazabilidad, preparación y procesos posteriores de firma.</span>
+                </article>
+            </div>
+        </section>
+    </main>
+</body>
+</html>
 <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
     <head>

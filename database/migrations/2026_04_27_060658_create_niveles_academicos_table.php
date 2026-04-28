@@ -13,7 +13,16 @@ return new class extends Migration
     {
         Schema::create('niveles_academicos', function (Blueprint $table) {
             $table->id();
+            $table->string('clave', 30)->unique();
+            $table->string('nombre', 150);
+            $table->string('tipo', 50)->nullable();
+            $table->unsignedTinyInteger('orden')->default(0);
+            $table->boolean('activo')->default(true)->index();
+            $table->json('metadata')->nullable();
             $table->timestamps();
+            $table->softDeletes();
+
+            $table->index(['orden', 'activo']);
         });
     }
 

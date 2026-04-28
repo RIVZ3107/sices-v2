@@ -13,7 +13,17 @@ return new class extends Migration
     {
         Schema::create('ciclos_escolares', function (Blueprint $table) {
             $table->id();
+            $table->string('clave', 30)->unique();
+            $table->string('nombre', 120);
+            $table->date('fecha_inicio');
+            $table->date('fecha_fin');
+            $table->boolean('es_actual')->default(false)->index();
+            $table->boolean('activo')->default(true)->index();
+            $table->json('metadata')->nullable();
             $table->timestamps();
+            $table->softDeletes();
+
+            $table->index(['fecha_inicio', 'fecha_fin']);
         });
     }
 

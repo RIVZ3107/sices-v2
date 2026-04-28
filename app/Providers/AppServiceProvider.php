@@ -2,6 +2,13 @@
 
 namespace App\Providers;
 
+use App\Models\Alumno;
+use App\Models\DocumentoAcademico;
+use App\Models\Matricula;
+use App\Policies\AlumnoPolicy;
+use App\Policies\DocumentoAcademicoPolicy;
+use App\Policies\MatriculaPolicy;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -19,6 +26,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        Gate::policy(DocumentoAcademico::class, DocumentoAcademicoPolicy::class);
+        Gate::policy(Matricula::class, MatriculaPolicy::class);
+        Gate::policy(Alumno::class, AlumnoPolicy::class);
     }
 }

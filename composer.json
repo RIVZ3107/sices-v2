@@ -11,7 +11,6 @@
         "endroid/qr-code": "^6.0",
         "guzzlehttp/guzzle": "^7.10",
         "laravel/framework": "^13.0",
-        "laravel/horizon": "^5.46",
         "laravel/sanctum": "^4.0",
         "laravel/tinker": "^3.0",
         "maatwebsite/excel": "^3.1",

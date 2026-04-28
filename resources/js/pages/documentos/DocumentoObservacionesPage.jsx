@@ -1,0 +1,80 @@
+import { useState } from 'react';
+import { useParams } from 'react-router-dom';
+import { AtenderObservacionForm } from '../../components/AtenderObservacionForm';
+import { ErrorState } from '../../components/ErrorState';
+import { ObservacionForm } from '../../components/ObservacionForm';
+import { ObservacionesPanel } from '../../components/ObservacionesPanel';
+import { PageHeader } from '../../components/PageHeader';
+import { observacionesApi } from '../../api/observaciones';
+
+export function DocumentoObservacionesPage() {
+    const { id } = useParams();
+    const [documentoId, setDocumentoId] = useState(id ?? '');
+    const [items, setItems] = useState([]);
+    const [msg, setMsg] = useState('');
+    const [error, setError] = useState('');
+
+    async function cargar() {
+        setError('');
+        setMsg('');
+        try {
+            const res = await observacionesApi.listar(documentoId);
+            setItems(res?.data ?? []);
+        } catch (err) {
+            setError(err?.message ?? 'No se pudieron cargar observaciones.');
+        }
+    }
+
+    async function registrar(payload) {
+        setError('');
+        setMsg('');
+        try {
+            await observacionesApi.crear(documentoId, payload);
+            setMsg('Observacion registrada');
+            await cargar();
+        } catch (err) {
+            setError(err?.message ?? 'No se pudo registrar');
+        }
+    }
+
+    async function atender({ observacionId, payload }) {
+        setError('');
+        setMsg('');
+        try {
+            await observacionesApi.atender(documentoId, observacionId, payload);
+            setMsg('Observacion atendida.');
+            await cargar();
+        } catch (err) {
+            setError(err?.message ?? 'No se pudo atender observacion');
+        }
+    }
+
+    async function devolver() {
+        setError('');
+        setMsg('');
+        try {
+            await observacionesApi.devolver(documentoId, { motivo: 'Devuelto a correccion desde frontend.' });
+            setMsg('Documento devuelto a correccion.');
+        } catch (err) {
+            setError(err?.message ?? 'No se pudo devolver a correccion.');
+        }
+    }
+
+    return (
+        <section className="grid gap-4">
+            <PageHeader title="Observaciones" subtitle="Gestion de observaciones, atencion y devolucion a correccion." />
+            <div className="rounded-lg border border-slate-200 bg-white p-4">
+                <div className="flex flex-wrap gap-2">
+                    <input className="rounded border border-slate-300 px-3 py-2 text-sm" placeholder="ID documento" value={documentoId} onChange={(e) => setDocumentoId(e.target.value)} />
+                    <button className="rounded border border-slate-300 px-3 py-2 text-sm" onClick={cargar}>Cargar observaciones</button>
+                    <button className="rounded bg-rose-700 px-3 py-2 text-sm text-white" onClick={devolver}>Devolver a correccion</button>
+                </div>
+            </div>
+            {error ? <ErrorState message={error} /> : null}
+            {msg ? <p className="text-sm text-emerald-700">{msg}</p> : null}
+            <ObservacionForm onSubmit={registrar} disabled={!documentoId} />
+            <AtenderObservacionForm onSubmit={atender} disabled={!documentoId} />
+            <ObservacionesPanel items={items} />
+        </section>
+    );
+}

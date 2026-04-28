@@ -1,0 +1,1 @@
+export { ObservacionesBadge } from '../ObservacionesBadge';
