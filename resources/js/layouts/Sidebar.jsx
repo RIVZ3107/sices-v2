@@ -23,16 +23,19 @@ const roleMenu = {
         { group: 'Sistemas', links: [item('/app/sistemas/dashboard', 'Dashboard tecnico'), item('/app/sistemas/listos-para-firma', 'Listos para firma'), item('/app/documentos/bandejas/firmados', 'Firmados'), item('/app/documentos/bandejas/errores-firma', 'Errores tecnicos'), item('/app/documentos/bandejas/pendientes-tecnicos', 'Pendientes tecnicos'), item('/app/sistemas/logs', 'Logs tecnicos'), item('/app/sistemas/configuracion', 'Configuracion tecnica')]},
     ],
     admin: [
-        { group: 'Administracion', links: [...common, item('/app/admin/dashboard', 'Dashboard admin'), item('/app/documentos/bandejas/por-rol', 'Documentos'), item('/app/admin/usuarios-roles', 'Usuarios y roles'), item('/app/admin/catalogos', 'Catalogos'), item('/app/auditoria', 'Auditoria'), item('/app/admin/parametros', 'Parametros')]},
+        { group: 'Administracion', links: [...common, item('/app/admin/dashboard', 'Panel administrativo'), item('/app/admin/usuarios-roles', 'Usuarios y roles'), item('/app/admin/catalogos', 'Catalogos'), item('/app/admin/parametros', 'Parametros')]},
+        { group: 'Operacion', links: [item('/app/documentos/bandejas/por-rol', 'Documentos'), item('/app/importaciones', 'Importaciones'), item('/app/admin/reportes-basicos', 'Reportes basicos')]},
     ],
     superadmin: [
-        { group: 'Administracion', links: [...common, item('/app/superadmin/dashboard', 'Dashboard superadmin'), item('/app/documentos/bandejas/por-rol', 'Documentos'), item('/app/admin/usuarios-roles', 'Usuarios y roles'), item('/app/admin/catalogos', 'Catalogos'), item('/app/auditoria', 'Auditoria'), item('/app/admin/parametros', 'Parametros'), item('/app/admin/reportes-basicos', 'Reportes basicos')]},
+        { group: 'Administracion', links: [...common, item('/app/superadmin/dashboard', 'Panel institucional'), item('/app/admin/usuarios-roles', 'Usuarios y roles'), item('/app/admin/catalogos', 'Catalogos'), item('/app/admin/parametros', 'Parametros'), item('/app/admin/reportes-basicos', 'Reportes basicos')]},
+        { group: 'Operacion', links: [item('/app/documentos/bandejas/por-rol', 'Documentos'), item('/app/importaciones', 'Importaciones'), item('/app/auditoria', 'Auditoria')]},
+        { group: 'Tecnico', links: [item('/app/sistemas/dashboard', 'Panel tecnico'), item('/app/sistemas/listos-para-firma', 'Listos para firma')]},
     ],
     auditor: [
-        { group: 'Auditoria', links: [...common, item('/app/auditoria', 'Panel de auditoria'), item('/app/documentos/bandejas', 'Bandejas'), item('/app/sistemas/logs', 'Logs tecnicos')]},
+        { group: 'Auditoria', links: [...common, item('/app/auditoria', 'Panel de auditoria'), item('/app/documentos/bandejas', 'Consulta documental'), item('/app/sistemas/logs', 'Logs tecnicos')]},
     ],
     consulta: [
-        { group: 'Consulta', links: [...common, item('/app/consulta/dashboard', 'Panel consulta'), item('/app/documentos/bandejas', 'Consultar documentos')]},
+        { group: 'Consulta', links: [...common, item('/app/consulta/dashboard', 'Panel consulta'), item('/app/documentos/bandejas', 'Consulta documental')]},
     ],
     docente: [
         { group: 'Docente', links: [...common, item('/app/docente/dashboard', 'Panel docente')]},

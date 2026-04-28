@@ -1,8 +1,8 @@
 export function DataTable({ columns = [], rows = [], emptyText = 'Sin datos disponibles.' }) {
     return (
-        <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
-            <table className="min-w-full text-sm">
-                <thead className="bg-slate-50 text-left text-xs uppercase text-slate-600">
+        <div className="overflow-x-auto inst-surface">
+            <table className="inst-table min-w-full text-sm">
+                <thead className="text-left">
                     <tr>
                         {columns.map((col) => (
                             <th key={col.key} className="px-3 py-2">{col.label}</th>

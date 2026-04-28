@@ -43,7 +43,7 @@ export function LoginPage() {
             <FormField label="Correo" value={email} onChange={setEmail} placeholder="correo@dominio.com" required />
             <FormField label="Contrasena" value={password} onChange={setPassword} type="password" required />
             {error ? <ErrorState message={error} /> : null}
-            <button disabled={loading} className="rounded bg-slate-900 px-3 py-2 text-sm text-white disabled:opacity-60">
+            <button disabled={loading} className="inst-btn inst-btn-primary text-sm disabled:opacity-60">
                 {loading ? 'Entrando...' : 'Entrar'}
             </button>
         </form>

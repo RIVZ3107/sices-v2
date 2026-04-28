@@ -25,7 +25,6 @@ export function AuditorDashboardPage() {
             ]}
             quickActions={[
                 { label: 'Bandejas documentales', to: '/app/documentos/bandejas' },
-                { label: 'Observaciones', to: '/app/documentos/observaciones' },
                 { label: 'Logs tecnicos', to: '/app/sistemas/logs' },
             ]}
             priorities={[
@@ -39,7 +38,7 @@ export function AuditorDashboardPage() {
                 { label: 'Devueltos', value: r.rechazados ?? 0 },
                 { label: 'Listos firma', value: r.listos_para_firma ?? 0 },
             ]}
-            notices={[{ message: 'Perfil de auditoria en modo solo lectura. No se habilitan acciones operativas.', type: 'info' }]}
+            notices={[{ message: 'Perfil de auditoria en modo solo lectura. No se habilitan acciones de captura, aprobacion o rechazo.', type: 'info' }]}
             modules={[
                 { name: 'Eventos recientes', description: 'Trazabilidad de eventos por documento.', status: 'Pendiente backend agregado' },
                 { name: 'Historial documental', description: 'Seguimiento de cambios de estado.', status: 'Pendiente backend agregado' },

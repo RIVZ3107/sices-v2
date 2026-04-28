@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useParams } from 'react-router-dom';
+import { ActionButton } from '../../components/ActionButton';
 import { AtenderObservacionForm } from '../../components/AtenderObservacionForm';
 import { ErrorState } from '../../components/ErrorState';
 import { ObservacionForm } from '../../components/ObservacionForm';
@@ -63,11 +64,11 @@ export function DocumentoObservacionesPage() {
     return (
         <section className="grid gap-4">
             <PageHeader title="Observaciones" subtitle="Gestion de observaciones, atencion y devolucion a correccion." />
-            <div className="rounded-lg border border-slate-200 bg-white p-4">
+            <div className="inst-surface p-4">
                 <div className="flex flex-wrap gap-2">
-                    <input className="rounded border border-slate-300 px-3 py-2 text-sm" placeholder="ID documento" value={documentoId} onChange={(e) => setDocumentoId(e.target.value)} />
-                    <button className="rounded border border-slate-300 px-3 py-2 text-sm" onClick={cargar}>Cargar observaciones</button>
-                    <button className="rounded bg-rose-700 px-3 py-2 text-sm text-white" onClick={devolver}>Devolver a correccion</button>
+                    <input className="inst-input text-sm" placeholder="ID documento" value={documentoId} onChange={(e) => setDocumentoId(e.target.value)} />
+                    <ActionButton variant="secondary" onClick={cargar}>Cargar observaciones</ActionButton>
+                    <ActionButton variant="danger" onClick={devolver}>Devolver a correccion</ActionButton>
                 </div>
             </div>
             {error ? <ErrorState message={error} /> : null}

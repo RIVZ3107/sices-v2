@@ -29,9 +29,9 @@ export function DocumentoValidacionPage() {
         <section className="grid gap-4">
             <PageHeader title="Validacion academica" subtitle="Semaforo operativo para revision, aprobacion y preparacion de firma." />
             <AlertBox type="info" message="Consulta la validacion antes de enviar a revision, aprobar o preparar para firma." />
-            <form className="rounded-lg border border-slate-200 bg-white p-4" onSubmit={consultar}>
+            <form className="inst-surface p-4" onSubmit={consultar}>
                 <FormField label="ID documento" value={documentoId} onChange={setDocumentoId} placeholder="ID documento" />
-                <button className="ml-2 rounded bg-slate-900 px-3 py-2 text-sm text-white">Consultar</button>
+                <button className="inst-btn inst-btn-primary ml-2 text-sm">Consultar</button>
             </form>
             {error ? <ErrorState message={error} /> : null}
             <ValidacionResumenCard resumen={resumen} />

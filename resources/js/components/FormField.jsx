@@ -10,7 +10,7 @@ export function FormField({
 }) {
     return (
         <label className="grid gap-1">
-            <span className="text-xs font-medium text-slate-600">
+            <span className="text-xs font-medium text-[var(--inst-muted-2)]">
                 {label} {required ? <span className="text-rose-600">*</span> : null}
             </span>
             <input
@@ -19,7 +19,7 @@ export function FormField({
                 placeholder={placeholder}
                 disabled={disabled}
                 onChange={(e) => onChange(e.target.value)}
-                className="rounded border border-slate-300 px-3 py-2 text-sm disabled:bg-slate-100"
+                className="inst-input text-sm disabled:bg-slate-100"
             />
             {error ? <span className="text-xs text-rose-700">{error}</span> : null}
         </label>

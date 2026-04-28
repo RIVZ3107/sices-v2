@@ -23,7 +23,7 @@ export function CoordinadorAcademicoDashboardPage() {
             quickActions={[]}
             priorities={[]}
             statusItems={[]}
-            notices={[{ message: 'Modulo preparado para crecimiento academico institucional. Sera habilitado en una fase posterior.', type: 'info' }]}
+            notices={[{ message: 'Modulo en preparacion para expansion del sistema de control escolar. Sera habilitado en una fase posterior.', type: 'info' }]}
             modules={[
                 { name: 'Programas academicos', description: 'Gestion curricular por institucion.', status: 'Pendiente backend' },
                 { name: 'Planes de estudio', description: 'Versionado y estructura de plan.', status: 'Pendiente backend' },

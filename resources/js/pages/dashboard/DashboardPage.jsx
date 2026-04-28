@@ -25,8 +25,7 @@ const ROLE_PRIORITY = [
 
 export function DashboardPage() {
     const userRoles = getUser()?.roles ?? [];
-    const principal = userRoles[0];
-    const resolvedRole = principal || ROLE_PRIORITY.find((role) => userRoles.includes(role)) || 'admin';
+    const resolvedRole = ROLE_PRIORITY.find((role) => userRoles.includes(role)) || userRoles[0] || 'admin';
 
     if (resolvedRole === 'superadmin') return <SuperAdminDashboardPage />;
     if (resolvedRole === 'admin') return <AdminDashboardPage />;

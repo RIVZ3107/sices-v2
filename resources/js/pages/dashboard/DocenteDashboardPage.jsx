@@ -22,7 +22,7 @@ export function DocenteDashboardPage() {
             quickActions={[]}
             priorities={[]}
             statusItems={[]}
-            notices={[{ message: 'Este modulo forma parte de la expansion futura del sistema integral de control escolar. La certificacion actual opera con datos oficiales validados por Control Escolar.', type: 'info' }]}
+            notices={[{ message: 'Modulo en preparacion para expansion del sistema de control escolar. La certificacion actual opera con datos oficiales validados por Control Escolar.', type: 'info' }]}
             modules={[
                 { name: 'Grupos asignados', description: 'Vista de grupos y materias por periodo.', status: 'En preparacion' },
                 { name: 'Captura de calificaciones', description: 'Carga academica por grupo.', status: 'En preparacion' },
