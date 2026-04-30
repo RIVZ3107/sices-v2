@@ -27,11 +27,11 @@ export function LoginPage() {
         } catch (err) {
             const status = err?.status ?? err?.response?.status;
             if (status === 422) {
-                setError('Datos invalidos. Verifica correo y contrasena.');
+                setError('Datos inválidos. Verifica correo y contraseña.');
             } else if (status === 401) {
-                setError('Credenciales invalidas.');
+                setError('Credenciales inválidas.');
             } else {
-                setError(err?.message ?? err?.response?.data?.message ?? 'No se pudo iniciar sesion');
+                setError(err?.message ?? err?.response?.data?.message ?? 'No se pudo iniciar sesión');
             }
         } finally {
             setLoading(false);
@@ -39,13 +39,44 @@ export function LoginPage() {
     }
 
     return (
-        <form className="grid gap-3" onSubmit={onSubmit}>
-            <FormField label="Correo" value={email} onChange={setEmail} placeholder="correo@dominio.com" required />
-            <FormField label="Contrasena" value={password} onChange={setPassword} type="password" required />
-            {error ? <ErrorState message={error} /> : null}
-            <button disabled={loading} className="inst-btn inst-btn-primary text-sm disabled:opacity-60">
-                {loading ? 'Entrando...' : 'Entrar'}
-            </button>
-        </form>
+        <>
+            <header className="login-card-head">
+                <div className="login-security-icon" aria-hidden="true">
+                    <span>Seg</span>
+                </div>
+                <p className="login-card-brand">SICES v2</p>
+                <h1>Bienvenido de nuevo</h1>
+                <p>Ingresa tu correo y contraseña para continuar.</p>
+            </header>
+            <form className="grid gap-4" onSubmit={onSubmit}>
+                <FormField
+                    label="Correo electrónico"
+                    value={email}
+                    onChange={setEmail}
+                    placeholder="correo@dominio.com"
+                    required
+                    autoComplete="email"
+                />
+                <FormField
+                    label="Contraseña"
+                    value={password}
+                    onChange={setPassword}
+                    type="password"
+                    required
+                    autoComplete="current-password"
+                />
+                {error ? <ErrorState message={error} /> : null}
+                <button type="submit" disabled={loading} className="inst-btn inst-btn-primary login-submit" aria-busy={loading}>
+                    {loading ? 'Entrando...' : 'Entrar'}
+                </button>
+            </form>
+            <div className="login-links">
+                <a href="#" className="login-link">Recuperar contraseña</a>
+            </div>
+            <p className="login-card-foot">
+                Al continuar aceptas los <a href="#" className="login-inline-link">Términos y condiciones</a> y la{' '}
+                <a href="#" className="login-inline-link">Mesa de ayuda</a>.
+            </p>
+        </>
     );
 }

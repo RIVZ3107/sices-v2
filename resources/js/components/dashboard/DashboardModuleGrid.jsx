@@ -1,7 +1,7 @@
 export function DashboardModuleGrid({ title = 'Modulos disponibles', modules = [] }) {
     return (
-        <article className="inst-surface p-4">
-            <h3 className="inst-title text-sm">{title}</h3>
+        <article className="inst-dashboard-panel">
+            <h3 className="inst-dashboard-panel-title">{title}</h3>
             <div className="mt-3 grid gap-2 md:grid-cols-2">
                 {modules.map((m) => (
                     <div key={m.name} className="inst-surface-muted p-3 text-sm">

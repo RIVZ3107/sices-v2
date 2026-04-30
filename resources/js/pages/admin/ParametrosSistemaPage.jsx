@@ -1,15 +1,15 @@
-import { DashboardHeader } from '../../components/dashboard/DashboardHeader';
 import { DashboardInstitutionalNotice } from '../../components/dashboard/DashboardInstitutionalNotice';
 import { DashboardMetricCard } from '../../components/dashboard/DashboardMetricCard';
 import { DashboardModuleGrid } from '../../components/dashboard/DashboardModuleGrid';
 import { DashboardQuickActions } from '../../components/dashboard/DashboardQuickActions';
 import { DashboardShell } from '../../components/dashboard/DashboardShell';
 import { DashboardStatusOverview } from '../../components/dashboard/DashboardStatusOverview';
+import { ModuleHeader } from '../../components/ui/ModuleHeader';
 
 export function ParametrosSistemaPage() {
     return (
         <DashboardShell>
-            <DashboardHeader title="Parametros del sistema" subtitle="Configuracion de politicas y valores institucionales." />
+            <ModuleHeader title="Parámetros del sistema" subtitle="Configuración de políticas y valores institucionales." />
             <DashboardInstitutionalNotice type="warning" message="Edicion de parametros en preparacion. Esta seccion no afecta la operacion actual del flujo documental." />
             <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
                 <DashboardMetricCard title="Parametros operativos" value={0} subtitle="Informacion no disponible" />

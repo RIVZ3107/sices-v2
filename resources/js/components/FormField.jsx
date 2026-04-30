@@ -7,6 +7,7 @@ export function FormField({
     error = '',
     required = false,
     disabled = false,
+    autoComplete,
 }) {
     return (
         <label className="grid gap-1">
@@ -18,6 +19,7 @@ export function FormField({
                 value={value}
                 placeholder={placeholder}
                 disabled={disabled}
+                autoComplete={autoComplete}
                 onChange={(e) => onChange(e.target.value)}
                 className="inst-input text-sm disabled:bg-slate-100"
             />

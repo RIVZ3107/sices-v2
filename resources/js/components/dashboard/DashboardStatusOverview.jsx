@@ -1,7 +1,7 @@
 export function DashboardStatusOverview({ title = 'Seguimiento por estado', items = [] }) {
     return (
-        <article className="inst-surface p-4">
-            <h3 className="inst-title text-sm">{title}</h3>
+        <article className="inst-dashboard-panel">
+            <h3 className="inst-dashboard-panel-title">{title}</h3>
             <div className="mt-3 grid gap-2 md:grid-cols-3">
                 {items.map((it) => (
                     <div key={it.label} className="inst-surface-muted p-3">

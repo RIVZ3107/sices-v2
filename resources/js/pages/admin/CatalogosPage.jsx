@@ -1,15 +1,15 @@
-import { DashboardHeader } from '../../components/dashboard/DashboardHeader';
 import { DashboardInstitutionalNotice } from '../../components/dashboard/DashboardInstitutionalNotice';
 import { DashboardMetricCard } from '../../components/dashboard/DashboardMetricCard';
 import { DashboardModuleGrid } from '../../components/dashboard/DashboardModuleGrid';
 import { DashboardQuickActions } from '../../components/dashboard/DashboardQuickActions';
 import { DashboardShell } from '../../components/dashboard/DashboardShell';
 import { DashboardStatusOverview } from '../../components/dashboard/DashboardStatusOverview';
+import { ModuleHeader } from '../../components/ui/ModuleHeader';
 
 export function CatalogosPage() {
     return (
         <DashboardShell>
-            <DashboardHeader title="Catalogos institucionales" subtitle="Consulta y gobierno de catalogos maestros del sistema." />
+            <ModuleHeader title="Catálogos institucionales" subtitle="Consulta y gobierno de catálogos maestros del sistema." />
             <DashboardInstitutionalNotice type="info" message="Catalogos administrativos en preparacion. Se habilitaran con endpoints de gestion dedicados." />
             <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
                 <DashboardMetricCard title="Catalogos activos" value={0} subtitle="Informacion no disponible" />
