@@ -1,113 +1,196 @@
+import { useState } from 'react';
 import { NavLink } from 'react-router-dom';
 
-const icon = (d) => (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" className="h-4 w-4">
-        {d}
+const icon = (children) => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" width="15" height="15">
+        {children}
     </svg>
 );
 
 const icons = {
-    home: icon(<path d="M3 12h8V3H3v9Zm10 9h8v-7h-8v7Zm0-18v7h8V3h-8ZM3 21h8v-5H3v5Z" />),
-    users: icon(<><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /></>),
-    settings: icon(<path d="m12 15.5 3.5-2-3.5-2-3.5 2 3.5 2Zm7-8.5-7-4-7 4v10l7 4 7-4V7Z" />),
-    docs: icon(<><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9Z" /><path d="M14 3v6h6" /></>),
-    report: icon(<><path d="M3 3v18h18" /><path d="M7 15v-4m5 4V7m5 8v-2" /></>),
-    audit: icon(<><circle cx="11" cy="11" r="7" /><path d="m21 21-4.3-4.3" /></>),
-    status: icon(<path d="M4 12h4l2-5 4 10 2-5h4" />),
-    profile: icon(<><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></>),
-    logout: icon(<><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><path d="M16 17l5-5-5-5" /><path d="M21 12H9" /></>),
-    collapse: icon(<path d="m15 18-6-6 6-6" />),
-    expand: icon(<path d="m9 18 6-6-6-6" />),
-    close: icon(<path d="m18 6-12 12M6 6l12 12" />),
+    home:        icon(<><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></>),
+    users:       icon(<><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></>),
+    settings:    icon(<><circle cx="12" cy="12" r="3"/><path d="M12 2v2m0 16v2M4.22 4.22l1.42 1.42m12.72 12.72 1.42 1.42M2 12h2m16 0h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></>),
+    docs:        icon(<><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6Z"/><path d="M14 2v6h6"/><path d="M9 13h6M9 17h4"/></>),
+    mydocs:      icon(<><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="M9 12l2 2 4-4"/></>),
+    matriculas:  icon(<><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2M9 5h6"/><path d="M9 12h6M9 16h4"/></>),
+    materias:    icon(<><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 9h6M9 12h6M9 15h4"/></>),
+    trayectoria: icon(<polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>),
+    import:      icon(<><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></>),
+    report:      icon(<><path d="M3 3v18h18"/><path d="M7 15v-4m5 4V7m5 8v-2"/></>),
+    audit:       icon(<><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></>),
+    status:      icon(<path d="M4 12h4l2-5 4 10 2-5h4"/>),
+    validate:    icon(<><path d="M9 12l2 2 4-4"/><path d="M12 2a10 10 0 1 0 0 20A10 10 0 0 0 12 2Z"/></>),
+    panel:       icon(<><rect x="3" y="3" width="8" height="5" rx="1"/><rect x="13" y="3" width="8" height="5" rx="1"/><rect x="3" y="11" width="8" height="10" rx="1"/><rect x="13" y="11" width="8" height="10" rx="1"/></>),
+    logs:        icon(<><path d="M4 6h16M4 10h16M4 14h10M4 18h7"/></>),
+    integrations:icon(<><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M6 9a3 3 0 0 0 3 3h6a3 3 0 0 1 3 3"/><path d="M6 9V6"/></>),
+    history:     icon(<><path d="M12 8v4l3 3"/><path d="M3.05 11a9 9 0 1 1 .5 4M3 16v-5h5"/></>),
+    profile:     icon(<><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></>),
+    logout:      icon(<><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></>),
+    collapse:    icon(<path d="m15 18-6-6 6-6"/>),
+    expand:      icon(<path d="m9 18 6-6-6-6"/>),
+    close:       icon(<path d="m18 6-12 12M6 6l12 12"/>),
 };
 
-const i = (to, label, iconName) => ({ to, label, iconName });
+const routeIconMap = {
+    '/app/dashboard':                          'home',
+    '/app/superadmin/dashboard':               'panel',
+    '/app/admin/dashboard':                    'panel',
+    '/app/admin/usuarios-roles':               'users',
+    '/app/admin/catalogos':                    'settings',
+    '/app/admin/parametros':                   'settings',
+    '/app/documentos/bandejas':                'docs',
+    '/app/documentos/nuevo':                   'docs',
+    '/app/documentos/bandejas/por-rol':        'mydocs',
+    '/app/documentos/bandejas/en-revision':    'status',
+    '/app/documentos/bandejas/aprobados':      'validate',
+    '/app/documentos/bandejas/rechazados':     'audit',
+    '/app/documentos/bandejas/pendientes-revision': 'status',
+    '/app/documentos/validacion':              'validate',
+    '/app/importaciones':                      'import',
+    '/app/sistemas/listos-para-firma':         'validate',
+    '/app/admin/reportes-basicos':             'report',
+    '/app/auditoria':                          'audit',
+    '/app/sistemas/configuracion':             'integrations',
+    '/app/sistemas/logs':                      'logs',
+    '/app/sistemas/dashboard':                 'status',
+    '/app/alumnos':                            'users',
+    '/app/matriculas':                         'matriculas',
+    '/app/materias-cursadas':                  'materias',
+    '/app/trayectorias':                       'trayectoria',
+    '/app/consulta/dashboard':                 'history',
+    '/app/consulta/documentos':                'docs',
+    '/app/docente/dashboard':                  'panel',
+    '/app/coordinador/dashboard':              'panel',
+};
+
+const i = (to, label) => ({ to, label });
+
 const menuByRole = {
     superadmin: [
-        { section: 'MAIN', links: [i('/app/dashboard', 'Dashboard', 'home')] },
-        { section: 'ADMINISTRACIÓN', links: [i('/app/superadmin/dashboard', 'Panel institucional', 'home'), i('/app/admin/usuarios-roles', 'Usuarios y roles', 'users'), i('/app/admin/catalogos', 'Catálogos', 'settings'), i('/app/admin/parametros', 'Parámetros', 'settings')] },
-        { section: 'OPERACIÓN', links: [i('/app/documentos/bandejas', 'Documentos académicos', 'docs'), i('/app/importaciones', 'Importaciones', 'docs'), i('/app/sistemas/listos-para-firma', 'Listos para firma', 'status'), i('/app/admin/reportes-basicos', 'Reportes básicos', 'report')] },
-        { section: 'TÉCNICO', links: [i('/app/auditoria', 'Auditoría', 'audit'), i('/app/sistemas/configuracion', 'Integraciones', 'settings'), i('/app/sistemas/logs', 'Logs del sistema', 'docs'), i('/app/sistemas/dashboard', 'Estado del sistema', 'status')] },
+        { section: 'MAIN', links: [i('/app/dashboard', 'Dashboard')] },
+        { section: 'ADMINISTRACIÓN', links: [i('/app/superadmin/dashboard', 'Panel institucional'), i('/app/admin/usuarios-roles', 'Usuarios y roles'), i('/app/admin/catalogos', 'Catálogos'), i('/app/admin/parametros', 'Parámetros')] },
+        { section: 'OPERACIÓN', links: [i('/app/documentos/bandejas', 'Documentos académicos'), i('/app/importaciones', 'Importaciones'), i('/app/sistemas/listos-para-firma', 'Listos para firma'), i('/app/admin/reportes-basicos', 'Reportes básicos')] },
+        { section: 'TÉCNICO', links: [i('/app/auditoria', 'Auditoría'), i('/app/sistemas/configuracion', 'Integraciones'), i('/app/sistemas/logs', 'Logs del sistema'), i('/app/sistemas/dashboard', 'Estado del sistema')] },
     ],
     admin: [
-        { section: 'MAIN', links: [i('/app/dashboard', 'Dashboard', 'home')] },
-        { section: 'ADMINISTRACIÓN', links: [i('/app/admin/dashboard', 'Panel institucional', 'home'), i('/app/admin/usuarios-roles', 'Usuarios y roles', 'users'), i('/app/admin/catalogos', 'Catálogos', 'settings'), i('/app/admin/parametros', 'Parámetros', 'settings')] },
-        { section: 'OPERACIÓN', links: [i('/app/documentos/bandejas', 'Documentos académicos', 'docs'), i('/app/importaciones', 'Importaciones', 'docs'), i('/app/sistemas/listos-para-firma', 'Listos para firma', 'status'), i('/app/admin/reportes-basicos', 'Reportes básicos', 'report')] },
+        { section: 'MAIN', links: [i('/app/dashboard', 'Dashboard')] },
+        { section: 'ADMINISTRACIÓN', links: [i('/app/admin/dashboard', 'Panel institucional'), i('/app/admin/usuarios-roles', 'Usuarios y roles'), i('/app/admin/catalogos', 'Catálogos'), i('/app/admin/parametros', 'Parámetros')] },
+        { section: 'OPERACIÓN', links: [i('/app/documentos/bandejas', 'Documentos académicos'), i('/app/importaciones', 'Importaciones'), i('/app/sistemas/listos-para-firma', 'Listos para firma'), i('/app/admin/reportes-basicos', 'Reportes básicos')] },
     ],
     control_escolar_escuela: [
-        { section: 'MAIN', links: [i('/app/dashboard', 'Dashboard', 'home')] },
-        { section: 'OPERACIÓN', links: [i('/app/documentos/nuevo', 'Documentos académicos', 'docs'), i('/app/documentos/bandejas/por-rol', 'Mis documentos', 'docs'), i('/app/alumnos', 'Alumnos', 'users'), i('/app/matriculas', 'Matrículas', 'docs'), i('/app/materias-cursadas', 'Materias / calificaciones', 'docs'), i('/app/trayectorias', 'Trayectoria', 'report'), i('/app/importaciones', 'Importaciones', 'docs')] },
+        { section: 'MAIN', links: [i('/app/dashboard', 'Dashboard')] },
+        { section: 'OPERACIÓN', links: [i('/app/documentos/nuevo', 'Documentos académicos'), i('/app/documentos/bandejas/por-rol', 'Mis documentos'), i('/app/alumnos', 'Alumnos'), i('/app/matriculas', 'Matrículas'), i('/app/materias-cursadas', 'Materias / calificaciones'), i('/app/trayectorias', 'Trayectoria'), i('/app/importaciones', 'Importaciones')] },
     ],
     director_escuela: [
-        { section: 'MAIN', links: [i('/app/dashboard', 'Dashboard', 'home')] },
-        { section: 'OPERACIÓN', links: [i('/app/documentos/bandejas/por-rol', 'Documentos de escuela', 'docs'), i('/app/documentos/bandejas/en-revision', 'En revisión', 'status'), i('/app/documentos/bandejas/aprobados', 'Aprobados', 'report'), i('/app/documentos/bandejas/rechazados', 'Rechazados', 'audit')] },
+        { section: 'MAIN', links: [i('/app/dashboard', 'Dashboard')] },
+        { section: 'OPERACIÓN', links: [i('/app/documentos/bandejas/por-rol', 'Documentos de escuela'), i('/app/documentos/bandejas/en-revision', 'En revisión'), i('/app/documentos/bandejas/aprobados', 'Aprobados'), i('/app/documentos/bandejas/rechazados', 'Rechazados')] },
     ],
     educacion_superior: [
-        { section: 'MAIN', links: [i('/app/dashboard', 'Dashboard', 'home')] },
-        { section: 'OPERACIÓN', links: [i('/app/documentos/bandejas/pendientes-revision', 'Pendientes', 'docs'), i('/app/documentos/validacion', 'Validación académica', 'status'), i('/app/documentos/bandejas/aprobados', 'Aprobados', 'report'), i('/app/documentos/bandejas/rechazados', 'Observados', 'audit')] },
-        { section: 'TÉCNICO', links: [i('/app/sistemas/listos-para-firma', 'Listos para firma', 'status')] },
+        { section: 'MAIN', links: [i('/app/dashboard', 'Dashboard')] },
+        { section: 'OPERACIÓN', links: [i('/app/documentos/bandejas/pendientes-revision', 'Pendientes'), i('/app/documentos/validacion', 'Validación académica'), i('/app/documentos/bandejas/aprobados', 'Aprobados'), i('/app/documentos/bandejas/rechazados', 'Observados')] },
+        { section: 'TÉCNICO', links: [i('/app/sistemas/listos-para-firma', 'Listos para firma')] },
     ],
     sistemas: [
-        { section: 'MAIN', links: [i('/app/dashboard', 'Dashboard', 'home')] },
-        { section: 'TÉCNICO', links: [i('/app/sistemas/dashboard', 'Estado del sistema', 'status'), i('/app/sistemas/listos-para-firma', 'Listos para firma', 'status'), i('/app/sistemas/logs', 'Logs del sistema', 'docs'), i('/app/sistemas/configuracion', 'Integraciones', 'settings')] },
+        { section: 'MAIN', links: [i('/app/dashboard', 'Dashboard')] },
+        { section: 'TÉCNICO', links: [i('/app/sistemas/dashboard', 'Estado del sistema'), i('/app/sistemas/listos-para-firma', 'Listos para firma'), i('/app/sistemas/logs', 'Logs del sistema'), i('/app/sistemas/configuracion', 'Integraciones')] },
     ],
     auditor: [
-        { section: 'MAIN', links: [i('/app/dashboard', 'Dashboard', 'home')] },
-        { section: 'TÉCNICO', links: [i('/app/auditoria', 'Auditoría', 'audit'), i('/app/sistemas/logs', 'Logs del sistema', 'docs')] },
-        { section: 'CONSULTA', links: [i('/app/consulta/documentos', 'Consulta de documentos', 'docs'), i('/app/consulta/dashboard', 'Historial', 'report')] },
+        { section: 'MAIN', links: [i('/app/dashboard', 'Dashboard')] },
+        { section: 'TÉCNICO', links: [i('/app/auditoria', 'Auditoría'), i('/app/sistemas/logs', 'Logs del sistema')] },
+        { section: 'CONSULTA', links: [i('/app/consulta/documentos', 'Consulta de documentos'), i('/app/consulta/dashboard', 'Historial')] },
     ],
     consulta: [
-        { section: 'MAIN', links: [i('/app/dashboard', 'Dashboard', 'home')] },
-        { section: 'CONSULTA', links: [i('/app/consulta/dashboard', 'Panel consulta', 'report'), i('/app/consulta/documentos', 'Consulta de documentos', 'docs'), i('/app/admin/reportes-basicos', 'Reportes lectura', 'report')] },
+        { section: 'MAIN', links: [i('/app/dashboard', 'Dashboard')] },
+        { section: 'CONSULTA', links: [i('/app/consulta/dashboard', 'Panel consulta'), i('/app/consulta/documentos', 'Consulta de documentos'), i('/app/admin/reportes-basicos', 'Reportes lectura')] },
     ],
     docente: [
-        { section: 'MAIN', links: [i('/app/dashboard', 'Dashboard', 'home')] },
-        { section: 'OPERACIÓN', links: [i('/app/docente/dashboard', 'Panel docente', 'users')] },
+        { section: 'MAIN', links: [i('/app/dashboard', 'Dashboard')] },
+        { section: 'OPERACIÓN', links: [i('/app/docente/dashboard', 'Panel docente')] },
     ],
     coordinador_academico: [
-        { section: 'MAIN', links: [i('/app/dashboard', 'Dashboard', 'home')] },
-        { section: 'OPERACIÓN', links: [i('/app/coordinador/dashboard', 'Panel coordinación', 'users')] },
+        { section: 'MAIN', links: [i('/app/dashboard', 'Dashboard')] },
+        { section: 'OPERACIÓN', links: [i('/app/coordinador/dashboard', 'Panel coordinación')] },
     ],
 };
 
 export function SidebarPro({ user, open = false, collapsed = false, onClose, onToggleCollapse, onLogout, onEditProfile }) {
     const role = user?.roles?.[0] ?? 'admin';
     const groups = menuByRole[role] ?? menuByRole.admin;
+    const [logoutHover, setLogoutHover] = useState(false);
 
     return (
         <aside className={`admin-sidebar ${collapsed ? 'is-collapsed' : ''} ${open ? 'is-open' : ''}`}>
             <div className="admin-sidebar-head">
                 <div>
                     <p className="admin-logo">SICES V2</p>
-                    {!collapsed ? <p className="admin-logo-sub">Panel institucional</p> : null}
+                    {!collapsed && <p className="admin-logo-sub">Panel institucional</p>}
                 </div>
-                <div className="flex items-center gap-1">
-                    <button className="admin-icon-btn hidden md:inline-flex" onClick={onToggleCollapse} aria-label="Colapsar menú">{collapsed ? icons.expand : icons.collapse}</button>
-                </div>
+                <button
+                    className="admin-icon-btn hidden md:inline-flex"
+                    onClick={onToggleCollapse}
+                    aria-label="Colapsar menú"
+                    style={{
+                        width: '24px',
+                        height: '24px',
+                        borderRadius: '6px',
+                        border: '1px solid rgba(255,255,255,0.25)',
+                        background: 'rgba(255,255,255,0.08)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: '#ffffff',
+                        cursor: 'pointer',
+                        transition: 'background 0.15s',
+                    }}
+                >
+                    {collapsed ? icons.expand : icons.collapse}
+                </button>
             </div>
+
             <nav className="admin-menu">
                 {groups.map((group) => (
                     <section key={group.section} className="admin-menu-section">
-                        {!collapsed ? <p className="admin-menu-title">{group.section}</p> : null}
+                        {!collapsed && <p className="admin-menu-title">{group.section}</p>}
                         <div className="admin-menu-links">
-                            {group.links.map((link) => (
-                                <NavLink key={link.to} to={link.to} onClick={onClose} className={({ isActive }) => `admin-menu-link ${isActive ? 'is-active' : ''}`}>
-                                    <span className="admin-menu-icon">{icons[link.iconName]}</span>
-                                    {!collapsed ? <span>{link.label}</span> : null}
-                                </NavLink>
-                            ))}
+                            {group.links.map((link) => {
+                                const iconName = routeIconMap[link.to] ?? 'docs';
+                                return (
+                                    <NavLink
+                                        key={link.to}
+                                        to={link.to}
+                                        onClick={onClose}
+                                        className={({ isActive }) => `admin-menu-link ${isActive ? 'is-active' : ''}`}
+                                    >
+                                        <span className="admin-menu-icon">{icons[iconName]}</span>
+                                        {!collapsed && <span>{link.label}</span>}
+                                    </NavLink>
+                                );
+                            })}
                         </div>
                     </section>
                 ))}
             </nav>
+
             <div className="admin-sidebar-actions">
                 <button className="admin-menu-link" type="button" onClick={onEditProfile}>
                     <span className="admin-menu-icon">{icons.profile}</span>
-                    {!collapsed ? <span>Editar perfil</span> : null}
+                    {!collapsed && <span>Editar perfil</span>}
                 </button>
-                <button className="admin-menu-link" type="button" onClick={onLogout}>
+                <button
+                    className="admin-menu-link"
+                    type="button"
+                    onClick={onLogout}
+                    onMouseEnter={() => setLogoutHover(true)}
+                    onMouseLeave={() => setLogoutHover(false)}
+                    style={{
+                        color: logoutHover ? '#ff3b3b' : undefined,
+                        background: logoutHover ? 'rgba(255,59,59,0.08)' : undefined,
+                        transition: 'color 0.15s, background 0.15s',
+                    }}
+                >
                     <span className="admin-menu-icon">{icons.logout}</span>
-                    {!collapsed ? <span>Cerrar sesión</span> : null}
+                    {!collapsed && <span>Cerrar sesión</span>}
                 </button>
             </div>
         </aside>

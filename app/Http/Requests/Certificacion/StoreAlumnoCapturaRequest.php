@@ -19,7 +19,7 @@ class StoreAlumnoCapturaRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'curp' => ['required', 'string', 'size:18'],
+            'curp' => ['required', 'string', 'size:18', 'unique:alumnos,curp'],
             'nombre' => ['required', 'string', 'max:120'],
             'primer_apellido' => ['required', 'string', 'max:120'],
             'segundo_apellido' => ['nullable', 'string', 'max:120'],
@@ -30,4 +30,20 @@ class StoreAlumnoCapturaRequest extends FormRequest
             'metadata' => ['nullable', 'array'],
         ];
     }
+
+    public function messages(): array
+    {
+        return [
+            //CURP
+            'curp.unique' => 'Esta CURP ya se encuentra registrada en el sistema. Intente con otra o busque al alumno existente.',
+            'curp.size' => 'La CURP debe tener exactamente 18 caracteres.',
+            'curp.required' => 'La CURP es un dato obligatorio.',
+
+            //Nombre
+            'nombre.required' => 'El nombre es un dato obligatorio.',
+            'nombre.string' => 'El nombre debe ser una cadena de texto.',
+            'nombre.max' => 'El nombre no puede exceder los 120 caracteres.',
+
+        ];
+}
 }

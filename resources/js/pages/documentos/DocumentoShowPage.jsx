@@ -13,7 +13,7 @@ import { PageHeader } from '../../components/PageHeader';
 import { ValidacionResumenCard } from '../../components/ValidacionResumenCard';
 import { SectionCard } from '../../components/ui/SectionCard';
 import { Timeline } from '../../components/ui/Timeline';
-
+import { AlertBox } from '../../components/ui/AlertBox';
 export function DocumentoShowPage() {
     const { id } = useParams();
     const navigate = useNavigate();
@@ -56,7 +56,7 @@ export function DocumentoShowPage() {
             await refresh();
             setMsg('Operacion ejecutada correctamente.');
         } catch (err) {
-            setError(err?.message ?? 'No se pudo ejecutar la accion.');
+            setError(err?.message ?? 'No se pudo ejecutar la acción. Intenta nuevamente.');
         }
     }
 
@@ -87,9 +87,9 @@ export function DocumentoShowPage() {
                 )}
             />
             {error ? <ErrorState message={error} /> : null}
-            {msg ? <p className="text-sm text-emerald-700">{msg}</p> : null}
+            {msg ? <AlertBox type="success" message={msg} /> : null}
             <div className="grid gap-4">
-            <SectionCard title="Encabezado documental" subtitle="Estado actual del flujo y datos principales.">
+            <SectionCard title="Encabezado documental" subtitle="Estado actual del flujo de certificación y datos principales.">
                 <div className="flex items-center justify-between">
                     <h2 className="text-base font-semibold">Folio: {doc.folio_interno ?? `Doc #${doc.id}`}</h2>
                     <EstadoBadge estado={doc.estado_workflow} />
@@ -98,7 +98,7 @@ export function DocumentoShowPage() {
                 <p className="mt-1 text-sm text-slate-600">Matricula ID: {doc.matricula_id ?? '-'} | Institucion/Sede: {doc.institucion_id ?? '-'} / {doc.sede_id ?? '-'}</p>
                 <p className="mt-1 text-sm text-slate-600">Tipo documento: {doc.tipo_documento ?? '-'} | Estado firma: {doc.estado_firma ?? '-'}</p>
             </SectionCard>
-            <SectionCard title="Timeline del proceso">
+            <SectionCard title="Timeline del proceso de certificación">
                 <Timeline steps={timelineSteps} current={doc.estado_workflow} />
             </SectionCard>
             <ValidacionResumenCard resumen={val} />
@@ -111,7 +111,7 @@ export function DocumentoShowPage() {
             </div>
             <aside className="inst-surface grid h-max gap-3 p-4">
                 <h3 className="inst-title text-sm">Acciones por rol</h3>
-                <ActionButton variant="secondary" onClick={() => runAction('validar')}>Ver validacion</ActionButton>
+                <ActionButton variant="secondary" onClick={() => runAction('validar')}>Ver validación</ActionButton>
                 {canControl ? <ActionButton onClick={() => runAction('enviar')}>Enviar a revision</ActionButton> : null}
                 {canControl ? <ActionButton variant="secondary" onClick={() => navigate(`/app/documentos/${id}/captura`)}>Editar borrador</ActionButton> : null}
                 {canControl ? <ActionButton variant="secondary" onClick={() => navigate(`/app/documentos/${id}/observaciones`)}>Atender observaciones</ActionButton> : null}

@@ -4,7 +4,7 @@ import { ActionButton } from '../../components/ActionButton';
 import { ErrorState } from '../../components/ErrorState';
 import { FormField } from '../../components/FormField';
 import { PageHeader } from '../../components/PageHeader';
-
+import { AlertBox } from '../../components/ui/AlertBox';
 export function TrayectoriaPage() {
     const [form, setForm] = useState({
         matricula_id: '',
@@ -22,26 +22,37 @@ export function TrayectoriaPage() {
     });
     const [message, setMessage] = useState('');
     const [error, setError] = useState('');
-
-    async function guardar() {
+    const [busy, setBusy] = useState(false);
+    async function guardar() {  
+        if (busy) return;
+        setBusy(true);
         setError('');
         setMessage('');
         try {
             await trayectoriasApi.upsert({
-                alumno_id: Number(form.alumno_id),
                 matricula_id: Number(form.matricula_id),
+                alumno_id: Number(form.alumno_id),
+                fecha_inicio: form.fecha_inicio || null,
+                fecha_fin: form.fecha_fin || null,
                 promedio: Number(form.promedio || 0),
+                promedio_texto: form.promedio_texto || null,
+                creditos_obtenidos: Number(form.creditos_obtenidos || 0),
+                creditos_totales: Number(form.creditos_totales || 0),
                 total_materias: Number(form.total_materias || 0),
                 materias_aprobadas: Number(form.materias_aprobadas || 0),
-                estado: form.estado,
+                materias_reprobadas: Number(form.materias_reprobadas || 0)
             });
-            setMessage('Trayectoria guardada.');
+            setMessage('Trayectoria guardada correctamente.');
         } catch (err) {
-            setError(err?.message ?? 'No se pudo guardar la trayectoria.');
+            setError(err?.message ?? 'No se pudo guardar la trayectoria. Intenta nuevamente.');
+        } finally {
+            setBusy(false);
         }
     }
 
-    async function consultarResumen() {
+    async function consultarResumen() { 
+        if (busy) return;
+        setBusy(true);
         setError('');
         setMessage('');
         try {
@@ -55,13 +66,15 @@ export function TrayectoriaPage() {
                 materias_reprobadas: String(t.materias_reprobadas ?? ''),
                 estado: t.estado ?? s.estado,
             }));
-            setMessage('Resumen de trayectoria cargado.');
+            setMessage('Resumen de trayectoria cargado correctamente.');
         } catch (err) {
             setError(
                 err?.status === 404
                     ? 'Consulta/recalculo de trayectoria por matricula pendiente de activacion en backend.'
-                    : err?.message ?? 'No se pudo consultar trayectoria.',
+                    : err?.message ?? 'No se pudo consultar trayectoria. Intenta nuevamente.',
             );
+        } finally {
+            setBusy(false);
         }
     }
 
@@ -85,10 +98,10 @@ export function TrayectoriaPage() {
                     <FormField label="Estado" value={form.estado} onChange={(v) => setForm((s) => ({ ...s, estado: v }))} />
                 </div>
                 <div className="mt-4 flex flex-wrap gap-2">
-                    <ActionButton onClick={guardar}>Guardar trayectoria</ActionButton>
-                    <ActionButton variant="secondary" onClick={consultarResumen}>Consultar por matricula</ActionButton>
+                    <ActionButton onClick={guardar} disabled={busy}>{busy ? 'Guardando...' : 'Guardar trayectoria'}</ActionButton>
+                    <ActionButton variant="secondary" onClick={consultarResumen} disabled={busy}>{busy ? 'Consultando...' : 'Consultar por matricula'}</ActionButton>
                 </div>
-                {message ? <p className="mt-2 text-sm text-emerald-700">{message}</p> : null}
+                {message ? <AlertBox type="success" message={message} /> : null}
             </div>
         </section>
     );

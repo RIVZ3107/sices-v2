@@ -7,16 +7,16 @@ import { NotificationDropdown } from '../components/ui/NotificationDropdown';
 
 function Icon({ name }) {
     const cls = 'h-4 w-4';
-    if (name === 'menu') {
-        return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" className={cls}><path d="M4 7h16M4 12h16M4 17h16" /></svg>;
-    }
     if (name === 'bell') {
-        return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" className={cls}><path d="M15 18H9m9-2H6l1.2-1.2A2 2 0 0 0 8 13.4V11a4 4 0 1 1 8 0v2.4a2 2 0 0 0 .8 1.4L18 16Z" /><path d="M10 18a2 2 0 0 0 4 0" /></svg>;
+        return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className={cls}><path d="M15 18H9m9-2H6l1.2-1.2A2 2 0 0 0 8 13.4V11a4 4 0 1 1 8 0v2.4a2 2 0 0 0 .8 1.4L18 16Z" /><path d="M10 18a2 2 0 0 0 4 0" /></svg>;
     }
     if (name === 'sun') {
-        return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" className={cls}><circle cx="12" cy="12" r="4" /><path d="M12 2v2.2M12 19.8V22M4.2 12H2m20 0h-2.2M5.6 5.6 4 4m16 16-1.6-1.6M18.4 5.6 20 4M4 20l1.6-1.6" /></svg>;
+        return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className={cls}><circle cx="12" cy="12" r="4" /><path d="M12 2v2.2M12 19.8V22M4.2 12H2m20 0h-2.2M5.6 5.6 4 4m16 16-1.6-1.6M18.4 5.6 20 4M4 20l1.6-1.6" /></svg>;
     }
-    return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" className={cls}><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z" /></svg>;
+    if (name === 'search') {
+        return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className={cls}><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>;
+    }
+    return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className={cls}><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z" /></svg>;
 }
 
 function roleLabel(role) {
@@ -37,7 +37,6 @@ export function AppLayout() {
     const user = getUser();
     const navigate = useNavigate();
     const location = useLocation();
-    const [sidebarOpen, setSidebarOpen] = useState(false);
     const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
     const [darkMode, setDarkMode] = useState(() => window.localStorage.getItem('sices_dark_mode') === '1');
     const [notificationsOpen, setNotificationsOpen] = useState(false);
@@ -75,9 +74,9 @@ export function AppLayout() {
         <div className="admin-layout">
             <SidebarPro
                 user={user}
-                open={sidebarOpen}
+                open={false}
                 collapsed={sidebarCollapsed}
-                onClose={() => setSidebarOpen(false)}
+                onClose={() => {}}
                 onToggleCollapse={() => setSidebarCollapsed((prev) => !prev)}
                 onLogout={onLogout}
                 onEditProfile={() => navigate('/app/dashboard')}
@@ -85,36 +84,58 @@ export function AppLayout() {
 
             <main className="admin-main">
                 <header className="admin-topbar">
+                    {/* Izquierda: título + sección actual */}
                     <div className="admin-topbar-left">
-                        <button className="admin-icon-btn md:hidden" onClick={() => setSidebarOpen(true)} aria-label="Abrir menú">
-                            <Icon name="menu" />
-                        </button>
                         <div>
                             <p className="admin-topbar-title">SICES V2</p>
-                            <p className="admin-topbar-subtitle">
-                                {roleLabel(currentRole)} · {currentSection}
-                            </p>
+                            <p className="admin-topbar-subtitle capitalize">{currentSection}</p>
                         </div>
                     </div>
 
+                    {/* Derecha: búsqueda + acciones + usuario */}
                     <div className="admin-topbar-actions">
-                        <input className="admin-search" placeholder="Buscar módulo o documento..." />
+                        {/* Search */}
+                        <div className="relative flex items-center">
+                            <div className="absolute left-3 text-slate-400">
+                                <Icon name="search" />
+                            </div>
+                            <input
+                                className="admin-search pl-9"
+                                style={{ paddingLeft: '35px' }}
+                                placeholder="Buscar módulo o documento..."
+                            />
+                        </div>
+
+                        {/* Notificaciones */}
+                        <div className="relative">
+                            <button
+                                className="admin-icon-btn"
+                                aria-label="Notificaciones"
+                                onClick={() => setNotificationsOpen((prev) => !prev)}
+                            >
+                                <Icon name="bell" />
+                            </button>
+                            {notificationsOpen && (
+                                <NotificationDropdown items={['Bandeja sincronizada correctamente.', 'Sin alertas críticas.']} />
+                            )}
+                        </div>
+
+                        {/* Tema */}
                         <button
                             className="admin-icon-btn"
-                            aria-label="Notificaciones"
-                            onClick={() => setNotificationsOpen((prev) => !prev)}
+                            onClick={() => setDarkMode((v) => !v)}
+                            aria-label="Cambiar tema"
                         >
-                            <Icon name="bell" />
-                        </button>
-                        {notificationsOpen ? <NotificationDropdown items={['Bandeja sincronizada correctamente.', 'Sin alertas críticas.']} /> : null}
-                        <button className="admin-icon-btn" onClick={() => setDarkMode((v) => !v)} aria-label="Cambiar tema">
                             <Icon name={darkMode ? 'sun' : 'moon'} />
                         </button>
-                        <span className="admin-role-pill">{roleLabel(currentRole)}</span>
+
+                        {/* Usuario — sin role pill duplicado */}
                         <div className="admin-userbox">
                             <span className="admin-user-avatar">{initials || 'US'}</span>
-                            <p className="admin-user-name">{user?.name ?? 'Usuario'}</p>
-                            <p className="admin-user-role">SICES V2</p>
+                            <div className="flex flex-col">
+                                <p className="admin-user-name">{user?.name ?? 'Usuario'}</p>
+                                <p className="admin-user-role">{roleLabel(currentRole)}</p>
+                            </div>
                         </div>
                     </div>
                 </header>

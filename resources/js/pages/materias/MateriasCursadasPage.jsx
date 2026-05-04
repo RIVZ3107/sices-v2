@@ -4,7 +4,7 @@ import { ActionButton } from '../../components/ActionButton';
 import { ErrorState } from '../../components/ErrorState';
 import { FormField } from '../../components/FormField';
 import { PageHeader } from '../../components/PageHeader';
-
+import { AlertBox } from '../../components/ui/AlertBox';
 export function MateriasCursadasPage() {
     const [form, setForm] = useState({
         alumno_id: '',
@@ -84,7 +84,7 @@ export function MateriasCursadasPage() {
                     <ActionButton onClick={guardar}>Registrar materia</ActionButton>
                     <ActionButton variant="secondary" onClick={intentarListar}>Validar listado/edicion</ActionButton>
                 </div>
-                {message ? <p className="mt-2 text-sm text-emerald-700">{message}</p> : null}
+                {message ? <AlertBox type="success" message={message} /> : null}
             </div>
         </section>
     );

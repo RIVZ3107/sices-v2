@@ -7,7 +7,7 @@ import { ObservacionForm } from '../../components/ObservacionForm';
 import { ObservacionesPanel } from '../../components/ObservacionesPanel';
 import { PageHeader } from '../../components/PageHeader';
 import { observacionesApi } from '../../api/observaciones';
-
+import { AlertBox } from '../../components/ui/AlertBox';
 export function DocumentoObservacionesPage() {
     const { id } = useParams();
     const [documentoId, setDocumentoId] = useState(id ?? '');
@@ -72,7 +72,7 @@ export function DocumentoObservacionesPage() {
                 </div>
             </div>
             {error ? <ErrorState message={error} /> : null}
-            {msg ? <p className="text-sm text-emerald-700">{msg}</p> : null}
+            {msg ? <AlertBox type="success" message={msg} /> : null}
             <ObservacionForm onSubmit={registrar} disabled={!documentoId} />
             <AtenderObservacionForm onSubmit={atender} disabled={!documentoId} />
             <ObservacionesPanel items={items} />

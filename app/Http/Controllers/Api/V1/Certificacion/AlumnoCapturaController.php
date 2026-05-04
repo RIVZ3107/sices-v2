@@ -10,9 +10,28 @@ use App\Http\Requests\Certificacion\UpdateAlumnoCapturaRequest;
 use App\Http\Resources\Certificacion\AlumnoResource;
 use App\Models\Alumno;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
 class AlumnoCapturaController extends Controller
 {
+        public function index(Request $request): AnonymousResourceCollection
+    {
+        $termino = $request->input('q');
+
+        $alumnos = Alumno::query()
+            ->when($termino, function ($query, $termino) {
+                $query->where('curp', 'LIKE', "%{$termino}%")
+                      ->orWhere('nombre', 'LIKE', "%{$termino}%")
+                      ->orWhere('primer_apellido', 'LIKE', "%{$termino}%")
+                      ->orWhere('segundo_apellido', 'LIKE', "%{$termino}%");
+            })
+            ->limit(100) 
+            ->get();
+
+        return AlumnoResource::collection($alumnos);
+    }
+
     public function store(StoreAlumnoCapturaRequest $request): JsonResponse
     {
         $this->authorize('create', Alumno::class);

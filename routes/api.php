@@ -36,6 +36,8 @@ Route::prefix('v1/certificacion')
             Route::get('catalogos/ofertas-academicas', [CatalogoCapturaController::class, 'ofertasAcademicas']);
         });
 
+        Route::get('alumnos', [AlumnoCapturaController::class, 'index'])
+            ->middleware('permission:ver_alumnos');
         Route::post('alumnos', [AlumnoCapturaController::class, 'store'])
             ->middleware('permission:gestionar_alumnos');
         Route::get('alumnos/{alumno}', [AlumnoCapturaController::class, 'show'])
