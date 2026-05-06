@@ -22,10 +22,16 @@ export function TrayectoriaPage() {
     });
     const [message, setMessage] = useState('');
     const [error, setError] = useState('');
+<<<<<<< HEAD
     const [busy, setBusy] = useState(false);
     async function guardar() {  
         if (busy) return;
         setBusy(true);
+=======
+    const canSync = Number(form.alumno_id) > 0 && Number(form.matricula_id) > 0;
+
+    async function guardar() {
+>>>>>>> 9578ba3 (Backend actualizado)
         setError('');
         setMessage('');
         try {
@@ -86,22 +92,32 @@ export function TrayectoriaPage() {
                 <div className="grid gap-3 md:grid-cols-3">
                     <FormField label="Matricula ID" value={form.matricula_id} onChange={(v) => setForm((s) => ({ ...s, matricula_id: v }))} />
                     <FormField label="Alumno ID" value={form.alumno_id} onChange={(v) => setForm((s) => ({ ...s, alumno_id: v }))} />
-                    <FormField label="Promedio" value={form.promedio} onChange={(v) => setForm((s) => ({ ...s, promedio: v }))} type="number" />
-                    <FormField label="Promedio texto (referencia)" value={form.promedio_texto} onChange={(v) => setForm((s) => ({ ...s, promedio_texto: v }))} />
-                    <FormField label="Creditos obtenidos (referencia)" value={form.creditos_obtenidos} onChange={(v) => setForm((s) => ({ ...s, creditos_obtenidos: v }))} />
-                    <FormField label="Creditos totales (referencia)" value={form.creditos_totales} onChange={(v) => setForm((s) => ({ ...s, creditos_totales: v }))} />
-                    <FormField label="Total materias" value={form.total_materias} onChange={(v) => setForm((s) => ({ ...s, total_materias: v }))} type="number" />
-                    <FormField label="Materias aprobadas" value={form.materias_aprobadas} onChange={(v) => setForm((s) => ({ ...s, materias_aprobadas: v }))} type="number" />
-                    <FormField label="Materias reprobadas" value={form.materias_reprobadas} onChange={(v) => setForm((s) => ({ ...s, materias_reprobadas: v }))} type="number" />
+                    <FormField label="Promedio (solo lectura)" value={form.promedio} onChange={(v) => setForm((s) => ({ ...s, promedio: v }))} type="number" disabled />
+                    <FormField label="Promedio texto (referencia)" value={form.promedio_texto} onChange={(v) => setForm((s) => ({ ...s, promedio_texto: v }))} disabled />
+                    <FormField label="Creditos obtenidos (solo lectura)" value={form.creditos_obtenidos} onChange={(v) => setForm((s) => ({ ...s, creditos_obtenidos: v }))} disabled />
+                    <FormField label="Creditos totales (solo lectura)" value={form.creditos_totales} onChange={(v) => setForm((s) => ({ ...s, creditos_totales: v }))} disabled />
+                    <FormField label="Total materias (solo lectura)" value={form.total_materias} onChange={(v) => setForm((s) => ({ ...s, total_materias: v }))} type="number" disabled />
+                    <FormField label="Materias aprobadas (solo lectura)" value={form.materias_aprobadas} onChange={(v) => setForm((s) => ({ ...s, materias_aprobadas: v }))} type="number" disabled />
+                    <FormField label="Materias reprobadas (solo lectura)" value={form.materias_reprobadas} onChange={(v) => setForm((s) => ({ ...s, materias_reprobadas: v }))} type="number" disabled />
                     <FormField label="Fecha inicio (referencia)" value={form.fecha_inicio} onChange={(v) => setForm((s) => ({ ...s, fecha_inicio: v }))} type="date" />
                     <FormField label="Fecha fin (referencia)" value={form.fecha_fin} onChange={(v) => setForm((s) => ({ ...s, fecha_fin: v }))} type="date" />
                     <FormField label="Estado" value={form.estado} onChange={(v) => setForm((s) => ({ ...s, estado: v }))} />
                 </div>
                 <div className="mt-4 flex flex-wrap gap-2">
+<<<<<<< HEAD
                     <ActionButton onClick={guardar} disabled={busy}>{busy ? 'Guardando...' : 'Guardar trayectoria'}</ActionButton>
                     <ActionButton variant="secondary" onClick={consultarResumen} disabled={busy}>{busy ? 'Consultando...' : 'Consultar por matricula'}</ActionButton>
                 </div>
                 {message ? <AlertBox type="success" message={message} /> : null}
+=======
+                    <ActionButton onClick={guardar} disabled={!canSync}>Sincronizar trayectoria desde materias</ActionButton>
+                    <ActionButton variant="secondary" onClick={consultarResumen}>Consultar por matricula</ActionButton>
+                </div>
+                <p className="mt-2 text-xs text-slate-600">
+                    La trayectoria se consolida automaticamente desde materias de la matrícula; esta pantalla ejecuta sincronización controlada.
+                </p>
+                {message ? <p className="mt-2 text-sm text-emerald-700">{message}</p> : null}
+>>>>>>> 9578ba3 (Backend actualizado)
             </div>
         </section>
     );

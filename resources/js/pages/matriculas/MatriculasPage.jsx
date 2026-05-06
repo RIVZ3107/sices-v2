@@ -19,7 +19,11 @@ export function MatriculasPage() {
     });
     const [message, setMessage] = useState('');
     const [error, setError] = useState('');
+<<<<<<< HEAD
     const [busy, setBusy] = useState(false);
+=======
+    const canCreate = Number(form.alumno_id) > 0 && Number(form.oferta_academica_id) > 0 && Number(form.ciclo_escolar_id) > 0;
+>>>>>>> 9578ba3 (Backend actualizado)
 
     async function crear() {
         if (busy) return;
@@ -84,10 +88,20 @@ export function MatriculasPage() {
                     <FormField label="Fecha egreso (referencia)" value={form.fecha_egreso} onChange={(v) => setForm((s) => ({ ...s, fecha_egreso: v }))} type="date" />
                 </div>
                 <div className="mt-4 flex gap-2">
+<<<<<<< HEAD
                     <ActionButton onClick={crear} disabled={busy}>{busy ? 'Creando...' : 'Crear matrícula'}</ActionButton>
                     <ActionButton variant="secondary" onClick={consultar} disabled={busy}>{busy ? 'Consultando...' : 'Consultar por ID'}</ActionButton>
                 </div>
                 {message ? <AlertBox type="success" message={message} /> : null}
+=======
+                    <ActionButton onClick={crear} disabled={!canCreate}>Crear matricula</ActionButton>
+                    <ActionButton variant="secondary" onClick={consultar}>Consultar por ID</ActionButton>
+                </div>
+                <p className="mt-2 text-xs text-slate-600">
+                    Regla institucional activa: una sola matrícula por alumno. Si el alumno ya tiene matrícula, backend rechazará la alta.
+                </p>
+                {message ? <p className="mt-2 text-sm text-emerald-700">{message}</p> : null}
+>>>>>>> 9578ba3 (Backend actualizado)
             </div>
         </section>
     );

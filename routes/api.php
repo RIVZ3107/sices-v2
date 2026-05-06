@@ -2,6 +2,8 @@
 
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\BandejaDocumentoAcademicoController;
+use App\Http\Controllers\Api\V1\Admin\RoleManagementController;
+use App\Http\Controllers\Api\V1\Admin\UserManagementController;
 use App\Http\Controllers\Api\V1\Certificacion\AlumnoCapturaController;
 use App\Http\Controllers\Api\V1\Certificacion\CatalogoCapturaController;
 use App\Http\Controllers\Api\V1\Certificacion\DocumentoAcademicoProcesoController;
@@ -40,6 +42,8 @@ Route::prefix('v1/certificacion')
             ->middleware('permission:ver_alumnos');
         Route::post('alumnos', [AlumnoCapturaController::class, 'store'])
             ->middleware('permission:gestionar_alumnos');
+        Route::get('alumnos', [AlumnoCapturaController::class, 'index'])
+            ->middleware('permission:ver_alumnos');
         Route::get('alumnos/{alumno}', [AlumnoCapturaController::class, 'show'])
             ->middleware('permission:ver_alumnos');
         Route::put('alumnos/{alumno}', [AlumnoCapturaController::class, 'update'])
@@ -93,4 +97,17 @@ Route::prefix('v1/certificacion')
                 Route::get('/pendientes-tecnicos', [BandejaDocumentoAcademicoController::class, 'pendientesTecnicos']);
                 Route::get('/resumen', [BandejaDocumentoAcademicoController::class, 'resumen']);
             });
+    });
+
+Route::prefix('v1/admin')
+    ->middleware('auth:sanctum')
+    ->group(function () {
+        Route::get('roles', [RoleManagementController::class, 'index'])
+            ->middleware('permission:ver_catalogos');
+        Route::get('usuarios', [UserManagementController::class, 'index'])
+            ->middleware('permission:ver_catalogos');
+        Route::post('usuarios', [UserManagementController::class, 'store'])
+            ->middleware('permission:gestionar_catalogos');
+        Route::put('usuarios/{user}', [UserManagementController::class, 'update'])
+            ->middleware('permission:gestionar_catalogos');
     });

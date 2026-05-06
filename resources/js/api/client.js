@@ -3,6 +3,7 @@ import axios from '../bootstrap';
 function normalizeApiError(error) {
     const status = error?.response?.status ?? 500;
     const payload = error?.response?.data ?? {};
+    const rawMessage = String(payload?.message ?? '').trim();
     const fallback =
         status === 403
             ? 'No tienes permisos para realizar esta accion.'
@@ -14,7 +15,10 @@ function normalizeApiError(error) {
 
     return {
         status,
-        message: payload?.message ?? fallback,
+        message:
+            status === 403 && rawMessage.toLowerCase() === 'this action is unauthorized.'
+                ? 'No tienes permisos para esta accion en tu rol actual.'
+                : payload?.message ?? fallback,
         errors: payload?.errors ?? {},
         original: error,
     };

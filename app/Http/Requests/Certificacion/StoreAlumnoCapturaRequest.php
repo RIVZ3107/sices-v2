@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\Certificacion;
 
+use App\Services\Certificacion\IdentificadorAlumnoService;
+use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
 
 class StoreAlumnoCapturaRequest extends FormRequest
@@ -19,7 +21,12 @@ class StoreAlumnoCapturaRequest extends FormRequest
     public function rules(): array
     {
         return [
+<<<<<<< HEAD
             'curp' => ['required', 'string', 'size:18', 'unique:alumnos,curp'],
+=======
+            'curp' => ['required', 'string', 'max:18'],
+            'rfc' => ['nullable', 'string', 'max:13'],
+>>>>>>> 9578ba3 (Backend actualizado)
             'nombre' => ['required', 'string', 'max:120'],
             'primer_apellido' => ['required', 'string', 'max:120'],
             'segundo_apellido' => ['nullable', 'string', 'max:120'],
@@ -31,6 +38,7 @@ class StoreAlumnoCapturaRequest extends FormRequest
         ];
     }
 
+<<<<<<< HEAD
     public function messages(): array
     {
         return [
@@ -45,5 +53,25 @@ class StoreAlumnoCapturaRequest extends FormRequest
             'nombre.max' => 'El nombre no puede exceder los 120 caracteres.',
 
         ];
+=======
+    public function withValidator(Validator $validator): void
+    {
+        $validator->after(function (Validator $v): void {
+            $ident = app(IdentificadorAlumnoService::class);
+            $curpOk = $ident->validarCurpOExtranjero((string) $this->input('curp'));
+            if ($curpOk['ok'] !== true) {
+                foreach ($curpOk['errores'] as $msg) {
+                    $v->errors()->add('curp', $msg);
+                }
+            }
+            $rfcOk = $ident->validarRfcPersonaFisicaOpcional($this->input('rfc'));
+            if ($rfcOk['ok'] !== true) {
+                foreach ($rfcOk['errores'] as $msg) {
+                    $v->errors()->add('rfc', $msg);
+                }
+            }
+        });
+    }
+>>>>>>> 9578ba3 (Backend actualizado)
 }
 }

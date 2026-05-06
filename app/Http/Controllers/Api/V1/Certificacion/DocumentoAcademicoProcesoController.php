@@ -8,6 +8,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Certificacion\DocumentoAccionCapturaRequest;
 use App\Http\Requests\Certificacion\StoreDocumentoAcademicoCapturaRequest;
 use App\Http\Resources\Certificacion\DocumentoAcademicoCapturaResource;
+use App\Enums\Certificacion\EstadoWorkflow;
 use App\Models\DocumentoAcademico;
 use App\Models\Matricula;
 use App\Services\Certificacion\CertificacionAlcanceService;
@@ -74,6 +75,16 @@ class DocumentoAcademicoProcesoController extends Controller
             'oferta_academica_id' => $ofertaId,
             'fecha_solicitud' => now(),
         ])->all();
+
+        $preview = new DocumentoAcademico(array_merge($atributos, [
+            'estado_workflow' => EstadoWorkflow::BORRADOR->value,
+        ]));
+        $validacionCrear = $this->validacionAcademica->validarParaCrearBorrador($preview);
+        if ($validacionCrear['ok'] !== true) {
+            throw ValidationException::withMessages([
+                'documento' => $validacionCrear['errores'],
+            ]);
+        }
 
         $documento = $this->workflow->crearBorrador(
             $atributos,

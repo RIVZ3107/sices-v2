@@ -6,6 +6,7 @@ enum EstadoXml: string
 {
     case NO_GENERADO = 'no_generado';
     case GENERADO = 'generado';
+    case VALIDADO = 'validado';
     case SELLADO = 'sellado';
     case TIMBRADO = 'timbrado';
     case ERROR_XML = 'error_xml';
@@ -15,6 +16,7 @@ enum EstadoXml: string
         return match ($this) {
             self::NO_GENERADO => 'No generado',
             self::GENERADO => 'Generado',
+            self::VALIDADO => 'Validado (pre-sellado)',
             self::SELLADO => 'Sellado',
             self::TIMBRADO => 'Timbrado',
             self::ERROR_XML => 'Error XML',

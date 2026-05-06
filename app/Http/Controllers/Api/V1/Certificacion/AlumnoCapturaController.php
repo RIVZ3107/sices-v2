@@ -9,6 +9,9 @@ use App\Http\Requests\Certificacion\StoreAlumnoCapturaRequest;
 use App\Http\Requests\Certificacion\UpdateAlumnoCapturaRequest;
 use App\Http\Resources\Certificacion\AlumnoResource;
 use App\Models\Alumno;
+use App\Services\Certificacion\CertificacionAlcanceService;
+use Illuminate\Http\Request;
+use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -30,6 +33,49 @@ class AlumnoCapturaController extends Controller
             ->get();
 
         return AlumnoResource::collection($alumnos);
+=======
+    public function __construct(
+        protected CertificacionAlcanceService $alcance,
+    ) {}
+
+    public function index(Request $request): AnonymousResourceCollection
+    {
+        $this->authorize('viewAny', Alumno::class);
+
+        $query = Alumno::query();
+
+        $user = $request->user();
+        if ($user !== null) {
+            $this->alcance->aplicarAlcanceAlumnos($query, $user);
+        }
+
+        $query
+            ->when(
+                (string) request()->string('q') !== '',
+                function ($builder): void {
+                    $term = '%'.(string) request()->string('q').'%';
+                    $builder->where(function ($nested) use ($term): void {
+                        $nested->where('curp', 'like', $term)
+                            ->orWhere('nombre', 'like', $term)
+                            ->orWhere('primer_apellido', 'like', $term)
+                            ->orWhere('segundo_apellido', 'like', $term);
+                    });
+                }
+            )
+            ->when(
+                (string) request()->string('curp') !== '',
+                fn ($builder) => $builder->where('curp', 'like', '%'.(string) request()->string('curp').'%')
+            )
+            ->when(
+                (string) request()->string('estatus') !== '',
+                fn ($builder) => $builder->where('estatus', (string) request()->string('estatus'))
+            )
+            ->orderByDesc('id');
+
+        return AlumnoResource::collection(
+            $query->paginate((int) request()->integer('per_page', 20))->withQueryString()
+        );
+>>>>>>> 9578ba3 (Backend actualizado)
     }
 
     public function store(StoreAlumnoCapturaRequest $request): JsonResponse

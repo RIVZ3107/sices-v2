@@ -4,7 +4,11 @@ namespace App\Providers;
 
 use App\Models\Alumno;
 use App\Models\DocumentoAcademico;
+use App\Models\MateriaCursada;
 use App\Models\Matricula;
+use App\Observers\AlumnoObserver;
+use App\Observers\MateriaCursadaObserver;
+use App\Observers\MatriculaObserver;
 use App\Policies\AlumnoPolicy;
 use App\Policies\DocumentoAcademicoPolicy;
 use App\Policies\MatriculaPolicy;
@@ -29,5 +33,9 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(DocumentoAcademico::class, DocumentoAcademicoPolicy::class);
         Gate::policy(Matricula::class, MatriculaPolicy::class);
         Gate::policy(Alumno::class, AlumnoPolicy::class);
+
+        Alumno::observe(AlumnoObserver::class);
+        Matricula::observe(MatriculaObserver::class);
+        MateriaCursada::observe(MateriaCursadaObserver::class);
     }
 }

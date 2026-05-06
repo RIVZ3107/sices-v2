@@ -37,6 +37,7 @@ export function DocumentoWizardPage() {
     const [step, setStep] = useState(0);
     const [busy, setBusy] = useState(false);
     const [msg, setMsg] = useState('');
+    const [isDocumentoPrevalidado, setIsDocumentoPrevalidado] = useState(false);
     const [state, setState] = useState({
         subsistema_id: '',
         region_id: '',
@@ -54,6 +55,25 @@ export function DocumentoWizardPage() {
     const currentDocumentoId = state.documento_id;
 
     const hint = useMemo(() => (currentDocumentoId ? `Documento actual: ${currentDocumentoId}` : 'Aun no hay documento creado.'), [currentDocumentoId]);
+    const requiredContext = ['subsistema_id', 'region_id', 'institucion_id', 'sede_id', 'oferta_academica_id', 'ciclo_escolar_id'];
+    const hasContext = requiredContext.every((f) => Number(state[f]) > 0);
+    const canRunStep = useMemo(() => {
+        if (step === 0) return true;
+        if (step === 1) return hasContext;
+        if (step === 2) return hasContext && Number(state.alumno_id) > 0;
+        if (step === 3) return Number(state.matricula_id) > 0 && Number(state.alumno_id) > 0;
+        if (step === 4) return Number(state.matricula_id) > 0 && Number(state.alumno_id) > 0;
+        if (step === 5) return hasContext && Number(state.alumno_id) > 0 && Number(state.matricula_id) > 0 && isDocumentoPrevalidado;
+        if (step === 6) return Number(currentDocumentoId) > 0;
+        return false;
+    }, [currentDocumentoId, hasContext, isDocumentoPrevalidado, state.alumno_id, state.matricula_id, step]);
+
+    function updateField(field, value) {
+        setState((s) => ({ ...s, [field]: value }));
+        if (['subsistema_id', 'region_id', 'institucion_id', 'sede_id', 'oferta_academica_id', 'ciclo_escolar_id', 'alumno_id', 'matricula_id'].includes(field)) {
+            setIsDocumentoPrevalidado(false);
+        }
+    }
 
     async function runStepAction() {
         setBusy(true);
@@ -69,12 +89,14 @@ export function DocumentoWizardPage() {
             }
             if (step === 1) {
                 const res = await alumnosApi.create({
-                    curp: `WIZ${Date.now().toString().slice(-15)}`,
+                    // CURP de pruebas operativas (18 chars) para no romper validación backend.
+                    curp: 'XAXX010101HNEXXXA4',
                     nombre: 'Alumno',
                     primer_apellido: 'Wizard',
                     segundo_apellido: 'Sices',
                 });
                 setState((s) => ({ ...s, alumno_id: res.data.id }));
+                setIsDocumentoPrevalidado(false);
                 setMsg(`Alumno creado: ${res.data.id}`);
             }
             if (step === 2) {
@@ -86,6 +108,7 @@ export function DocumentoWizardPage() {
                     estado: 'activa',
                 });
                 setState((s) => ({ ...s, matricula_id: res.data.id }));
+                setIsDocumentoPrevalidado(false);
                 setMsg(`Matricula creada: ${res.data.id}`);
             }
             if (step === 3) {
@@ -99,7 +122,8 @@ export function DocumentoWizardPage() {
                     creditos: 6,
                     semestre: 1,
                 });
-                setMsg('Materia registrada.');
+                setIsDocumentoPrevalidado(false);
+                setMsg('Materia registrada. Requiere sincronizar trayectoria antes de crear documento.');
             }
             if (step === 4) {
                 await trayectoriasApi.upsert({
@@ -110,7 +134,8 @@ export function DocumentoWizardPage() {
                     materias_aprobadas: 1,
                     estado: 'activa',
                 });
-                setMsg('Trayectoria actualizada.');
+                setIsDocumentoPrevalidado(true);
+                setMsg('Trayectoria sincronizada. Ya puedes crear documento.');
             }
             if (step === 5) {
                 const res = await documentosAcademicosApi.create({
@@ -128,12 +153,18 @@ export function DocumentoWizardPage() {
                 setMsg(`Documento creado: ${res.data.id}`);
             }
             if (step === 6 && currentDocumentoId) {
-                await documentosAcademicosApi.validar(currentDocumentoId);
+                const val = await documentosAcademicosApi.validar(currentDocumentoId);
+                if (!val?.data?.valido) {
+                    const detalle = (val?.data?.errores ?? []).join(' | ');
+                    setMsg(`No se puede enviar a revision: ${detalle || 'faltan requisitos academicos.'}`);
+                    return;
+                }
                 await documentosAcademicosApi.enviarRevision(currentDocumentoId, {});
                 setMsg('Documento validado y enviado a revision.');
             }
         } catch (err) {
-            setMsg(err?.response?.data?.message ?? 'Operacion no completada.');
+            const detalles = err?.errors ? Object.values(err.errors).flat().join(' | ') : '';
+            setMsg(detalles || err?.message || 'Operacion no completada.');
         } finally {
             setBusy(false);
         }
@@ -157,17 +188,29 @@ export function DocumentoWizardPage() {
                             className="inst-input text-sm"
                             placeholder={f.replaceAll('_', ' ')}
                             value={state[f]}
-                            onChange={(e) => setState((s) => ({ ...s, [f]: e.target.value }))}
+                            onChange={(e) => updateField(f, e.target.value)}
                         />
                     ))}
                 </div>
                 <div className="mt-4 flex flex-wrap gap-2">
                     <button disabled={!canBack || busy} onClick={() => setStep((s) => s - 1)} className="inst-btn inst-btn-secondary text-sm disabled:opacity-50">Anterior</button>
-                    <button disabled={busy} onClick={runStepAction} className="inst-btn inst-btn-primary text-sm disabled:opacity-50">{step === 6 ? 'Enviar a revision' : 'Guardar borrador del paso'}</button>
+                    <button
+                        disabled={busy || !canRunStep}
+                        onClick={runStepAction}
+                        className="inst-btn inst-btn-primary text-sm disabled:opacity-50"
+                    >
+                        {step === 6 ? 'Enviar a revision' : step === 5 ? 'Crear documento' : 'Guardar borrador del paso'}
+                    </button>
                     <button disabled={!canNext || busy} onClick={() => setStep((s) => s + 1)} className="inst-btn inst-btn-secondary text-sm disabled:opacity-50">Siguiente</button>
                     {currentDocumentoId ? <button onClick={() => navigate(`/app/documentos/${currentDocumentoId}`)} className="inst-btn inst-btn-secondary text-sm">Ver documento</button> : null}
                 </div>
                 {msg ? <AlertBox message={msg} type="info" /> : null}
+                {!canRunStep ? <p className="mt-2 text-xs text-amber-700">Completa los datos previos requeridos para este paso.</p> : null}
+                {step === 5 && !isDocumentoPrevalidado ? (
+                    <p className="mt-2 text-xs text-amber-700">
+                        Documento deshabilitado hasta validar trayectoria sincronizada (ejecuta el paso de Trayectoria).
+                    </p>
+                ) : null}
             </SectionCard>
         </section>
     );

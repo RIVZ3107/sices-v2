@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\Certificacion;
 
+use App\Models\MateriaCursada;
+use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
 
 class StoreMateriaCursadaCapturaRequest extends FormRequest
@@ -34,5 +36,35 @@ class StoreMateriaCursadaCapturaRequest extends FormRequest
             'estado' => ['sometimes', 'string', 'max:30'],
             'metadata' => ['nullable', 'array'],
         ];
+    }
+
+    public function withValidator(Validator $validator): void
+    {
+        $validator->after(function (Validator $v): void {
+            $matriculaId = (int) $this->input('matricula_id');
+            $cicloId = (int) $this->input('ciclo_escolar_id');
+            $clave = (string) $this->input('clave');
+            $periodo = $this->input('periodo');
+
+            $q = MateriaCursada::query()
+                ->where('matricula_id', $matriculaId)
+                ->where('ciclo_escolar_id', $cicloId)
+                ->where('clave', $clave);
+
+            if ($periodo === null || $periodo === '') {
+                $q->where(function ($scope): void {
+                    $scope->whereNull('periodo')->orWhere('periodo', '');
+                });
+            } else {
+                $q->where('periodo', $periodo);
+            }
+
+            if ($q->exists()) {
+                $v->errors()->add(
+                    'clave',
+                    'Ya existe un registro para la misma matrícula, ciclo, materia (clave) y periodo.',
+                );
+            }
+        });
     }
 }

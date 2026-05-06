@@ -13,15 +13,22 @@ use App\Models\TrayectoriaAcademica;
 
 class ValidacionAcademicaDocumentoService
 {
+    public function __construct(
+        protected IdentificadorAlumnoService $identificadores,
+    ) {}
+
     /**
      * @return array{ok: bool, errores: list<string>, advertencias: list<string>}
      */
     public function validarParaRevision(DocumentoAcademico $documento): array
     {
         $secciones = [
+            $this->validarDocumentoDuplicado($documento),
             $this->validarDatosAlumno($documento),
             $this->validarMatricula($documento),
+            $this->validarMatriculaUnica($documento),
             $this->validarOfertaAcademica($documento),
+            $this->validarProgramaPlan($documento),
             $this->validarMaterias($documento),
             $this->validarTrayectoria($documento),
         ];
@@ -192,7 +199,11 @@ class ValidacionAcademicaDocumentoService
             $errores[] = 'Debe existir al menos una materia cursada para el documento.';
         }
 
+        $materiasAlumnoDesalineado = false;
         foreach ($materias as $materia) {
+            if ($documento->alumno_id !== null && (int) $materia->alumno_id !== (int) $documento->alumno_id) {
+                $materiasAlumnoDesalineado = true;
+            }
             if ($materia->calificacion !== null) {
                 $valor = (float) $materia->calificacion;
                 if ($valor < 0 || $valor > 10) {
@@ -201,6 +212,10 @@ class ValidacionAcademicaDocumentoService
             } else {
                 $advertencias[] = "La materia {$materia->clave} no tiene calificación numérica.";
             }
+        }
+
+        if ($materiasAlumnoDesalineado) {
+            $errores[] = 'Al menos una materia cursada no corresponde al alumno del documento (consistencia alumno–matrícula).';
         }
 
         return ['ok' => $errores === [], 'errores' => $errores, 'advertencias' => array_values(array_unique($advertencias))];
@@ -245,7 +260,203 @@ class ValidacionAcademicaDocumentoService
             }
         }
 
+        if ($trayectoria->total_materias !== null && (int) $trayectoria->total_materias === 0) {
+            $errores[] = 'La trayectoria académica no refleja materias consolidadas (total 0).';
+        }
+
         return ['ok' => $errores === [], 'errores' => $errores, 'advertencias' => $advertencias];
+    }
+
+    /**
+     * @return array{ok: bool, errores: list<string>, advertencias: list<string>}
+     */
+    public function validarAlumno(DocumentoAcademico $documento): array
+    {
+        return $this->validarDatosAlumno($documento);
+    }
+
+    /**
+     * @return array{ok: bool, errores: list<string>, advertencias: list<string>}
+     */
+    public function validarCurpORExtranjero(DocumentoAcademico $documento): array
+    {
+        $documento->loadMissing('alumno');
+        if ($documento->alumno === null) {
+            return ['ok' => false, 'errores' => ['Sin alumno asociado.'], 'advertencias' => []];
+        }
+
+        $res = $this->identificadores->validarCurpOExtranjero((string) $documento->alumno->curp);
+
+        return [
+            'ok' => $res['ok'],
+            'errores' => $res['ok'] ? [] : $res['errores'],
+            'advertencias' => [],
+        ];
+    }
+
+    /**
+     * Valida ausencia de matrícula duplicada activa por alumno.
+     *
+     * @return array{ok: bool, errores: list<string>, advertencias: list<string>}
+     */
+    public function validarMatriculaUnica(DocumentoAcademico $documento): array
+    {
+        if ($documento->alumno_id === null) {
+            return ['ok' => false, 'errores' => ['Falta alumno para validar unicidad de matrícula.'], 'advertencias' => []];
+        }
+
+        $n = Matricula::query()->where('alumno_id', $documento->alumno_id)->count();
+        $errores = [];
+        if ($n !== 1) {
+            $errores[] = $n === 0
+                ? 'El alumno no tiene una matrícula activa registrada.'
+                : 'El alumno tiene más de una matrícula activa; debe haber exactamente una matrícula por alumno.';
+        }
+
+        return ['ok' => $errores === [], 'errores' => $errores, 'advertencias' => []];
+    }
+
+    /**
+     * @return array{ok: bool, errores: list<string>, advertencias: list<string>}
+     */
+    public function validarProgramaPlan(DocumentoAcademico $documento): array
+    {
+        $errores = [];
+        $advertencias = [];
+
+        if ($documento->oferta_academica_id === null) {
+            $errores[] = 'Debe existir oferta académica para validar programa y plan.';
+
+            return ['ok' => false, 'errores' => $errores, 'advertencias' => $advertencias];
+        }
+
+        $oferta = OfertaAcademica::query()->find($documento->oferta_academica_id);
+        if ($oferta === null) {
+            $errores[] = 'La oferta académica asociada no existe.';
+
+            return ['ok' => false, 'errores' => $errores, 'advertencias' => $advertencias];
+        }
+
+        if ($oferta->programa_estudio_id === null) {
+            $errores[] = 'La oferta académica no tiene programa de estudio vinculado.';
+        }
+        if ($oferta->plan_estudio_id === null) {
+            $errores[] = 'La oferta académica no tiene plan de estudio vinculado.';
+        }
+
+        return ['ok' => $errores === [], 'errores' => $errores, 'advertencias' => $advertencias];
+    }
+
+    /**
+     * Evita duplicados de documento académico para el mismo contexto de captura.
+     *
+     * @return array{ok: bool, errores: list<string>, advertencias: list<string>}
+     */
+    public function validarDocumentoDuplicado(DocumentoAcademico $documento): array
+    {
+        $errores = [];
+
+        if ($documento->alumno_id === null || $documento->matricula_id === null || $documento->ciclo_escolar_id === null) {
+            return ['ok' => true, 'errores' => [], 'advertencias' => []];
+        }
+
+        $query = DocumentoAcademico::query()
+            ->where('alumno_id', $documento->alumno_id)
+            ->where('matricula_id', $documento->matricula_id)
+            ->where('ciclo_escolar_id', $documento->ciclo_escolar_id)
+            ->where('tipo_documento', $documento->tipo_documento)
+            ->where('estado_workflow', '!=', EstadoWorkflow::CANCELADO->value);
+
+        if ($documento->exists) {
+            $query->whereKeyNot($documento->getKey());
+        }
+
+        if ($query->exists()) {
+            $errores[] = 'Ya existe un documento académico no cancelado con el mismo alumno, matrícula, ciclo y tipo.';
+        }
+
+        return ['ok' => $errores === [], 'errores' => $errores, 'advertencias' => []];
+    }
+
+    /**
+     * @return array{ok: bool, errores: list<string>, advertencias: list<string>}
+     */
+    public function validarParaCrearBorrador(DocumentoAcademico $documento): array
+    {
+        return $this->combinar([
+            $this->validarDocumentoDuplicado($documento),
+            $this->validarDatosAlumno($documento),
+            $this->validarMatricula($documento),
+            $this->validarMatriculaUnica($documento),
+            $this->validarOfertaAcademica($documento),
+            $this->validarProgramaPlan($documento),
+            $this->validarMaterias($documento),
+            $this->validarTrayectoria($documento),
+        ]);
+    }
+
+    /**
+     * @return array{ok: bool, errores: list<string>, advertencias: list<string>}
+     */
+    public function validarParaEnviarRevision(DocumentoAcademico $documento): array
+    {
+        return $this->validarParaRevision($documento);
+    }
+
+    /**
+     * @return array{ok: bool, errores: list<string>, advertencias: list<string>}
+     */
+    public function validarParaGenerarCadena(DocumentoAcademico $documento): array
+    {
+        $base = $this->validarParaPrepararFirma($documento);
+        $errores = $base['ok'] ? [] : $base['errores'];
+        $errores[] = 'TODO técnico: validar reglas oficiales de cadena original / comparación legacy cuando esté disponible la especificación o XML de referencia.';
+
+        return [
+            'ok' => false,
+            'errores' => array_values(array_unique($errores)),
+            'advertencias' => $base['advertencias'],
+        ];
+    }
+
+    /**
+     * @return array{ok: bool, errores: list<string>, advertencias: list<string>}
+     */
+    public function validarParaGenerarXml(DocumentoAcademico $documento): array
+    {
+        $base = $this->validarParaPrepararFirma($documento);
+        $errores = $base['ok'] ? [] : $base['errores'];
+        $errores[] = 'TODO técnico: validar plantilla XSD / estructura XML oficial o payload comparado contra legacy antes de generar XML productivo.';
+
+        return [
+            'ok' => false,
+            'errores' => array_values(array_unique($errores)),
+            'advertencias' => $base['advertencias'],
+        ];
+    }
+
+    /**
+     * @return array{ok: bool, errores: list<string>, advertencias: list<string>}
+     */
+    public function validarParaFirmar(DocumentoAcademico $documento): array
+    {
+        $base = $this->validarParaPrepararFirma($documento);
+        $errores = $base['ok'] ? [] : $base['errores'];
+        $errores[] = 'TODO técnico: validar esquema de firma (FIEL u homólogo) y validación de certificados según normativa vigente.';
+
+        return [
+            'ok' => false,
+            'errores' => array_values(array_unique($errores)),
+            'advertencias' => $base['advertencias'],
+        ];
+    }
+
+    /**
+     * @return array{ok: bool, errores: list<string>, advertencias: list<string>}
+     */
+    public function validarMateriasCursadas(DocumentoAcademico $documento): array
+    {
+        return $this->validarMaterias($documento);
     }
 
     /**
@@ -282,9 +493,12 @@ class ValidacionAcademicaDocumentoService
         $documento = $documento->fresh();
 
         $secciones = [
+            'documento_duplicado' => $this->validarDocumentoDuplicado($documento),
             'datos_alumno' => $this->validarDatosAlumno($documento),
             'matricula' => $this->validarMatricula($documento),
+            'matricula_unica' => $this->validarMatriculaUnica($documento),
             'oferta_academica' => $this->validarOfertaAcademica($documento),
+            'programa_plan' => $this->validarProgramaPlan($documento),
             'materias' => $this->validarMaterias($documento),
             'trayectoria' => $this->validarTrayectoria($documento),
             'observaciones' => $this->validarObservaciones($documento),

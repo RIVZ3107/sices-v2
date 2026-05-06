@@ -2,13 +2,22 @@
 
 namespace App\Models;
 
+use App\Services\Certificacion\IdentificadorAlumnoService;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Alumno extends Model
 {
     use SoftDeletes;
+
+    protected static function booted(): void
+    {
+        static::saving(function (Alumno $model): void {
+            app(IdentificadorAlumnoService::class)->aplicarAlModelo($model);
+        });
+    }
 
     protected $fillable = [
         'curp',
@@ -19,6 +28,7 @@ class Alumno extends Model
         'genero',
         'nacionalidad',
         'estatus',
+        'rfc',
         'metadata',
     ];
 
@@ -27,6 +37,15 @@ class Alumno extends Model
         'metadata' => 'array',
     ];
 
+    /** Matrícula institucional: regla explícita de negocio = una por alumno. */
+    public function matricula(): HasOne
+    {
+        return $this->hasOne(Matricula::class);
+    }
+
+    /**
+     * @deprecated Preferir {@see matricula()}; existe por compatibilidad con datos/código legacy.
+     */
     public function matriculas(): HasMany
     {
         return $this->hasMany(Matricula::class);

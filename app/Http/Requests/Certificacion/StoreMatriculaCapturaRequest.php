@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\Certificacion;
 
+use App\Models\Matricula;
+use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
 
 class StoreMatriculaCapturaRequest extends FormRequest
@@ -28,5 +30,21 @@ class StoreMatriculaCapturaRequest extends FormRequest
             'fecha_egreso' => ['nullable', 'date'],
             'metadata' => ['nullable', 'array'],
         ];
+    }
+
+    public function withValidator(Validator $validator): void
+    {
+        $validator->after(function (Validator $v): void {
+            $alumnoId = (int) $this->input('alumno_id');
+            if ($alumnoId <= 0) {
+                return;
+            }
+            if (Matricula::query()->where('alumno_id', $alumnoId)->exists()) {
+                $v->errors()->add(
+                    'alumno_id',
+                    'El alumno ya tiene una matrícula activa registrada; la regla institucional permite una sola matrícula por alumno.',
+                );
+            }
+        });
     }
 }

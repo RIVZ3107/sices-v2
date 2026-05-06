@@ -19,6 +19,11 @@ class AlumnoResource extends JsonResource
         return [
             'id' => $this->id,
             'curp' => $this->curp,
+            'curp_raiz' => $this->curp_raiz,
+            'curp_digito' => $this->curp_digito,
+            'rfc' => $this->rfc,
+            'rfc_raiz' => $this->rfc_raiz,
+            'rfc_homoclave' => $this->rfc_homoclave,
             'nombre' => $this->nombre,
             'primer_apellido' => $this->primer_apellido,
             'segundo_apellido' => $this->segundo_apellido,

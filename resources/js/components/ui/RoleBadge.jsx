@@ -8,6 +8,8 @@ export function RoleBadge({ role }) {
         sistemas: { label: 'Sistemas', cls: 'inst-badge-info' },
         auditor: { label: 'Auditor', cls: 'inst-badge-warning' },
         consulta: { label: 'Consulta', cls: 'inst-badge-info' },
+        docente: { label: 'Docente', cls: 'inst-badge-success' },
+        coordinador_academico: { label: 'Coordinador', cls: 'inst-badge-warning' },
     };
 
     const item = map[role] ?? { label: role ?? 'Sin rol', cls: 'inst-badge-info' };

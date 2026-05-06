@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { alumnosApi } from '../../api/alumnos';
 import { ActionButton } from '../../components/ActionButton';
@@ -28,6 +28,11 @@ export function AlumnosPage() {
                     setBusy(false);
                 }
             }
+
+    useEffect(() => {
+        buscar();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     return (
         <section className="grid gap-4">

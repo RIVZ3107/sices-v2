@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Certificacion;
 
+use App\Models\Alumno;
 use App\Models\DocumentoAcademico;
 use App\Models\Institucion;
 use App\Models\OfertaAcademica;
@@ -266,5 +267,41 @@ class CertificacionAlcanceService
                 $q->orWhereIn('region_id', $idsRegiones);
             }
         });
+    }
+
+    /**
+     * Alumnos visibles sólo si tienen al menos una matrícula en oferta académica dentro del alcance.
+     */
+    public function aplicarAlcanceAlumnos(Builder $query, User $user): void
+    {
+        if ($this->exentaRestriccionTerritorial($user)) {
+            return;
+        }
+
+        $ofertas = OfertaAcademica::query();
+        $this->aplicarAlcanceOfertasAcademicas($ofertas, $user);
+        $ids = $ofertas->pluck('id');
+
+        if ($ids->isEmpty()) {
+            $query->whereRaw('1 = 0');
+
+            return;
+        }
+
+        $query->whereHas('matriculas', function (Builder $m) use ($ids): void {
+            $m->whereIn('oferta_academica_id', $ids);
+        });
+    }
+
+    public function alumnoAccesible(User $user, Alumno $alumno): bool
+    {
+        if ($this->exentaRestriccionTerritorial($user)) {
+            return true;
+        }
+
+        $q = Alumno::query()->whereKey($alumno->id);
+        $this->aplicarAlcanceAlumnos($q, $user);
+
+        return $q->exists();
     }
 }
