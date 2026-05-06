@@ -22,16 +22,12 @@ export function TrayectoriaPage() {
     });
     const [message, setMessage] = useState('');
     const [error, setError] = useState('');
-<<<<<<< HEAD
     const [busy, setBusy] = useState(false);
-    async function guardar() {  
-        if (busy) return;
-        setBusy(true);
-=======
     const canSync = Number(form.alumno_id) > 0 && Number(form.matricula_id) > 0;
 
     async function guardar() {
->>>>>>> 9578ba3 (Backend actualizado)
+        if (busy) return;
+        setBusy(true);
         setError('');
         setMessage('');
         try {
@@ -104,20 +100,15 @@ export function TrayectoriaPage() {
                     <FormField label="Estado" value={form.estado} onChange={(v) => setForm((s) => ({ ...s, estado: v }))} />
                 </div>
                 <div className="mt-4 flex flex-wrap gap-2">
-<<<<<<< HEAD
-                    <ActionButton onClick={guardar} disabled={busy}>{busy ? 'Guardando...' : 'Guardar trayectoria'}</ActionButton>
+                    <ActionButton onClick={guardar} disabled={busy || !canSync}>
+                        {busy ? 'Guardando...' : 'Sincronizar trayectoria desde materias'}
+                    </ActionButton>
                     <ActionButton variant="secondary" onClick={consultarResumen} disabled={busy}>{busy ? 'Consultando...' : 'Consultar por matricula'}</ActionButton>
-                </div>
-                {message ? <AlertBox type="success" message={message} /> : null}
-=======
-                    <ActionButton onClick={guardar} disabled={!canSync}>Sincronizar trayectoria desde materias</ActionButton>
-                    <ActionButton variant="secondary" onClick={consultarResumen}>Consultar por matricula</ActionButton>
                 </div>
                 <p className="mt-2 text-xs text-slate-600">
                     La trayectoria se consolida automaticamente desde materias de la matrícula; esta pantalla ejecuta sincronización controlada.
                 </p>
-                {message ? <p className="mt-2 text-sm text-emerald-700">{message}</p> : null}
->>>>>>> 9578ba3 (Backend actualizado)
+                {message ? <AlertBox type="success" message={message} /> : null}
             </div>
         </section>
     );
