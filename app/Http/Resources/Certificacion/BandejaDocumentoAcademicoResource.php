@@ -37,6 +37,18 @@ class BandejaDocumentoAcademicoResource extends JsonResource
             'institucion_id' => $this->institucion_id,
             'sede_id' => $this->sede_id,
             'region_id' => $this->region_id,
+            'institucion' => $this->whenLoaded('institucion', fn () => [
+                'nombre' => $this->institucion?->nombre,
+                'clave' => $this->institucion?->clave,
+            ]),
+            'sede' => $this->whenLoaded('sede', fn () => [
+                'nombre' => $this->sede?->nombre,
+                'clave' => $this->sede?->clave,
+            ]),
+            'ciclo_escolar' => $this->whenLoaded('cicloEscolar', fn () => [
+                'nombre' => $this->cicloEscolar?->nombre,
+                'clave' => $this->cicloEscolar?->clave,
+            ]),
             'alumno' => $this->whenLoaded('alumno', fn () => [
                 'id' => $this->alumno?->id,
                 'curp' => $this->alumno?->curp,

@@ -8,10 +8,16 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Certificacion\UpsertTrayectoriaCapturaRequest;
 use App\Http\Resources\Certificacion\TrayectoriaAcademicaResource;
 use App\Models\Matricula;
+use App\Models\TrayectoriaAcademica;
 use App\Services\Certificacion\TrayectoriaAcademicaService;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 
+/**
+ * Trayectoria: la coherencia normativa de calificaciones e inscripciones se valida al capturar materias
+ * e inscripciones (AcademicRulesResolver); la sincronización aquí no sustituye esas reglas.
+ */
 class TrayectoriaCapturaController extends Controller
 {
     public function __construct(
@@ -48,5 +54,43 @@ class TrayectoriaCapturaController extends Controller
         return (new TrayectoriaAcademicaResource($trayectoria->fresh()))
             ->response()
             ->setStatusCode($resultado['creada_trayectoria'] ? 201 : 200);
+    }
+
+    /** Consulta de trayectoria asociada a la matrícula (solo lectura). */
+    public function showPorMatricula(Matricula $matricula): JsonResponse
+    {
+        $this->authorize('view', $matricula);
+
+        $trayectoria = TrayectoriaAcademica::query()->where('matricula_id', $matricula->id)->first();
+        if ($trayectoria === null) {
+            return response()->json(['data' => null]);
+        }
+
+        return (new TrayectoriaAcademicaResource($trayectoria))->response();
+    }
+
+    /**
+     * Recalcula métricas desde materias cursadas (misma lógica que sincronización en importación).
+     *
+     * @throws ValidationException
+     */
+    public function recalcularPorMatricula(Request $request, Matricula $matricula): JsonResponse
+    {
+        $this->authorize('sincronizarTrayectoria', $matricula);
+
+        $resultado = $this->trayectoria->sincronizarDesdeMaterias($matricula->fresh(), $request->user()?->id);
+
+        if (($resultado['bloqueado'] ?? false) === true) {
+            throw ValidationException::withMessages([
+                'matricula_id' => [$resultado['motivo'] ?? 'No se puede recalcular la trayectoria en este momento.'],
+            ]);
+        }
+
+        /** @var TrayectoriaAcademica $fresh */
+        $fresh = $resultado['trayectoria'];
+
+        return (new TrayectoriaAcademicaResource($fresh->fresh()))
+            ->response()
+            ->setStatusCode(($resultado['creada_trayectoria'] ?? false) ? 201 : 200);
     }
 }

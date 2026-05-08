@@ -7,6 +7,7 @@ namespace App\Services\Certificacion;
 use App\Enums\Certificacion\EstadoCadena;
 use App\Enums\Certificacion\EstadoFirma;
 use App\Enums\Certificacion\EstadoPdf;
+use App\Enums\Certificacion\EstadoSep;
 use App\Enums\Certificacion\EstadoWorkflow;
 use App\Enums\Certificacion\EstadoXml;
 use App\Models\DocumentoAcademico;
@@ -21,6 +22,8 @@ class DocumentoAcademicoWorkflowService
     public function __construct(
         protected DocumentoEstadoService $estados,
         protected AuditoriaService $auditoria,
+        protected DocumentoMateriaSnapshotService $materiasSnapshot,
+        protected CertificacionImportacionLegacyNormativaGate $legacyNormativaGate,
     ) {}
 
     /**
@@ -33,6 +36,7 @@ class DocumentoAcademicoWorkflowService
             'estado_cadena' => EstadoCadena::NO_GENERADA->value,
             'estado_xml' => EstadoXml::NO_GENERADO->value,
             'estado_firma' => EstadoFirma::NO_FIRMADO->value,
+            'estado_sep' => EstadoSep::NO_ENVIADO->value,
             'estado_pdf' => EstadoPdf::NO_GENERADO->value,
             'created_by' => $creadoPor,
         ], $atributos));
@@ -221,7 +225,14 @@ class DocumentoAcademicoWorkflowService
         ?string $ip = null,
         ?string $userAgent = null,
     ): DocumentoAcademico {
+        $documento->loadMissing('matricula');
+        $this->legacyNormativaGate->asegurarMatriculaListaParaCertificadoOficial(
+            $documento->matricula,
+            $usuarioId,
+            'marcar_listo_para_firma',
+        );
         $requisitos->validarParaMarcarListoFirma($documento);
+        $this->materiasSnapshot->generarSiNoExiste($documento->fresh(), $usuarioId);
 
         return DB::transaction(function () use ($documento, $usuarioId, $ip, $userAgent) {
             $documento->refresh();

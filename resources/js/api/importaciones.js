@@ -9,5 +9,4 @@ export const importacionesApi = {
     prevalidar: (id, payload = {}) => apiPost(`/academico/importaciones/${id}/prevalidar`, payload),
     confirmar: (id, payload = {}) => apiPost(`/academico/importaciones/${id}/confirmar`, payload),
     cancelar: (id, payload = {}) => apiPost(`/academico/importaciones/${id}/cancelar`, payload),
-    detalles: (id) => apiGet(`/academico/importaciones/${id}/detalles`),
 };

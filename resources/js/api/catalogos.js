@@ -5,5 +5,6 @@ export const catalogosApi = {
     subsistemas: () => apiGet('/certificacion/catalogos/subsistemas'),
     regiones: () => apiGet('/certificacion/catalogos/regiones'),
     instituciones: () => apiGet('/certificacion/catalogos/instituciones'),
+    sedes: (params = {}) => apiGet('/catalogos/sedes', { params }),
     ofertasAcademicas: (params = {}) => apiGet('/certificacion/catalogos/ofertas-academicas', { params }),
 };

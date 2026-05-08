@@ -11,6 +11,7 @@ use App\Models\DocumentoAcademico;
 use App\Models\DocumentoPayload;
 use App\Models\DocumentoVersion;
 use App\Models\XmlPlantilla;
+use App\Support\Certificacion\Profiles\CertificacionProfileResolver;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -22,6 +23,7 @@ class XmlDocumentoAcademicoBuilder
         protected DocumentStorageService $storage,
         protected DocumentoEstadoService $estados,
         protected AuditoriaService $auditoria,
+        protected CertificacionProfileResolver $profileResolver,
     ) {}
 
     public function generar(
@@ -30,6 +32,8 @@ class XmlDocumentoAcademicoBuilder
         CadenaOriginalGenerada $cadena,
         ?int $usuarioId = null,
     ): DocumentoVersion {
+        $this->asegurarEmisionOficialDisponible($documento);
+
         if ($payload->documento_academico_id !== $documento->id) {
             throw new PayloadDocumentoInvalidoException('El payload no pertenece al documento académico indicado.');
         }
@@ -271,5 +275,24 @@ class XmlDocumentoAcademicoBuilder
             'estado_validacion' => 'pendiente_validacion_sep',
             'requiere_revision_senior' => true,
         ];
+    }
+
+    private function asegurarEmisionOficialDisponible(DocumentoAcademico $documento): void
+    {
+        if ($documento->tipo_documento !== 'certificado') {
+            return;
+        }
+        try {
+            $profile = $this->profileResolver->resolveForDocumento($documento);
+            if ($profile->oficialDisponible()) {
+                return;
+            }
+        } catch (\Throwable) {
+            return;
+        }
+
+        throw new PayloadDocumentoInvalidoException(
+            'La especificación documental oficial de UPN no ha sido configurada. Solo se permite flujo académico/controlado, no emisión oficial.'
+        );
     }
 }

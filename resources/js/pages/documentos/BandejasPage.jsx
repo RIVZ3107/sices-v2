@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
+import { getUser } from '../../authStore';
 import { bandejasApi } from '../../api/bandejas';
+import { catalogosApi } from '../../api/catalogos';
 import { BandejaTable } from '../../components/BandejaTable';
 import { EmptyState } from '../../components/EmptyState';
 import { ErrorState } from '../../components/ErrorState';
@@ -22,18 +24,21 @@ const bandejas = [
     'errores-firma',
     'pendientes-tecnicos',
 ];
+const BANDEJAS_POR_ROL = {
+    control_escolar_escuela: ['por-rol', 'borradores', 'en-revision', 'aprobados', 'rechazados'],
+};
 const BANDEJA_DESCRIPCION = {
-    'por-rol': 'Documentos visibles segun el rol autenticado.',
-    borradores: 'Documentos en captura y preparacion interna.',
-    'por-enviar': 'Documentos listos para envio inicial a revision.',
-    'en-revision': 'Documentos en analisis por instancia revisora.',
-    'pendientes-revision': 'Documentos pendientes de dictaminacion.',
+    'por-rol': 'Documentos visibles según tu rol.',
+    borradores: 'Documentos en captura y preparación interna.',
+    'por-enviar': 'Documentos listos para envío inicial a revisión.',
+    'en-revision': 'Documentos en análisis institucional.',
+    'pendientes-revision': 'Documentos pendientes de dictaminación.',
     aprobados: 'Documentos aprobados institucionalmente.',
     rechazados: 'Documentos devueltos con observaciones.',
-    'listos-para-firma': 'Documentos aprobados y preparados para firma futura.',
-    firmados: 'Documentos marcados como firmados en procesos tecnicos.',
-    'errores-firma': 'Documentos con incidencias tecnicas de firma.',
-    'pendientes-tecnicos': 'Documentos pendientes de atencion tecnica.',
+    'listos-para-firma': 'Documentos aprobados y preparados para firma posterior.',
+    firmados: 'Documentos firmados.',
+    'errores-firma': 'Documentos con incidencias de firma.',
+    'pendientes-tecnicos': 'Documentos pendientes de atención.',
 };
 
 export function BandejasPage() {
@@ -41,12 +46,16 @@ export function BandejasPage() {
     const [bandeja, setBandeja] = useState(bandejaParam ?? 'por-rol');
     const [rows, setRows] = useState(null);
     const [error, setError] = useState('');
+    const [catalogos, setCatalogos] = useState({ instituciones: [], ciclos: [] });
+    const user = getUser();
+    const isControlEscolar = (user?.roles ?? []).includes('control_escolar_escuela');
+    const bandejasVisibles = BANDEJAS_POR_ROL.control_escolar_escuela && isControlEscolar ? BANDEJAS_POR_ROL.control_escolar_escuela : bandejas;
     const [filters, setFilters] = useState({
         q: '',
         curp: '',
         folio_interno: '',
         institucion_id: '',
-        sede_id: '',
+        sede_q: '',
         ciclo_escolar_id: '',
         tipo_documento: '',
         estado_workflow: '',
@@ -58,11 +67,34 @@ export function BandejasPage() {
     }, [bandejaParam]);
 
     useEffect(() => {
-        setError('');
+        Promise.all([
+            catalogosApi.instituciones().catch(() => ({ data: [] })),
+            catalogosApi.ciclosEscolares().catch(() => ({ data: [] })),
+        ]).then(([ins, cic]) => {
+            setCatalogos({
+                instituciones: Array.isArray(ins?.data) ? ins.data : [],
+                ciclos: Array.isArray(cic?.data) ? cic.data : [],
+            });
+        });
+    }, []);
+
+    useEffect(() => {
+            setError('');
+        const params = {
+            ...filters,
+            sede_id: '',
+        };
         const req = bandeja === 'por-rol'
-            ? bandejasApi.porRol(filters)
-            : bandejasApi.listar(bandeja, filters);
-        req.then((res) => setRows(res.data)).catch((err) => {
+            ? bandejasApi.porRol(params)
+            : bandejasApi.listar(bandeja, params);
+        req.then((res) => {
+            const data = Array.isArray(res.data) ? res.data : [];
+            const term = filters.sede_q.trim().toLowerCase();
+            const filtrada = term
+                ? data.filter((row) => `${row?.sede?.nombre ?? ''} ${row?.sede?.clave ?? ''}`.toLowerCase().includes(term))
+                : data;
+            setRows(filtrada);
+        }).catch((err) => {
             setRows([]);
             setError(err?.message ?? 'No se pudo cargar la bandeja.');
         });
@@ -70,26 +102,55 @@ export function BandejasPage() {
 
     return (
         <section className="grid gap-4">
-            <PageHeader title={`Bandeja: ${bandeja.replaceAll('-', ' ')}`} subtitle={`${BANDEJA_DESCRIPCION[bandeja] ?? 'Mesa de trabajo documental.'} Resultados: ${resultCount}`} />
-            <FilterBar onReset={() => setFilters({ q: '', curp: '', folio_interno: '', institucion_id: '', sede_id: '', ciclo_escolar_id: '', tipo_documento: '', estado_workflow: '' })}>
+            <PageHeader title={bandeja === 'por-rol' ? 'Mis documentos académicos' : `Bandeja: ${bandeja.replaceAll('-', ' ')}`} subtitle={`${BANDEJA_DESCRIPCION[bandeja] ?? 'Mesa de trabajo documental.'} Resultados: ${resultCount}`} />
+            <FilterBar onReset={() => setFilters({ q: '', curp: '', folio_interno: '', institucion_id: '', sede_q: '', ciclo_escolar_id: '', tipo_documento: '', estado_workflow: '' })}>
                 <label className="grid gap-1 text-xs text-slate-600">
                     Bandeja
                     <select className="inst-select text-sm" value={bandeja} onChange={(e) => setBandeja(e.target.value)}>
-                        {bandejas.map((b) => <option key={b} value={b}>{b}</option>)}
+                        {bandejasVisibles.map((b) => <option key={b} value={b}>{b}</option>)}
                     </select>
                 </label>
                 <FormField label="Busqueda general" value={filters.q} onChange={(v) => setFilters((s) => ({ ...s, q: v }))} />
-                <FormField label="CURP" value={filters.curp} onChange={(v) => setFilters((s) => ({ ...s, curp: v }))} />
-                <FormField label="Folio interno" value={filters.folio_interno} onChange={(v) => setFilters((s) => ({ ...s, folio_interno: v }))} />
-                <FormField label="Institucion (ID)" value={filters.institucion_id} onChange={(v) => setFilters((s) => ({ ...s, institucion_id: v }))} />
-                <FormField label="Sede (ID)" value={filters.sede_id} onChange={(v) => setFilters((s) => ({ ...s, sede_id: v }))} />
-                <FormField label="Ciclo escolar (ID)" value={filters.ciclo_escolar_id} onChange={(v) => setFilters((s) => ({ ...s, ciclo_escolar_id: v }))} />
-                <FormField label="Tipo documento" value={filters.tipo_documento} onChange={(v) => setFilters((s) => ({ ...s, tipo_documento: v }))} />
-                <FormField label="Estado workflow" value={filters.estado_workflow} onChange={(v) => setFilters((s) => ({ ...s, estado_workflow: v }))} />
+                <details className="md:col-span-4">
+                    <summary className="cursor-pointer text-xs text-slate-600">Filtros avanzados</summary>
+                    <div className="mt-3 grid gap-3 md:grid-cols-4">
+                        <label className="grid gap-1 text-xs text-slate-600">
+                            Institución
+                            <select className="inst-select text-sm" value={filters.institucion_id} onChange={(e) => setFilters((s) => ({ ...s, institucion_id: e.target.value }))}>
+                                <option value="">Todas</option>
+                                {catalogos.instituciones.map((ins) => <option key={ins.id} value={ins.id}>{ins.nombre}</option>)}
+                            </select>
+                        </label>
+                        <FormField label="Sede / CCT" value={filters.sede_q} onChange={(v) => setFilters((s) => ({ ...s, sede_q: v }))} placeholder="Nombre o CCT" />
+                        <label className="grid gap-1 text-xs text-slate-600">
+                            Ciclo escolar
+                            <select className="inst-select text-sm" value={filters.ciclo_escolar_id} onChange={(e) => setFilters((s) => ({ ...s, ciclo_escolar_id: e.target.value }))}>
+                                <option value="">Todos</option>
+                                {catalogos.ciclos.map((c) => <option key={c.id} value={c.id}>{c.nombre ?? c.clave}</option>)}
+                            </select>
+                        </label>
+                        <FormField label="Tipo documento" value={filters.tipo_documento} onChange={(v) => setFilters((s) => ({ ...s, tipo_documento: v }))} />
+                        <FormField label="Estado" value={filters.estado_workflow} onChange={(v) => setFilters((s) => ({ ...s, estado_workflow: v }))} />
+                    </div>
+                </details>
             </FilterBar>
             {error ? <ErrorState message={error} /> : null}
-            {rows === null ? <LoadingState text="Cargando bandeja..." /> : rows.length === 0 ? <EmptyState title="No hay documentos en esta bandeja." description="Cuando se generen documentos para este estado, apareceran aqui." /> : <BandejaTable rows={rows} />}
-            {rows && rows.length > 0 ? <p className="text-xs text-slate-500">Acciones sugeridas: <Link className="text-blue-700" to="/app/documentos/validacion">Ver validacion</Link> · <Link className="text-blue-700" to="/app/documentos/observaciones">Ver observaciones</Link></p> : null}
+            {rows === null ? <LoadingState text="Cargando bandeja..." /> : rows.length === 0 ? (
+                <>
+                    <EmptyState
+                        title="No hay documentos en esta bandeja."
+                        description="Cuando se generen documentos para este estado, aparecerán aquí."
+                    />
+                    {isControlEscolar ? (
+                        <div className="inst-surface p-4 text-sm flex flex-wrap gap-3">
+                            <Link className="text-blue-700 hover:underline" to="/app/certificacion/solicitud">Crear solicitud de certificación</Link>
+                            <Link className="text-blue-700 hover:underline" to="/app/alumnos">Ir a alumnos</Link>
+                            <Link className="text-blue-700 hover:underline" to="/app/trayectorias">Ver trayectorias listas</Link>
+                        </div>
+                    ) : null}
+                </>
+            ) : <BandejaTable rows={rows} />}
+            {rows && rows.length > 0 ? <p className="text-xs text-slate-500">Acciones sugeridas: <Link className="text-blue-700" to="/app/documentos/bandejas/por-rol">Actualizar bandeja</Link> · <Link className="text-blue-700" to="/app/documentos/observaciones">Atender observaciones</Link></p> : null}
         </section>
     );
 }

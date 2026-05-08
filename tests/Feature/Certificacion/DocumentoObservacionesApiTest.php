@@ -129,11 +129,10 @@ class DocumentoObservacionesApiTest extends TestCase
     {
         $suf = substr(str_replace('.', '', uniqid('', true)), 0, 10);
 
-        $subsistema = Subsistema::query()->create([
-            'clave' => 'SUB-'.$suf,
-            'nombre' => 'Subsistema prueba',
-            'activo' => true,
-        ]);
+        $subsistema = Subsistema::query()->updateOrCreate(
+            ['clave' => 'NORMAL'],
+            ['nombre' => 'Educación Normal', 'nombre_corto' => 'Normal', 'activo' => true],
+        );
         $region = Region::query()->create([
             'subsistema_id' => $subsistema->id,
             'clave' => 'REG-'.$suf,

@@ -236,6 +236,39 @@ class CertificacionAlcanceService
         });
     }
 
+    public function aplicarAlcanceSedes(Builder $query, User $user): void
+    {
+        if ($this->exentaRestriccionTerritorial($user)) {
+            return;
+        }
+
+        if ($this->alcanceTerritorialEstaVacio($user)) {
+            if ($user->hasRole('educacion_superior') || $user->hasRole('sistemas')) {
+                return;
+            }
+            $query->whereRaw('1 = 0');
+
+            return;
+        }
+
+        $idsInst = $user->instituciones()->pluck('instituciones.id');
+        $idsSedes = $user->sedes()->pluck('sedes.id');
+        $idsRegiones = $user->regiones()->pluck('regiones.id');
+
+        $query->where(function ($q) use ($idsInst, $idsSedes, $idsRegiones): void {
+            $q->whereRaw('0 = 1');
+            if ($idsSedes->isNotEmpty()) {
+                $q->orWhereIn('id', $idsSedes);
+            }
+            if ($idsInst->isNotEmpty()) {
+                $q->orWhereIn('institucion_id', $idsInst);
+            }
+            if ($idsRegiones->isNotEmpty()) {
+                $q->orWhereIn('region_id', $idsRegiones);
+            }
+        });
+    }
+
     public function aplicarAlcanceDocumentosAcademicos(Builder $query, User $user): void
     {
         if ($this->exentaRestriccionTerritorial($user)) {

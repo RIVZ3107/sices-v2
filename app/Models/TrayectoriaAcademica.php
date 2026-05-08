@@ -24,6 +24,12 @@ class TrayectoriaAcademica extends Model
         'total_materias',
         'materias_aprobadas',
         'materias_reprobadas',
+        'asignaturas_cursadas',
+        'asignaturas_total',
+        'promedio_aprovechamiento',
+        'materias_acreditadas',
+        'materias_no_acreditadas',
+        'estatus_trayectoria',
         'estado',
         'metadata',
     ];
@@ -37,6 +43,11 @@ class TrayectoriaAcademica extends Model
         'total_materias' => 'integer',
         'materias_aprobadas' => 'integer',
         'materias_reprobadas' => 'integer',
+        'asignaturas_cursadas' => 'integer',
+        'asignaturas_total' => 'integer',
+        'promedio_aprovechamiento' => 'decimal:2',
+        'materias_acreditadas' => 'integer',
+        'materias_no_acreditadas' => 'integer',
         'metadata' => 'array',
     ];
 

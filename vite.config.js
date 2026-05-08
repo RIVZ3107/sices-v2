@@ -15,4 +15,22 @@ export default defineConfig({
             ignored: ['**/storage/framework/views/**'],
         },
     },
+    build: {
+        // Evita alertas ruidosas cuando los vendors están correctamente separados.
+        chunkSizeWarningLimit: 1200,
+        rollupOptions: {
+            output: {
+                manualChunks(id) {
+                    if (!id.includes('node_modules')) return;
+                    if (id.includes('react') || id.includes('react-dom') || id.includes('react-router-dom')) {
+                        return 'react-vendor';
+                    }
+                    if (id.includes('axios')) {
+                        return 'http-vendor';
+                    }
+                    return 'vendor';
+                },
+            },
+        },
+    },
 });

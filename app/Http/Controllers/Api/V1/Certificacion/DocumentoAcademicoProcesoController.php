@@ -40,7 +40,7 @@ class DocumentoAcademicoProcesoController extends Controller
         $this->authorize('create', DocumentoAcademico::class);
 
         $data = $request->validated();
-        $matricula = Matricula::query()->findOrFail($data['matricula_id']);
+        $matricula = Matricula::query()->with('subsistema')->findOrFail($data['matricula_id']);
 
         if ((int) $matricula->alumno_id !== (int) $data['alumno_id']) {
             throw ValidationException::withMessages([
@@ -60,11 +60,23 @@ class DocumentoAcademicoProcesoController extends Controller
             throw new AccessDeniedHttpException('La oferta académica está fuera de su alcance territorial.');
         }
 
+        $subsistemaId = (int) ($matricula->subsistema_id ?? 0);
+        if ($subsistemaId <= 0) {
+            throw ValidationException::withMessages([
+                'matricula_id' => ['La matrícula no tiene subsistema configurado.'],
+            ]);
+        }
+
+        if (isset($data['subsistema_id']) && (int) $data['subsistema_id'] > 0 && (int) $data['subsistema_id'] !== $subsistemaId) {
+            throw ValidationException::withMessages([
+                'subsistema_id' => ['El subsistema del documento no coincide con el subsistema de la matrícula.'],
+            ]);
+        }
+
         $atributos = collect($data)->only([
             'alumno_id',
             'matricula_id',
             'ciclo_escolar_id',
-            'subsistema_id',
             'region_id',
             'institucion_id',
             'sede_id',
@@ -72,6 +84,7 @@ class DocumentoAcademicoProcesoController extends Controller
             'tipo_certificacion',
             'metadata',
         ])->merge([
+            'subsistema_id' => $subsistemaId,
             'oferta_academica_id' => $ofertaId,
             'fecha_solicitud' => now(),
         ])->all();
@@ -79,7 +92,7 @@ class DocumentoAcademicoProcesoController extends Controller
         $preview = new DocumentoAcademico(array_merge($atributos, [
             'estado_workflow' => EstadoWorkflow::BORRADOR->value,
         ]));
-        $validacionCrear = $this->validacionAcademica->validarParaCrearBorrador($preview);
+        $validacionCrear = $this->validacionAcademica->validarParaCrearBorrador($preview, $request->user()?->id);
         if ($validacionCrear['ok'] !== true) {
             throw ValidationException::withMessages([
                 'documento' => $validacionCrear['errores'],

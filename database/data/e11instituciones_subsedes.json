@@ -1,0 +1,16 @@
+[
+  {"kcve_subsede":1,"rcve_institucion":150005,"nombre_subsede":"U.P.N. UNIDAD 151 TOLUCA","istatus":"A","ifecreg":null,"iusrreg":null,"ifecmod":null,"iusrmod":null,"rcvect":7979},
+  {"kcve_subsede":2,"rcve_institucion":150005,"nombre_subsede":"REGIONAL ACAMBAY","istatus":"A","ifecreg":null,"iusrreg":null,"ifecmod":null,"iusrmod":null,"rcvect":7979},
+  {"kcve_subsede":3,"rcve_institucion":150005,"nombre_subsede":"REGIONAL IXTLAHUACA","istatus":"A","ifecreg":null,"iusrreg":null,"ifecmod":null,"iusrmod":null,"rcvect":7979},
+  {"kcve_subsede":4,"rcve_institucion":150005,"nombre_subsede":"REGIONAL JILOTEPEC","istatus":"A","ifecreg":null,"iusrreg":null,"ifecmod":null,"iusrmod":null,"rcvect":7979},
+  {"kcve_subsede":5,"rcve_institucion":150005,"nombre_subsede":"REGIONAL TEJUPILCO","istatus":"A","ifecreg":null,"iusrreg":null,"ifecmod":null,"iusrmod":null,"rcvect":7979},
+  {"kcve_subsede":6,"rcve_institucion":150474,"nombre_subsede":"U.P.N. UNIDAD 152 ATIZAPÁN","istatus":"A","ifecreg":null,"iusrreg":null,"ifecmod":null,"iusrmod":null,"rcvect":7980},
+  {"kcve_subsede":7,"rcve_institucion":150474,"nombre_subsede":"REGIONAL TULTEPEC","istatus":"A","ifecreg":null,"iusrreg":null,"ifecmod":null,"iusrmod":null,"rcvect":7980},
+  {"kcve_subsede":8,"rcve_institucion":150474,"nombre_subsede":"REGIONAL NEZAHUALCÓYOTL","istatus":"A","ifecreg":null,"iusrreg":null,"ifecmod":null,"iusrmod":null,"rcvect":7980},
+  {"kcve_subsede":9,"rcve_institucion":150475,"nombre_subsede":"U.P.N. UNIDAD 153 ECATEPEC","istatus":"A","ifecreg":null,"iusrreg":null,"ifecmod":null,"iusrmod":null,"rcvect":7981},
+  {"kcve_subsede":10,"rcve_institucion":150162,"nombre_subsede":"ESCUELA NORMAL SUPERIOR DEL VALLE DE TOLUCA","istatus":"A","ifecreg":null,"iusrreg":null,"ifecmod":null,"iusrmod":null,"rcvect":13055},
+  {"kcve_subsede":11,"rcve_institucion":150340,"nombre_subsede":"ESCUELA NORMAL SUPERIOR DEL VALLE DE MÉXICO. NEZAHUALCÓYOTL","istatus":"A","ifecreg":null,"iusrreg":null,"ifecmod":null,"iusrmod":null,"rcvect":13054},
+  {"kcve_subsede":12,"rcve_institucion":150340,"nombre_subsede":"TLALNEPANTLA","istatus":"A","ifecreg":null,"iusrreg":null,"ifecmod":null,"iusrmod":null,"rcvect":13054},
+  {"kcve_subsede":13,"rcve_institucion":150012,"nombre_subsede":"ESCUELA NORMAL RURAL \"LÁZARO CÁRDENAS DEL RÍO\"","istatus":"A","ifecreg":null,"iusrreg":null,"ifecmod":null,"iusrmod":null,"rcvect":12828},
+  {"kcve_subsede":14,"rcve_institucion":150474,"nombre_subsede":"REGIONAL NICOLÁS ROMERO","istatus":"A","ifecreg":null,"iusrreg":null,"ifecmod":null,"iusrmod":null,"rcvect":7980}
+]

@@ -16,6 +16,7 @@ class Sede extends Model
         'institucion_id',
         'region_id',
         'clave',
+        'cct',
         'nombre',
         'nombre_corto',
         'tipo_sede',
@@ -23,6 +24,9 @@ class Sede extends Model
         'domicilio',
         'activo',
         'metadata',
+        'legacy_kcve_subsede',
+        'legacy_rcve_institucion',
+        'legacy_rcvect',
     ];
 
     protected $casts = [

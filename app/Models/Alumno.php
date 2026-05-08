@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Services\Certificacion\IdentificadorAlumnoService;
+use App\Services\Certificacion\ValidacionSimultaneidadAcademicaService;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
@@ -37,18 +38,24 @@ class Alumno extends Model
         'metadata' => 'array',
     ];
 
-    /** Matrícula institucional: regla explícita de negocio = una por alumno. */
-    public function matricula(): HasOne
-    {
-        return $this->hasOne(Matricula::class);
-    }
-
-    /**
-     * @deprecated Preferir {@see matricula()}; existe por compatibilidad con datos/código legacy.
-     */
     public function matriculas(): HasMany
     {
         return $this->hasMany(Matricula::class);
+    }
+
+    /**
+     * Compatibilidad legacy: ahora apunta a la matrícula activa, no a matrícula única vitalicia.
+     */
+    public function matricula(): HasOne
+    {
+        return $this->matriculaActiva();
+    }
+
+    public function matriculaActiva(): HasOne
+    {
+        $activos = app(ValidacionSimultaneidadAcademicaService::class)->estadosMatriculaActivos();
+
+        return $this->hasOne(Matricula::class)->whereIn('estado', $activos)->latestOfMany();
     }
 
     public function materiasCursadas(): HasMany

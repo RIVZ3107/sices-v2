@@ -12,12 +12,29 @@ class Matricula extends Model
 {
     use SoftDeletes;
 
+    protected static function booted(): void
+    {
+        static::saving(function (Matricula $matricula): void {
+            if ($matricula->subsistema_id !== null || (int) $matricula->oferta_academica_id <= 0) {
+                return;
+            }
+            $subsistemaId = OfertaAcademica::query()
+                ->join('instituciones as i', 'i.id', '=', 'ofertas_academicas.institucion_id')
+                ->where('ofertas_academicas.id', $matricula->oferta_academica_id)
+                ->value('i.subsistema_id');
+            if ($subsistemaId !== null) {
+                $matricula->subsistema_id = (int) $subsistemaId;
+            }
+        });
+    }
+
     protected $table = 'matriculas';
 
     protected $fillable = [
         'alumno_id',
         'oferta_academica_id',
         'ciclo_escolar_id',
+        'subsistema_id',
         'matricula',
         'estado',
         'fecha_ingreso',
@@ -46,6 +63,11 @@ class Matricula extends Model
         return $this->belongsTo(CicloEscolar::class);
     }
 
+    public function subsistema(): BelongsTo
+    {
+        return $this->belongsTo(Subsistema::class);
+    }
+
     public function materiasCursadas(): HasMany
     {
         return $this->hasMany(MateriaCursada::class);
@@ -59,5 +81,10 @@ class Matricula extends Model
     public function documentosAcademicos(): HasMany
     {
         return $this->hasMany(DocumentoAcademico::class);
+    }
+
+    public function inscripcionesPeriodo(): HasMany
+    {
+        return $this->hasMany(InscripcionPeriodo::class);
     }
 }

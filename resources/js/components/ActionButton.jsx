@@ -2,6 +2,8 @@ export function ActionButton({ children, onClick, variant = 'primary', disabled 
     const cls =
         variant === 'danger'
             ? 'inst-btn-danger'
+            : variant === 'success'
+                ? 'inst-btn-success'
             : variant === 'warning'
                 ? 'inst-btn-warning'
             : variant === 'secondary'
@@ -13,7 +15,7 @@ export function ActionButton({ children, onClick, variant = 'primary', disabled 
             type={type}
             onClick={onClick}
             disabled={disabled}
-            className={`inst-btn text-sm ${cls}`}
+            className={`inst-btn text-sm ${cls} ${disabled ? 'cursor-not-allowed' : ''}`}
         >
             {children}
         </button>

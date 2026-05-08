@@ -41,4 +41,9 @@ class Materia extends Model
     {
         return $this->hasMany(MateriaCursada::class);
     }
+
+    public function planMaterias(): HasMany
+    {
+        return $this->hasMany(PlanMateria::class);
+    }
 }

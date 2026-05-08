@@ -68,6 +68,10 @@ class DocumentoCapturaApiFlujoTest extends TestCase
             'nombre' => 'Matemáticas I',
             'calificacion' => 9.5,
             'creditos' => 6,
+            'semestre' => 1,
+            'tipo_periodo_curricular' => 'semestre',
+            'numero_periodo_curricular' => 1,
+            'periodo' => '2024-2025',
         ])->assertCreated();
 
         $this->putJson('/api/v1/certificacion/trayectorias-academicas', [
@@ -126,15 +130,14 @@ class DocumentoCapturaApiFlujoTest extends TestCase
      *     ciclo_escolar_id: int
      * }
      */
-    private function crearContextoInstitucional(): array
+    protected function crearContextoInstitucional(): array
     {
         $suf = substr(str_replace('.', '', uniqid('', true)), 0, 10);
 
-        $subsistema = Subsistema::query()->create([
-            'clave' => 'SUB-'.$suf,
-            'nombre' => 'Subsistema prueba',
-            'activo' => true,
-        ]);
+        $subsistema = Subsistema::query()->updateOrCreate(
+            ['clave' => 'NORMAL'],
+            ['nombre' => 'Educación Normal', 'nombre_corto' => 'Normal', 'activo' => true],
+        );
 
         $region = Region::query()->create([
             'subsistema_id' => $subsistema->id,

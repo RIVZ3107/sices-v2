@@ -9,12 +9,12 @@ import { DocumentoShowPage } from './pages/documentos/DocumentoShowPage';
 import { DocumentoWizardPage } from './pages/documentos/DocumentoWizardPage';
 import { DocumentoValidacionPage } from './pages/documentos/DocumentoValidacionPage';
 import { DocumentoObservacionesPage } from './pages/documentos/DocumentoObservacionesPage';
-import { AlumnosPage } from './pages/alumnos/AlumnosPage';
 import { AlumnoFormPage } from './pages/alumnos/AlumnoFormPage';
-import { MatriculasPage } from './pages/matriculas/MatriculasPage';
-import { MateriasCursadasPage } from './pages/materias/MateriasCursadasPage';
+import { AlumnoDetallePage } from './pages/alumnos/AlumnoDetallePage';
+import { AlumnoCapturaWizard } from './pages/alumnos/AlumnoCapturaWizard';
 import { TrayectoriaPage } from './pages/trayectorias/TrayectoriaPage';
 import { ImportacionesAcademicasPage } from './pages/importaciones/ImportacionesAcademicasPage';
+import { LegacyNormativaRevisionPage } from './pages/importaciones/LegacyNormativaRevisionPage';
 import { ListosParaFirmaPage } from './pages/sistemas/ListosParaFirmaPage';
 import { DashboardTecnicoPage } from './pages/sistemas/DashboardTecnicoPage';
 import { LogsTecnicosPage } from './pages/sistemas/LogsTecnicosPage';
@@ -54,23 +54,32 @@ export const router = createBrowserRouter([
                 element: <PrivateOutlet />,
                 children: [
                     { path: 'dashboard', element: <DashboardPage /> },
+                    { path: 'expedientes', element: <AlumnoDetallePage /> },
                     { path: 'documentos/bandejas', element: <BandejasPage /> },
                     { path: 'documentos/bandejas/:bandeja', element: <BandejasPage /> },
+                    { path: 'documentos', element: <Navigate to="/app/documentos/bandejas/por-rol" replace /> },
                     { path: 'documentos/nuevo', element: <DocumentoWizardPage /> },
                     { path: 'documentos/:id/captura', element: <DocumentoWizardPage /> },
                     { path: 'documentos/:id/validacion', element: <DocumentoValidacionPage /> },
                     { path: 'documentos/:id/observaciones', element: <DocumentoObservacionesPage /> },
                     { path: 'documentos/validacion', element: <DocumentoValidacionPage /> },
                     { path: 'documentos/observaciones', element: <DocumentoObservacionesPage /> },
+                    { path: 'observaciones', element: <DocumentoObservacionesPage /> },
                     { path: 'documentos/:id', element: <DocumentoShowPage /> },
-                    { path: 'alumnos', element: <AlumnosPage /> },
+                    { path: 'alumnos', element: <Navigate to="/app/expedientes" replace /> },
                     { path: 'alumnos/crear', element: <AlumnoFormPage /> },
                     { path: 'alumnos/nuevo', element: <Navigate to="/app/alumnos/crear" replace /> },
-                    { path: 'matriculas', element: <MatriculasPage /> },
-                    { path: 'materias-cursadas', element: <MateriasCursadasPage /> },
+                    { path: 'alumnos/captura-guiado', element: <AlumnoCapturaWizard /> },
+                    { path: 'alumnos/:id/expediente', element: <AlumnoDetallePage /> },
+                    { path: 'alumnos/:id/captura-guiado', element: <AlumnoCapturaWizard /> },
+                    { path: 'alumnos/:id/trayectoria', element: <TrayectoriaPage /> },
+                    { path: 'certificacion/solicitud', element: <Navigate to="/app/expedientes?tab=certificacion" replace /> },
+                    { path: 'matriculas', element: <Navigate to="/app/expedientes?tab=matricula" replace /> },
+                    { path: 'materias-cursadas', element: <Navigate to="/app/expedientes?tab=calificaciones" replace /> },
                     { path: 'materias', element: <Navigate to="/app/materias-cursadas" replace /> },
-                    { path: 'trayectorias', element: <TrayectoriaPage /> },
+                    { path: 'trayectorias', element: <Navigate to="/app/expedientes?tab=trayectoria" replace /> },
                     { path: 'importaciones', element: <ImportacionesAcademicasPage /> },
+                    { path: 'importaciones/legacy-normativa', element: <LegacyNormativaRevisionPage /> },
                     { path: 'sistemas/listos-para-firma', element: <ListosParaFirmaPage /> },
                     { path: 'sistemas/listos-firma', element: <Navigate to="/app/sistemas/listos-para-firma" replace /> },
                     { path: 'sistemas/dashboard', element: <DashboardTecnicoPage /> },

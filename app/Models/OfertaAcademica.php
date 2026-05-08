@@ -11,6 +11,11 @@ class OfertaAcademica extends Model
 {
     use SoftDeletes;
 
+    /**
+     * TODO (esquema): la columna `modalidad` sigue el enum SEP (escolarizada|mixta|no_escolarizada).
+     * La modalidad operativa UPN (presencial|semipresencial|en_linea) se declara de forma transitoria en
+     * `metadata.modalidad_upn` hasta una migración que amplíe el modelo sin romper datos existentes.
+     */
     protected $table = 'ofertas_academicas';
 
     protected $fillable = [

@@ -21,6 +21,7 @@ class MatriculaResource extends JsonResource
             'alumno_id' => $this->alumno_id,
             'oferta_academica_id' => $this->oferta_academica_id,
             'ciclo_escolar_id' => $this->ciclo_escolar_id,
+            'subsistema_id' => $this->subsistema_id,
             'matricula' => $this->matricula,
             'estado' => $this->estado,
             'fecha_ingreso' => $this->fecha_ingreso?->format('Y-m-d'),

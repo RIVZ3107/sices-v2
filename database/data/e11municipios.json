@@ -1,0 +1,1502 @@
+[
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "001",
+        "c_nom_mun":  "ACAMBAY DE RUÍZ CASTAÑEDA",
+        "istatus":  "B"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "001",
+        "c_nom_mun":  "ACAMBAY DE RUÍZ CASTAÑEDA",
+        "istatus":  "A"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "002",
+        "c_nom_mun":  "ACOLMAN",
+        "istatus":  "B"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "002",
+        "c_nom_mun":  "ACOLMAN",
+        "istatus":  "A"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "003",
+        "c_nom_mun":  "ACULCO",
+        "istatus":  "B"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "003",
+        "c_nom_mun":  "ACULCO",
+        "istatus":  "A"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "004",
+        "c_nom_mun":  "ALMOLOYA DE ALQUISIRAS",
+        "istatus":  "B"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "004",
+        "c_nom_mun":  "ALMOLOYA DE ALQUISIRAS",
+        "istatus":  "A"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "005",
+        "c_nom_mun":  "ALMOLOYA DE JUÁREZ",
+        "istatus":  "B"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "005",
+        "c_nom_mun":  "ALMOLOYA DE JUÁREZ",
+        "istatus":  "A"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "006",
+        "c_nom_mun":  "ALMOLOYA DEL RÍO",
+        "istatus":  "B"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "006",
+        "c_nom_mun":  "ALMOLOYA DEL RÍO",
+        "istatus":  "A"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "007",
+        "c_nom_mun":  "AMANALCO",
+        "istatus":  "B"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "007",
+        "c_nom_mun":  "AMANALCO",
+        "istatus":  "A"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "008",
+        "c_nom_mun":  "AMATEPEC",
+        "istatus":  "B"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "008",
+        "c_nom_mun":  "AMATEPEC",
+        "istatus":  "A"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "009",
+        "c_nom_mun":  "AMECAMECA",
+        "istatus":  "B"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "009",
+        "c_nom_mun":  "AMECAMECA",
+        "istatus":  "A"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "010",
+        "c_nom_mun":  "APAXCO",
+        "istatus":  "B"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "010",
+        "c_nom_mun":  "APAXCO",
+        "istatus":  "A"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "011",
+        "c_nom_mun":  "ATENCO",
+        "istatus":  "B"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "011",
+        "c_nom_mun":  "ATENCO",
+        "istatus":  "A"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "012",
+        "c_nom_mun":  "ATIZAPÁN",
+        "istatus":  "B"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "012",
+        "c_nom_mun":  "ATIZAPÁN",
+        "istatus":  "A"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "013",
+        "c_nom_mun":  "ATIZAPÁN DE ZARAGOZA",
+        "istatus":  "B"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "013",
+        "c_nom_mun":  "ATIZAPÁN DE ZARAGOZA",
+        "istatus":  "A"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "014",
+        "c_nom_mun":  "ATLACOMULCO",
+        "istatus":  "B"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "014",
+        "c_nom_mun":  "ATLACOMULCO",
+        "istatus":  "A"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "015",
+        "c_nom_mun":  "ATLAUTLA",
+        "istatus":  "B"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "015",
+        "c_nom_mun":  "ATLAUTLA",
+        "istatus":  "A"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "016",
+        "c_nom_mun":  "AXAPUSCO",
+        "istatus":  "B"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "016",
+        "c_nom_mun":  "AXAPUSCO",
+        "istatus":  "A"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "017",
+        "c_nom_mun":  "AYAPANGO",
+        "istatus":  "B"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "017",
+        "c_nom_mun":  "AYAPANGO",
+        "istatus":  "A"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "018",
+        "c_nom_mun":  "CALIMAYA",
+        "istatus":  "B"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "018",
+        "c_nom_mun":  "CALIMAYA",
+        "istatus":  "A"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "019",
+        "c_nom_mun":  "CAPULHUAC",
+        "istatus":  "B"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "019",
+        "c_nom_mun":  "CAPULHUAC",
+        "istatus":  "A"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "020",
+        "c_nom_mun":  "COACALCO DE BERRIOZÁBAL",
+        "istatus":  "B"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "020",
+        "c_nom_mun":  "COACALCO DE BERRIOZÁBAL",
+        "istatus":  "A"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "021",
+        "c_nom_mun":  "COATEPEC HARINAS",
+        "istatus":  "B"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "021",
+        "c_nom_mun":  "COATEPEC HARINAS",
+        "istatus":  "A"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "022",
+        "c_nom_mun":  "COCOTITLÁN",
+        "istatus":  "B"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "022",
+        "c_nom_mun":  "COCOTITLÁN",
+        "istatus":  "A"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "023",
+        "c_nom_mun":  "COYOTEPEC",
+        "istatus":  "B"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "023",
+        "c_nom_mun":  "COYOTEPEC",
+        "istatus":  "A"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "024",
+        "c_nom_mun":  "CUAUTITLÁN",
+        "istatus":  "B"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "024",
+        "c_nom_mun":  "CUAUTITLÁN",
+        "istatus":  "A"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "025",
+        "c_nom_mun":  "CHALCO",
+        "istatus":  "B"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "025",
+        "c_nom_mun":  "CHALCO",
+        "istatus":  "A"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "026",
+        "c_nom_mun":  "CHAPA DE MOTA",
+        "istatus":  "B"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "026",
+        "c_nom_mun":  "CHAPA DE MOTA",
+        "istatus":  "A"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "027",
+        "c_nom_mun":  "CHAPULTEPEC",
+        "istatus":  "B"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "027",
+        "c_nom_mun":  "CHAPULTEPEC",
+        "istatus":  "A"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "028",
+        "c_nom_mun":  "CHIAUTLA",
+        "istatus":  "B"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "028",
+        "c_nom_mun":  "CHIAUTLA",
+        "istatus":  "A"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "029",
+        "c_nom_mun":  "CHICOLOAPAN",
+        "istatus":  "B"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "029",
+        "c_nom_mun":  "CHICOLOAPAN",
+        "istatus":  "A"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "030",
+        "c_nom_mun":  "CHICONCUAC",
+        "istatus":  "B"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "030",
+        "c_nom_mun":  "CHICONCUAC",
+        "istatus":  "A"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "031",
+        "c_nom_mun":  "CHIMALHUACÁN",
+        "istatus":  "B"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "031",
+        "c_nom_mun":  "CHIMALHUACÁN",
+        "istatus":  "A"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "032",
+        "c_nom_mun":  "DONATO GUERRA",
+        "istatus":  "B"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "032",
+        "c_nom_mun":  "DONATO GUERRA",
+        "istatus":  "A"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "033",
+        "c_nom_mun":  "ECATEPEC DE MORELOS",
+        "istatus":  "B"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "033",
+        "c_nom_mun":  "ECATEPEC DE MORELOS",
+        "istatus":  "A"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "034",
+        "c_nom_mun":  "ECATZINGO",
+        "istatus":  "B"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "034",
+        "c_nom_mun":  "ECATZINGO",
+        "istatus":  "A"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "035",
+        "c_nom_mun":  "HUEHUETOCA",
+        "istatus":  "B"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "035",
+        "c_nom_mun":  "HUEHUETOCA",
+        "istatus":  "A"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "036",
+        "c_nom_mun":  "HUEYPOXTLA",
+        "istatus":  "B"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "036",
+        "c_nom_mun":  "HUEYPOXTLA",
+        "istatus":  "A"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "037",
+        "c_nom_mun":  "HUIXQUILUCAN",
+        "istatus":  "B"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "037",
+        "c_nom_mun":  "HUIXQUILUCAN",
+        "istatus":  "A"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "038",
+        "c_nom_mun":  "ISIDRO FABELA",
+        "istatus":  "B"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "038",
+        "c_nom_mun":  "ISIDRO FABELA",
+        "istatus":  "A"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "039",
+        "c_nom_mun":  "IXTAPALUCA",
+        "istatus":  "B"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "039",
+        "c_nom_mun":  "IXTAPALUCA",
+        "istatus":  "A"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "040",
+        "c_nom_mun":  "IXTAPAN DE LA SAL",
+        "istatus":  "B"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "040",
+        "c_nom_mun":  "IXTAPAN DE LA SAL",
+        "istatus":  "A"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "041",
+        "c_nom_mun":  "IXTAPAN DEL ORO",
+        "istatus":  "B"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "041",
+        "c_nom_mun":  "IXTAPAN DEL ORO",
+        "istatus":  "A"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "042",
+        "c_nom_mun":  "IXTLAHUACA",
+        "istatus":  "B"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "042",
+        "c_nom_mun":  "IXTLAHUACA",
+        "istatus":  "A"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "043",
+        "c_nom_mun":  "XALATLACO",
+        "istatus":  "B"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "043",
+        "c_nom_mun":  "XALATLACO",
+        "istatus":  "A"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "044",
+        "c_nom_mun":  "JALTENCO",
+        "istatus":  "B"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "044",
+        "c_nom_mun":  "JALTENCO",
+        "istatus":  "A"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "045",
+        "c_nom_mun":  "JILOTEPEC",
+        "istatus":  "B"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "045",
+        "c_nom_mun":  "JILOTEPEC",
+        "istatus":  "A"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "046",
+        "c_nom_mun":  "JILOTZINGO",
+        "istatus":  "B"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "046",
+        "c_nom_mun":  "JILOTZINGO",
+        "istatus":  "A"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "047",
+        "c_nom_mun":  "JIQUIPILCO",
+        "istatus":  "B"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "047",
+        "c_nom_mun":  "JIQUIPILCO",
+        "istatus":  "A"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "048",
+        "c_nom_mun":  "JOCOTITLÁN",
+        "istatus":  "B"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "048",
+        "c_nom_mun":  "JOCOTITLÁN",
+        "istatus":  "A"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "049",
+        "c_nom_mun":  "JOQUICINGO",
+        "istatus":  "B"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "049",
+        "c_nom_mun":  "JOQUICINGO",
+        "istatus":  "A"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "050",
+        "c_nom_mun":  "JUCHITEPEC",
+        "istatus":  "B"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "050",
+        "c_nom_mun":  "JUCHITEPEC",
+        "istatus":  "A"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "051",
+        "c_nom_mun":  "LERMA",
+        "istatus":  "B"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "051",
+        "c_nom_mun":  "LERMA",
+        "istatus":  "A"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "052",
+        "c_nom_mun":  "MALINALCO",
+        "istatus":  "B"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "052",
+        "c_nom_mun":  "MALINALCO",
+        "istatus":  "A"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "053",
+        "c_nom_mun":  "MELCHOR OCAMPO",
+        "istatus":  "B"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "053",
+        "c_nom_mun":  "MELCHOR OCAMPO",
+        "istatus":  "A"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "054",
+        "c_nom_mun":  "METEPEC",
+        "istatus":  "B"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "054",
+        "c_nom_mun":  "METEPEC",
+        "istatus":  "A"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "055",
+        "c_nom_mun":  "MEXICALTZINGO",
+        "istatus":  "B"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "055",
+        "c_nom_mun":  "MEXICALTZINGO",
+        "istatus":  "A"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "056",
+        "c_nom_mun":  "MORELOS",
+        "istatus":  "B"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "056",
+        "c_nom_mun":  "MORELOS",
+        "istatus":  "A"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "057",
+        "c_nom_mun":  "NAUCALPAN DE JUÁREZ",
+        "istatus":  "B"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "057",
+        "c_nom_mun":  "NAUCALPAN DE JUÁREZ",
+        "istatus":  "A"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "058",
+        "c_nom_mun":  "NEZAHUALCÓYOTL",
+        "istatus":  "B"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "058",
+        "c_nom_mun":  "NEZAHUALCÓYOTL",
+        "istatus":  "A"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "059",
+        "c_nom_mun":  "NEXTLALPAN",
+        "istatus":  "B"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "059",
+        "c_nom_mun":  "NEXTLALPAN",
+        "istatus":  "A"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "060",
+        "c_nom_mun":  "NICOLÁS ROMERO",
+        "istatus":  "B"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "060",
+        "c_nom_mun":  "NICOLÁS ROMERO",
+        "istatus":  "A"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "061",
+        "c_nom_mun":  "NOPALTEPEC",
+        "istatus":  "B"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "061",
+        "c_nom_mun":  "NOPALTEPEC",
+        "istatus":  "A"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "062",
+        "c_nom_mun":  "OCOYOACAC",
+        "istatus":  "B"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "062",
+        "c_nom_mun":  "OCOYOACAC",
+        "istatus":  "A"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "063",
+        "c_nom_mun":  "OCUILAN",
+        "istatus":  "B"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "063",
+        "c_nom_mun":  "OCUILAN",
+        "istatus":  "A"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "064",
+        "c_nom_mun":  "EL ORO",
+        "istatus":  "B"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "064",
+        "c_nom_mun":  "EL ORO",
+        "istatus":  "A"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "065",
+        "c_nom_mun":  "OTUMBA",
+        "istatus":  "B"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "065",
+        "c_nom_mun":  "OTUMBA",
+        "istatus":  "A"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "066",
+        "c_nom_mun":  "OTZOLOAPAN",
+        "istatus":  "B"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "066",
+        "c_nom_mun":  "OTZOLOAPAN",
+        "istatus":  "A"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "067",
+        "c_nom_mun":  "OTZOLOTEPEC",
+        "istatus":  "B"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "067",
+        "c_nom_mun":  "OTZOLOTEPEC",
+        "istatus":  "A"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "068",
+        "c_nom_mun":  "OZUMBA",
+        "istatus":  "B"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "068",
+        "c_nom_mun":  "OZUMBA",
+        "istatus":  "A"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "069",
+        "c_nom_mun":  "PAPALOTLA",
+        "istatus":  "B"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "069",
+        "c_nom_mun":  "PAPALOTLA",
+        "istatus":  "A"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "070",
+        "c_nom_mun":  "LA PAZ",
+        "istatus":  "B"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "070",
+        "c_nom_mun":  "LA PAZ",
+        "istatus":  "A"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "071",
+        "c_nom_mun":  "POLOTITLÁN",
+        "istatus":  "B"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "071",
+        "c_nom_mun":  "POLOTITLÁN",
+        "istatus":  "A"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "072",
+        "c_nom_mun":  "RAYÓN",
+        "istatus":  "B"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "072",
+        "c_nom_mun":  "RAYÓN",
+        "istatus":  "A"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "073",
+        "c_nom_mun":  "SAN ANTONIO LA ISLA",
+        "istatus":  "B"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "073",
+        "c_nom_mun":  "SAN ANTONIO LA ISLA",
+        "istatus":  "A"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "074",
+        "c_nom_mun":  "SAN FELIPE DEL PROGRESO",
+        "istatus":  "B"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "074",
+        "c_nom_mun":  "SAN FELIPE DEL PROGRESO",
+        "istatus":  "A"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "075",
+        "c_nom_mun":  "SAN MARTÍN DE LAS PIRÁMIDES",
+        "istatus":  "B"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "075",
+        "c_nom_mun":  "SAN MARTÍN DE LAS PIRÁMIDES",
+        "istatus":  "A"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "076",
+        "c_nom_mun":  "SAN MATEO ATENCO",
+        "istatus":  "B"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "076",
+        "c_nom_mun":  "SAN MATEO ATENCO",
+        "istatus":  "A"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "077",
+        "c_nom_mun":  "SAN SIMÓN DE GUERRERO",
+        "istatus":  "B"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "077",
+        "c_nom_mun":  "SAN SIMÓN DE GUERRERO",
+        "istatus":  "A"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "078",
+        "c_nom_mun":  "SANTO TOMÁS",
+        "istatus":  "B"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "078",
+        "c_nom_mun":  "SANTO TOMÁS",
+        "istatus":  "A"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "079",
+        "c_nom_mun":  "SOYANIQUILPAN DE JUÁREZ",
+        "istatus":  "B"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "079",
+        "c_nom_mun":  "SOYANIQUILPAN DE JUÁREZ",
+        "istatus":  "A"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "080",
+        "c_nom_mun":  "SULTEPEC",
+        "istatus":  "B"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "080",
+        "c_nom_mun":  "SULTEPEC",
+        "istatus":  "A"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "081",
+        "c_nom_mun":  "TECÁMAC",
+        "istatus":  "B"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "081",
+        "c_nom_mun":  "TECÁMAC",
+        "istatus":  "A"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "082",
+        "c_nom_mun":  "TEJUPILCO",
+        "istatus":  "B"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "082",
+        "c_nom_mun":  "TEJUPILCO",
+        "istatus":  "A"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "083",
+        "c_nom_mun":  "TEMAMATLA",
+        "istatus":  "B"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "083",
+        "c_nom_mun":  "TEMAMATLA",
+        "istatus":  "A"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "084",
+        "c_nom_mun":  "TEMASCALAPA",
+        "istatus":  "B"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "084",
+        "c_nom_mun":  "TEMASCALAPA",
+        "istatus":  "A"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "085",
+        "c_nom_mun":  "TEMASCALCINGO",
+        "istatus":  "B"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "085",
+        "c_nom_mun":  "TEMASCALCINGO",
+        "istatus":  "A"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "086",
+        "c_nom_mun":  "TEMASCALTEPEC",
+        "istatus":  "B"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "086",
+        "c_nom_mun":  "TEMASCALTEPEC",
+        "istatus":  "A"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "087",
+        "c_nom_mun":  "TEMOAYA",
+        "istatus":  "B"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "087",
+        "c_nom_mun":  "TEMOAYA",
+        "istatus":  "A"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "088",
+        "c_nom_mun":  "TENANCINGO",
+        "istatus":  "B"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "088",
+        "c_nom_mun":  "TENANCINGO",
+        "istatus":  "A"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "089",
+        "c_nom_mun":  "TENANGO DEL AIRE",
+        "istatus":  "B"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "089",
+        "c_nom_mun":  "TENANGO DEL AIRE",
+        "istatus":  "A"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "090",
+        "c_nom_mun":  "TENANGO DEL VALLE",
+        "istatus":  "B"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "090",
+        "c_nom_mun":  "TENANGO DEL VALLE",
+        "istatus":  "A"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "091",
+        "c_nom_mun":  "TEOLOYUCAN",
+        "istatus":  "B"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "091",
+        "c_nom_mun":  "TEOLOYUCAN",
+        "istatus":  "A"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "092",
+        "c_nom_mun":  "TEOTIHUACÁN",
+        "istatus":  "B"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "092",
+        "c_nom_mun":  "TEOTIHUACÁN",
+        "istatus":  "A"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "093",
+        "c_nom_mun":  "TEPETLAOXTOC",
+        "istatus":  "B"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "093",
+        "c_nom_mun":  "TEPETLAOXTOC",
+        "istatus":  "A"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "094",
+        "c_nom_mun":  "TEPETLIXPA",
+        "istatus":  "B"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "094",
+        "c_nom_mun":  "TEPETLIXPA",
+        "istatus":  "A"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "095",
+        "c_nom_mun":  "TEPOTZOTLÁN",
+        "istatus":  "B"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "095",
+        "c_nom_mun":  "TEPOTZOTLÁN",
+        "istatus":  "A"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "096",
+        "c_nom_mun":  "TEQUIXQUIAC",
+        "istatus":  "B"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "096",
+        "c_nom_mun":  "TEQUIXQUIAC",
+        "istatus":  "A"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "097",
+        "c_nom_mun":  "TEXCALTITLÁN",
+        "istatus":  "B"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "097",
+        "c_nom_mun":  "TEXCALTITLÁN",
+        "istatus":  "A"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "098",
+        "c_nom_mun":  "TEXCALYACAC",
+        "istatus":  "B"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "098",
+        "c_nom_mun":  "TEXCALYACAC",
+        "istatus":  "A"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "099",
+        "c_nom_mun":  "TEXCOCO",
+        "istatus":  "B"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "099",
+        "c_nom_mun":  "TEXCOCO",
+        "istatus":  "A"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "100",
+        "c_nom_mun":  "TEZOYUCA",
+        "istatus":  "B"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "100",
+        "c_nom_mun":  "TEZOYUCA",
+        "istatus":  "A"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "101",
+        "c_nom_mun":  "TIANGUISTENCO",
+        "istatus":  "B"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "101",
+        "c_nom_mun":  "TIANGUISTENCO",
+        "istatus":  "A"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "102",
+        "c_nom_mun":  "TIMILPAN",
+        "istatus":  "B"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "102",
+        "c_nom_mun":  "TIMILPAN",
+        "istatus":  "A"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "103",
+        "c_nom_mun":  "TLALMANALCO",
+        "istatus":  "B"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "103",
+        "c_nom_mun":  "TLALMANALCO",
+        "istatus":  "A"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "104",
+        "c_nom_mun":  "TLALNEPANTLA DE BAZ",
+        "istatus":  "B"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "104",
+        "c_nom_mun":  "TLALNEPANTLA DE BAZ",
+        "istatus":  "A"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "105",
+        "c_nom_mun":  "TLATLAYA",
+        "istatus":  "B"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "105",
+        "c_nom_mun":  "TLATLAYA",
+        "istatus":  "A"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "106",
+        "c_nom_mun":  "TOLUCA",
+        "istatus":  "B"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "106",
+        "c_nom_mun":  "TOLUCA",
+        "istatus":  "A"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "107",
+        "c_nom_mun":  "TONATICO",
+        "istatus":  "B"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "107",
+        "c_nom_mun":  "TONATICO",
+        "istatus":  "A"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "108",
+        "c_nom_mun":  "TULTEPEC",
+        "istatus":  "B"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "108",
+        "c_nom_mun":  "TULTEPEC",
+        "istatus":  "A"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "109",
+        "c_nom_mun":  "TULTITLÁN",
+        "istatus":  "B"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "109",
+        "c_nom_mun":  "TULTITLÁN",
+        "istatus":  "A"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "110",
+        "c_nom_mun":  "VALLE DE BRAVO",
+        "istatus":  "B"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "110",
+        "c_nom_mun":  "VALLE DE BRAVO",
+        "istatus":  "A"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "111",
+        "c_nom_mun":  "VILLA DE ALLENDE",
+        "istatus":  "B"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "111",
+        "c_nom_mun":  "VILLA DE ALLENDE",
+        "istatus":  "A"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "112",
+        "c_nom_mun":  "VILLA DEL CARBÓN",
+        "istatus":  "B"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "112",
+        "c_nom_mun":  "VILLA DEL CARBÓN",
+        "istatus":  "A"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "113",
+        "c_nom_mun":  "VILLA GUERRERO",
+        "istatus":  "B"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "113",
+        "c_nom_mun":  "VILLA GUERRERO",
+        "istatus":  "A"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "114",
+        "c_nom_mun":  "VILLA VICTORIA",
+        "istatus":  "B"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "114",
+        "c_nom_mun":  "VILLA VICTORIA",
+        "istatus":  "A"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "115",
+        "c_nom_mun":  "XONACATLÁN",
+        "istatus":  "B"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "115",
+        "c_nom_mun":  "XONACATLÁN",
+        "istatus":  "A"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "116",
+        "c_nom_mun":  "ZACAZONAPAN",
+        "istatus":  "B"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "116",
+        "c_nom_mun":  "ZACAZONAPAN",
+        "istatus":  "A"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "117",
+        "c_nom_mun":  "ZACUALPAN",
+        "istatus":  "B"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "117",
+        "c_nom_mun":  "ZACUALPAN",
+        "istatus":  "A"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "118",
+        "c_nom_mun":  "ZINACANTEPEC",
+        "istatus":  "B"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "118",
+        "c_nom_mun":  "ZINACANTEPEC",
+        "istatus":  "A"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "119",
+        "c_nom_mun":  "ZUMPAHUACÁN",
+        "istatus":  "B"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "119",
+        "c_nom_mun":  "ZUMPAHUACÁN",
+        "istatus":  "A"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "120",
+        "c_nom_mun":  "ZUMPANGO",
+        "istatus":  "B"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "120",
+        "c_nom_mun":  "ZUMPANGO",
+        "istatus":  "A"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "121",
+        "c_nom_mun":  "CUAUTITLÁN IZCALLI",
+        "istatus":  "B"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "121",
+        "c_nom_mun":  "CUAUTITLÁN IZCALLI",
+        "istatus":  "A"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "122",
+        "c_nom_mun":  "VALLE DE CHALCO SOLIDARIDAD",
+        "istatus":  "B"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "122",
+        "c_nom_mun":  "VALLE DE CHALCO SOLIDARIDAD",
+        "istatus":  "A"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "123",
+        "c_nom_mun":  "LUVIANOS",
+        "istatus":  "B"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "123",
+        "c_nom_mun":  "LUVIANOS",
+        "istatus":  "A"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "124",
+        "c_nom_mun":  "SAN JOSÉ DEL RINCÓN",
+        "istatus":  "B"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "124",
+        "c_nom_mun":  "SAN JOSÉ DEL RINCÓN",
+        "istatus":  "A"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "125",
+        "c_nom_mun":  "TONANITLA",
+        "istatus":  "B"
+    },
+    {
+        "kid_entidad_federativa":  15,
+        "cv_mun":  "125",
+        "c_nom_mun":  "TONANITLA",
+        "istatus":  "A"
+    }
+]

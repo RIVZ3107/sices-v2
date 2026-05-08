@@ -15,6 +15,7 @@ class PlanEstudio extends Model
 
     protected $fillable = [
         'programa_estudio_id',
+        'subsistema_id',
         'clave',
         'nombre',
         'anio_aprobacion',
@@ -37,6 +38,11 @@ class PlanEstudio extends Model
         return $this->belongsTo(ProgramaEstudio::class);
     }
 
+    public function subsistema(): BelongsTo
+    {
+        return $this->belongsTo(Subsistema::class);
+    }
+
     public function materias(): HasMany
     {
         return $this->hasMany(Materia::class);
@@ -45,5 +51,10 @@ class PlanEstudio extends Model
     public function ofertasAcademicas(): HasMany
     {
         return $this->hasMany(OfertaAcademica::class);
+    }
+
+    public function planMaterias(): HasMany
+    {
+        return $this->hasMany(PlanMateria::class);
     }
 }

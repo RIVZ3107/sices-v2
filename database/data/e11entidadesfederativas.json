@@ -1,0 +1,194 @@
+[
+    {
+        "id_entidad_federativa":  1,
+        "c_nom_ent":  "AGUASCALIENTES",
+        "c_entidad_abr":  "Ags.",
+        "istatus":  "A"
+    },
+    {
+        "id_entidad_federativa":  2,
+        "c_nom_ent":  "BAJA CALIFORNIA",
+        "c_entidad_abr":  "BC",
+        "istatus":  "A"
+    },
+    {
+        "id_entidad_federativa":  3,
+        "c_nom_ent":  "BAJA CALIFORNIA SUR",
+        "c_entidad_abr":  "BCS",
+        "istatus":  "A"
+    },
+    {
+        "id_entidad_federativa":  4,
+        "c_nom_ent":  "CAMPECHE",
+        "c_entidad_abr":  "Camp.",
+        "istatus":  "A"
+    },
+    {
+        "id_entidad_federativa":  5,
+        "c_nom_ent":  "COAHUILA DE ZARAGOZA",
+        "c_entidad_abr":  "Coah.",
+        "istatus":  "A"
+    },
+    {
+        "id_entidad_federativa":  6,
+        "c_nom_ent":  "COLIMA",
+        "c_entidad_abr":  "Col.",
+        "istatus":  "A"
+    },
+    {
+        "id_entidad_federativa":  7,
+        "c_nom_ent":  "CHIAPAS",
+        "c_entidad_abr":  "Chis.",
+        "istatus":  "A"
+    },
+    {
+        "id_entidad_federativa":  8,
+        "c_nom_ent":  "CHIHUAHUA",
+        "c_entidad_abr":  "Chih.",
+        "istatus":  "A"
+    },
+    {
+        "id_entidad_federativa":  9,
+        "c_nom_ent":  "CIUDAD DE MÉXICO",
+        "c_entidad_abr":  "CDMX",
+        "istatus":  "A"
+    },
+    {
+        "id_entidad_federativa":  10,
+        "c_nom_ent":  "DURANGO",
+        "c_entidad_abr":  "Dgo.",
+        "istatus":  "A"
+    },
+    {
+        "id_entidad_federativa":  11,
+        "c_nom_ent":  "GUANAJUATO",
+        "c_entidad_abr":  "Gto.",
+        "istatus":  "A"
+    },
+    {
+        "id_entidad_federativa":  12,
+        "c_nom_ent":  "GUERRERO",
+        "c_entidad_abr":  "Gro.",
+        "istatus":  "A"
+    },
+    {
+        "id_entidad_federativa":  13,
+        "c_nom_ent":  "HIDALGO",
+        "c_entidad_abr":  "Hgo.",
+        "istatus":  "A"
+    },
+    {
+        "id_entidad_federativa":  14,
+        "c_nom_ent":  "JALISCO",
+        "c_entidad_abr":  "Jal.",
+        "istatus":  "A"
+    },
+    {
+        "id_entidad_federativa":  15,
+        "c_nom_ent":  "MÉXICO",
+        "c_entidad_abr":  "Mex.",
+        "istatus":  "A"
+    },
+    {
+        "id_entidad_federativa":  16,
+        "c_nom_ent":  "MICHOACÁN DE OCAMPO",
+        "c_entidad_abr":  "Mich.",
+        "istatus":  "A"
+    },
+    {
+        "id_entidad_federativa":  17,
+        "c_nom_ent":  "MORELOS",
+        "c_entidad_abr":  "Mor.",
+        "istatus":  "A"
+    },
+    {
+        "id_entidad_federativa":  18,
+        "c_nom_ent":  "NAYARIT",
+        "c_entidad_abr":  "Nay.",
+        "istatus":  "A"
+    },
+    {
+        "id_entidad_federativa":  19,
+        "c_nom_ent":  "NUEVO LEÓN",
+        "c_entidad_abr":  "NL",
+        "istatus":  "A"
+    },
+    {
+        "id_entidad_federativa":  20,
+        "c_nom_ent":  "OAXACA",
+        "c_entidad_abr":  "Oax.",
+        "istatus":  "A"
+    },
+    {
+        "id_entidad_federativa":  21,
+        "c_nom_ent":  "PUEBLA",
+        "c_entidad_abr":  "Pue.",
+        "istatus":  "A"
+    },
+    {
+        "id_entidad_federativa":  22,
+        "c_nom_ent":  "QUERÉTARO",
+        "c_entidad_abr":  "Qro.",
+        "istatus":  "A"
+    },
+    {
+        "id_entidad_federativa":  23,
+        "c_nom_ent":  "QUINTANA ROO",
+        "c_entidad_abr":  "Q. Roo",
+        "istatus":  "A"
+    },
+    {
+        "id_entidad_federativa":  24,
+        "c_nom_ent":  "SAN LUIS POTOSÍ",
+        "c_entidad_abr":  "SLP",
+        "istatus":  "A"
+    },
+    {
+        "id_entidad_federativa":  25,
+        "c_nom_ent":  "SINALOA",
+        "c_entidad_abr":  "Sin.",
+        "istatus":  "A"
+    },
+    {
+        "id_entidad_federativa":  26,
+        "c_nom_ent":  "SONORA",
+        "c_entidad_abr":  "Son.",
+        "istatus":  "A"
+    },
+    {
+        "id_entidad_federativa":  27,
+        "c_nom_ent":  "TABASCO",
+        "c_entidad_abr":  "Tab.",
+        "istatus":  "A"
+    },
+    {
+        "id_entidad_federativa":  28,
+        "c_nom_ent":  "TAMAULIPAS",
+        "c_entidad_abr":  "Tamps.",
+        "istatus":  "A"
+    },
+    {
+        "id_entidad_federativa":  29,
+        "c_nom_ent":  "TLAXCALA",
+        "c_entidad_abr":  "Tlax.",
+        "istatus":  "A"
+    },
+    {
+        "id_entidad_federativa":  30,
+        "c_nom_ent":  "VERACRUZ DE IGNACIO DE LA LLAVE",
+        "c_entidad_abr":  "Ver.",
+        "istatus":  "A"
+    },
+    {
+        "id_entidad_federativa":  31,
+        "c_nom_ent":  "YUCATÁN",
+        "c_entidad_abr":  "Yuc.",
+        "istatus":  "A"
+    },
+    {
+        "id_entidad_federativa":  32,
+        "c_nom_ent":  "ZACATECAS",
+        "c_entidad_abr":  "Zac.",
+        "istatus":  "A"
+    }
+]

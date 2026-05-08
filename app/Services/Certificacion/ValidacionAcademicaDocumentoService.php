@@ -10,11 +10,15 @@ use App\Models\MateriaCursada;
 use App\Models\Matricula;
 use App\Models\OfertaAcademica;
 use App\Models\TrayectoriaAcademica;
+use App\Support\Certificacion\Profiles\CertificacionProfileResolver;
 
 class ValidacionAcademicaDocumentoService
 {
     public function __construct(
         protected IdentificadorAlumnoService $identificadores,
+        protected CertificacionImportacionLegacyNormativaGate $legacyNormativaGate,
+        protected CertificacionProfileResolver $profileResolver,
+        protected AcademicRulesResolver $academicRules,
     ) {}
 
     /**
@@ -28,9 +32,13 @@ class ValidacionAcademicaDocumentoService
             $this->validarMatricula($documento),
             $this->validarMatriculaUnica($documento),
             $this->validarOfertaAcademica($documento),
+            $this->validarSubsistemaDocumento($documento),
+            $this->validarPlanPerteneceASubsistema($documento),
+            $this->validarTipoDocumentoCompatibleConSubsistema($documento),
             $this->validarProgramaPlan($documento),
             $this->validarMaterias($documento),
             $this->validarTrayectoria($documento),
+            $this->advertenciasReglasSubsistemaCertificacionMotor($documento),
         ];
 
         return $this->combinar($secciones);
@@ -305,12 +313,13 @@ class ValidacionAcademicaDocumentoService
             return ['ok' => false, 'errores' => ['Falta alumno para validar unicidad de matrícula.'], 'advertencias' => []];
         }
 
-        $n = Matricula::query()->where('alumno_id', $documento->alumno_id)->count();
+        $n = Matricula::query()
+            ->where('alumno_id', $documento->alumno_id)
+            ->whereIn('estado', ['activa', 'suspendida'])
+            ->count();
         $errores = [];
-        if ($n !== 1) {
-            $errores[] = $n === 0
-                ? 'El alumno no tiene una matrícula activa registrada.'
-                : 'El alumno tiene más de una matrícula activa; debe haber exactamente una matrícula por alumno.';
+        if ($n > 1) {
+            $errores[] = 'El alumno tiene más de una matrícula activa; debe existir solo una matrícula activa por alumno.';
         }
 
         return ['ok' => $errores === [], 'errores' => $errores, 'advertencias' => []];
@@ -381,18 +390,46 @@ class ValidacionAcademicaDocumentoService
     /**
      * @return array{ok: bool, errores: list<string>, advertencias: list<string>}
      */
-    public function validarParaCrearBorrador(DocumentoAcademico $documento): array
+    public function validarParaCrearBorrador(DocumentoAcademico $documento, ?int $usuarioId = null): array
     {
         return $this->combinar([
+            $this->validarLegacyNormativaCertificacionMatricula($documento, $usuarioId),
             $this->validarDocumentoDuplicado($documento),
             $this->validarDatosAlumno($documento),
             $this->validarMatricula($documento),
             $this->validarMatriculaUnica($documento),
             $this->validarOfertaAcademica($documento),
+            $this->validarSubsistemaDocumento($documento),
+            $this->validarPlanPerteneceASubsistema($documento),
+            $this->validarTipoDocumentoCompatibleConSubsistema($documento),
             $this->validarProgramaPlan($documento),
             $this->validarMaterias($documento),
             $this->validarTrayectoria($documento),
+            $this->advertenciasReglasSubsistemaCertificacionMotor($documento),
         ]);
+    }
+
+    /**
+     * @return array{ok: bool, errores: list<string>, advertencias: list<string>}
+     */
+    private function validarLegacyNormativaCertificacionMatricula(DocumentoAcademico $documento, ?int $usuarioId): array
+    {
+        $matriculaId = $documento->matricula_id;
+        if ($matriculaId === null || $matriculaId <= 0) {
+            return ['ok' => true, 'errores' => [], 'advertencias' => []];
+        }
+
+        $matricula = Matricula::query()->find((int) $matriculaId);
+        if ($matricula === null) {
+            return ['ok' => true, 'errores' => [], 'advertencias' => []];
+        }
+
+        $msg = $this->legacyNormativaGate->mensajeSiImpedeCertificadoOficial($matricula, $usuarioId);
+        if ($msg !== null) {
+            return ['ok' => false, 'errores' => [$msg], 'advertencias' => []];
+        }
+
+        return ['ok' => true, 'errores' => [], 'advertencias' => []];
     }
 
     /**
@@ -424,6 +461,11 @@ class ValidacionAcademicaDocumentoService
      */
     public function validarParaGenerarXml(DocumentoAcademico $documento): array
     {
+        $bloqueoProfile = $this->validarEmisionOficialPorProfile($documento);
+        if ($bloqueoProfile['ok'] !== true) {
+            return $bloqueoProfile;
+        }
+
         $base = $this->validarParaPrepararFirma($documento);
         $errores = $base['ok'] ? [] : $base['errores'];
         $errores[] = 'TODO técnico: validar plantilla XSD / estructura XML oficial o payload comparado contra legacy antes de generar XML productivo.';
@@ -440,6 +482,11 @@ class ValidacionAcademicaDocumentoService
      */
     public function validarParaFirmar(DocumentoAcademico $documento): array
     {
+        $bloqueoProfile = $this->validarEmisionOficialPorProfile($documento);
+        if ($bloqueoProfile['ok'] !== true) {
+            return $bloqueoProfile;
+        }
+
         $base = $this->validarParaPrepararFirma($documento);
         $errores = $base['ok'] ? [] : $base['errores'];
         $errores[] = 'TODO técnico: validar esquema de firma (FIEL u homólogo) y validación de certificados según normativa vigente.';
@@ -502,6 +549,7 @@ class ValidacionAcademicaDocumentoService
             'materias' => $this->validarMaterias($documento),
             'trayectoria' => $this->validarTrayectoria($documento),
             'observaciones' => $this->validarObservaciones($documento),
+            'motor_reglas_subsistema' => $this->advertenciasReglasSubsistemaCertificacionMotor($documento),
         ];
 
         $review = $this->validarParaRevision($documento);
@@ -563,5 +611,137 @@ class ValidacionAcademicaDocumentoService
         }
 
         return ['ok' => true, 'errores' => [], 'advertencias' => []];
+    }
+
+    /**
+     * @return array{ok: bool, errores: list<string>, advertencias: list<string>}
+     */
+    public function validarSubsistemaDocumento(DocumentoAcademico $documento): array
+    {
+        $documento->loadMissing(['matricula', 'ofertaAcademica.institucion']);
+        $errores = [];
+        $advertencias = [];
+
+        if ($documento->subsistema_id === null) {
+            $errores[] = 'Debe registrarse el subsistema del documento académico.';
+
+            return ['ok' => false, 'errores' => $errores, 'advertencias' => $advertencias];
+        }
+
+        if ($documento->matricula !== null && $documento->matricula->subsistema_id !== null
+            && (int) $documento->matricula->subsistema_id !== (int) $documento->subsistema_id) {
+            $errores[] = 'El subsistema del documento no coincide con el subsistema de la matrícula.';
+        }
+
+        $subsistemaOferta = $documento->ofertaAcademica?->institucion?->subsistema_id;
+        if ($subsistemaOferta !== null && (int) $subsistemaOferta !== (int) $documento->subsistema_id) {
+            $errores[] = 'El subsistema del documento no coincide con la oferta académica seleccionada.';
+        }
+
+        return ['ok' => $errores === [], 'errores' => $errores, 'advertencias' => $advertencias];
+    }
+
+    /**
+     * @return array{ok: bool, errores: list<string>, advertencias: list<string>}
+     */
+    public function validarPlanPerteneceASubsistema(DocumentoAcademico $documento): array
+    {
+        $documento->loadMissing('ofertaAcademica.planEstudio');
+        $errores = [];
+        if ($documento->subsistema_id === null) {
+            return ['ok' => true, 'errores' => [], 'advertencias' => []];
+        }
+
+        $plan = $documento->ofertaAcademica?->planEstudio;
+        if ($plan !== null && $plan->subsistema_id !== null && (int) $plan->subsistema_id !== (int) $documento->subsistema_id) {
+            $errores[] = 'El plan de estudios de la oferta pertenece a un subsistema distinto al del documento.';
+        }
+
+        return ['ok' => $errores === [], 'errores' => $errores, 'advertencias' => []];
+    }
+
+    /**
+     * @return array{ok: bool, errores: list<string>, advertencias: list<string>}
+     */
+    public function validarTipoDocumentoCompatibleConSubsistema(DocumentoAcademico $documento): array
+    {
+        $documento->loadMissing('subsistema');
+        $errores = [];
+        $subsistema = strtoupper((string) ($documento->subsistema?->clave ?? ''));
+        $tipoDocumento = (string) $documento->tipo_documento;
+        $tipoCert = strtolower((string) ($documento->tipo_certificacion ?? ''));
+
+        if ($tipoDocumento !== 'certificado') {
+            return ['ok' => true, 'errores' => [], 'advertencias' => []];
+        }
+
+        if ($subsistema === 'NORMAL' && $tipoCert === 'certificado_upn') {
+            $errores[] = 'No se permite certificado UPN en subsistema Educación Normal.';
+        }
+        if ($subsistema === 'UPN' && $tipoCert === 'certificado_normal') {
+            $errores[] = 'No se permite certificado Normal en subsistema UPN.';
+        }
+
+        return ['ok' => $errores === [], 'errores' => $errores, 'advertencias' => []];
+    }
+
+    /**
+     * Mensajes del motor de reglas por subsistema (p. ej. UPN sin especificación documental oficial): advertencia, no bloquea borrador.
+     *
+     * @return array{ok: bool, errores: list<string>, advertencias: list<string>}
+     */
+    private function advertenciasReglasSubsistemaCertificacionMotor(DocumentoAcademico $documento): array
+    {
+        $documento->loadMissing('matricula.ofertaAcademica.institucion.subsistema');
+        $m = $documento->matricula;
+        if ($m === null) {
+            return ['ok' => true, 'errores' => [], 'advertencias' => []];
+        }
+
+        try {
+            $advertencias = [];
+            $msg = $this->academicRules->forMatricula($m)->mensajeEmisionDocumentalNoDisponible();
+            if ($msg !== null && $msg !== '') {
+                $advertencias[] = $msg;
+            }
+
+            return ['ok' => true, 'errores' => [], 'advertencias' => $advertencias];
+        } catch (\Throwable) {
+            return ['ok' => true, 'errores' => [], 'advertencias' => []];
+        }
+    }
+
+    /**
+     * @return array{ok: bool, errores: list<string>, advertencias: list<string>}
+     */
+    private function validarEmisionOficialPorProfile(DocumentoAcademico $documento): array
+    {
+        try {
+            $profile = $this->profileResolver->resolveForDocumento($documento);
+        } catch (\Throwable) {
+            return ['ok' => true, 'errores' => [], 'advertencias' => []];
+        }
+
+        if ($profile->oficialDisponible()) {
+            return ['ok' => true, 'errores' => [], 'advertencias' => []];
+        }
+
+        $msg = 'La especificación documental oficial de UPN no ha sido configurada. Solo se permite flujo académico/controlado, no emisión oficial.';
+        try {
+            $documento->loadMissing('matricula.ofertaAcademica.institucion.subsistema');
+            if ($documento->matricula !== null) {
+                $r = $this->academicRules->forMatricula($documento->matricula)->mensajeEmisionDocumentalNoDisponible();
+                if ($r !== null && $r !== '') {
+                    $msg = $r;
+                }
+            }
+        } catch (\Throwable) {
+        }
+
+        return [
+            'ok' => false,
+            'errores' => [$msg],
+            'advertencias' => [],
+        ];
     }
 }

@@ -16,6 +16,7 @@ use App\Models\DocumentoFirma;
 use App\Models\DocumentoVersion;
 use App\Models\FirmaConfiguracion;
 use App\Models\FirmanteAutorizado;
+use App\Support\Certificacion\Profiles\CertificacionProfileResolver;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
@@ -29,6 +30,7 @@ class FirmarDocumentoAcademicoService
         protected DocumentoEstadoService $estados,
         protected AuditoriaService $auditoria,
         protected DocumentStorageService $storage,
+        protected CertificacionProfileResolver $profileResolver,
     ) {}
 
     /**
@@ -45,6 +47,7 @@ class FirmarDocumentoAcademicoService
     ): DocumentoFirma {
         return DB::transaction(function () use ($documento, $xmlOriginal, $firmanteAutorizadoId, $usuarioId) {
             $documento->refresh();
+            $this->asegurarEmisionOficialDisponible($documento);
 
             if ($documento->estado_firma === EstadoFirma::FIRMADO->value) {
                 throw new DocumentoNoPreparadoParaFirmaException('El documento ya consta como firmado.');
@@ -189,6 +192,25 @@ class FirmarDocumentoAcademicoService
 
             return $firmaRegistro->fresh();
         });
+    }
+
+    private function asegurarEmisionOficialDisponible(DocumentoAcademico $documento): void
+    {
+        if ($documento->tipo_documento !== 'certificado') {
+            return;
+        }
+        try {
+            $profile = $this->profileResolver->resolveForDocumento($documento);
+            if ($profile->oficialDisponible()) {
+                return;
+            }
+        } catch (\Throwable) {
+            return;
+        }
+
+        throw new DocumentoNoPreparadoParaFirmaException(
+            'La especificación documental oficial de UPN no ha sido configurada. Solo se permite flujo académico/controlado, no emisión oficial.'
+        );
     }
 
     /**

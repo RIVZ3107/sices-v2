@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           targetNamespace="https://www.siged.sep.gob.mx/certificados"
+           xmlns="https://www.siged.sep.gob.mx/certificados"
+           elementFormDefault="qualified">
+    <xs:element name="Dec">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element name="ServicioFirmante" type="ServicioFirmanteType"/>
+                <xs:element name="FirmaResponsable" type="FirmaResponsableType"/>
+                <xs:element name="ServicioEducativo" type="ServicioEducativoType"/>
+                <xs:element name="Carrera" type="CarreraType"/>
+                <xs:element name="Alumno" type="AlumnoType"/>
+                <xs:element name="Acreditacion" type="AcreditacionType"/>
+                <xs:element name="AsignaturasCursos" type="AsignaturasCursosType"/>
+            </xs:sequence>
+            <xs:attribute name="version" type="xs:string" use="required"/>
+            <xs:attribute name="tipoCertificado" type="xs:string" use="required"/>
+        </xs:complexType>
+    </xs:element>
+
+    <xs:complexType name="ServicioFirmanteType">
+        <xs:attribute name="servicio" type="xs:string" use="required"/>
+        <xs:attribute name="idEntidad" type="xs:string" use="required"/>
+    </xs:complexType>
+
+    <xs:complexType name="FirmaResponsableType">
+        <xs:attribute name="curp" type="xs:string" use="required"/>
+        <xs:attribute name="cargo" type="xs:string" use="required"/>
+    </xs:complexType>
+
+    <xs:complexType name="ServicioEducativoType">
+        <xs:attribute name="nombreSecretariaInstituto" type="xs:string" use="required"/>
+        <xs:attribute name="nombreEscuelaDependencia" type="xs:string" use="required"/>
+        <xs:attribute name="cct" type="xs:string" use="required"/>
+        <xs:attribute name="nombreEscuelaDesaparecida" type="xs:string" use="optional"/>
+        <xs:attribute name="cctDesaparecida" type="xs:string" use="optional"/>
+        <xs:attribute name="claveInstitucion" type="xs:string" use="required"/>
+        <xs:attribute name="idEntidadFederativa" type="xs:string" use="required"/>
+        <xs:attribute name="idMunicipio" type="xs:string" use="optional"/>
+        <xs:attribute name="estatusEscuela" type="xs:string" use="required"/>
+    </xs:complexType>
+
+    <xs:complexType name="CarreraType">
+        <xs:attribute name="claveCarrera" type="xs:string" use="required"/>
+        <xs:attribute name="carrera" type="xs:string" use="required"/>
+        <xs:attribute name="idModalidad" type="xs:string" use="required"/>
+        <xs:attribute name="planEstudios" type="xs:string" use="required"/>
+    </xs:complexType>
+
+    <xs:complexType name="AlumnoType">
+        <xs:attribute name="curp" type="xs:string" use="required"/>
+        <xs:attribute name="nombre" type="xs:string" use="required"/>
+        <xs:attribute name="primerApellido" type="xs:string" use="required"/>
+        <xs:attribute name="segundoApellido" type="xs:string" use="optional"/>
+        <xs:attribute name="idGenero" type="xs:string" use="required"/>
+    </xs:complexType>
+
+    <xs:complexType name="AcreditacionType">
+        <xs:attribute name="idTipoCertificacion" type="xs:string" use="required"/>
+        <xs:attribute name="fechaExpedicion" type="xs:string" use="required"/>
+        <xs:attribute name="asignaturasCursadas" type="xs:string" use="required"/>
+        <xs:attribute name="asignaturasTotal" type="xs:string" use="required"/>
+        <xs:attribute name="creditosTotales" type="xs:string" use="required"/>
+        <xs:attribute name="promedioAprovechamiento" type="xs:string" use="required"/>
+    </xs:complexType>
+
+    <xs:complexType name="AsignaturasCursosType">
+        <xs:sequence>
+            <xs:element name="AsignaturaCurso" maxOccurs="unbounded">
+                <xs:complexType>
+                    <xs:attribute name="clave" type="xs:string" use="required"/>
+                    <xs:attribute name="nombre" type="xs:string" use="required"/>
+                    <xs:attribute name="calificacionFinal" type="xs:string" use="required"/>
+                    <xs:attribute name="semestre" type="xs:string" use="required"/>
+                    <xs:attribute name="periodo" type="xs:string" use="required"/>
+                </xs:complexType>
+            </xs:element>
+        </xs:sequence>
+    </xs:complexType>
+</xs:schema>

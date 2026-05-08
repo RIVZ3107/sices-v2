@@ -12,6 +12,7 @@ use App\Exceptions\Certificacion\PlantillaDocumentoPdfNoEncontradaException;
 use App\Models\DocumentoAcademico;
 use App\Models\DocumentoVersion;
 use App\Models\IntegracionLog;
+use App\Support\Certificacion\Profiles\CertificacionProfileResolver;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Throwable;
@@ -27,6 +28,7 @@ class EnsurePdfDocumentoService
         protected DocumentoEstadoService $estados,
         protected AuditoriaService $auditoria,
         protected DocumentStorageService $storage,
+        protected CertificacionProfileResolver $profileResolver,
     ) {}
 
     /**
@@ -38,6 +40,8 @@ class EnsurePdfDocumentoService
      */
     public function generarPdfBaseControlado(DocumentoAcademico $documento, ?int $usuarioId = null): DocumentoVersion
     {
+        $this->asegurarEmisionOficialDisponible($documento);
+
         if (! (bool) config('certificacion.pdf.generation_enabled', true)) {
             throw new PdfGeneracionDeshabilitadaException('La generación de PDF está deshabilitada en configuración.');
         }
@@ -211,5 +215,24 @@ class EnsurePdfDocumentoService
             'duration_ms' => null,
             'metadata' => ['trace_first_line' => $e->getFile().':'.$e->getLine()],
         ]);
+    }
+
+    private function asegurarEmisionOficialDisponible(DocumentoAcademico $documento): void
+    {
+        if ($documento->tipo_documento !== 'certificado') {
+            return;
+        }
+        try {
+            $profile = $this->profileResolver->resolveForDocumento($documento);
+            if ($profile->oficialDisponible()) {
+                return;
+            }
+        } catch (\Throwable) {
+            return;
+        }
+
+        throw new PdfGeneracionDeshabilitadaException(
+            'La especificación documental oficial de UPN no ha sido configurada. Solo se permite flujo académico/controlado, no emisión oficial.'
+        );
     }
 }

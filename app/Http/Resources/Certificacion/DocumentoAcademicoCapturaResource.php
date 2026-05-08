@@ -44,6 +44,7 @@ class DocumentoAcademicoCapturaResource extends JsonResource
             'estado_cadena' => $this->estado_cadena,
             'estado_xml' => $this->estado_xml,
             'estado_firma' => $this->estado_firma,
+            'estado_sep' => $this->estado_sep,
             'estado_pdf' => $this->estado_pdf,
             'fecha_solicitud' => $this->fecha_solicitud?->toIso8601String(),
             'fecha_aprobacion' => $this->fecha_aprobacion?->toIso8601String(),

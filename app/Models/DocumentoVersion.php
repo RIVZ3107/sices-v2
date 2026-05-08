@@ -15,6 +15,8 @@ class DocumentoVersion extends Model
         'documento_payload_id',
         'cadena_original_generada_id',
         'tipo',
+        'spec_code',
+        'spec_version',
         'version',
         'contenido',
         'storage_disk',
@@ -24,11 +26,14 @@ class DocumentoVersion extends Model
         'activo',
         'metadata',
         'created_by',
+        'generado_por',
+        'generado_en',
     ];
 
     protected $casts = [
         'size_bytes' => 'integer',
         'activo' => 'boolean',
+        'generado_en' => 'datetime',
         'metadata' => 'array',
     ];
 
@@ -50,6 +55,11 @@ class DocumentoVersion extends Model
     public function createdBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    public function generadoPor(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'generado_por');
     }
 
     public function documentoFirmas(): HasMany

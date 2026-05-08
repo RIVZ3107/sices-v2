@@ -17,6 +17,8 @@ class DocumentoAcademicoCapturaService
     public function __construct(
         protected DocumentoAcademicoWorkflowService $workflow,
         protected DocumentoAcademicoRequisitosService $requisitos,
+        protected DocumentoMateriaSnapshotService $materiasSnapshot,
+        protected CertificacionImportacionLegacyNormativaGate $legacyNormativaGate,
     ) {}
 
     /**
@@ -89,7 +91,14 @@ class DocumentoAcademicoCapturaService
         ?string $userAgent = null,
     ): DocumentoAcademico {
         return DB::transaction(function () use ($documento, $usuarioId, $motivo, $ip, $userAgent) {
+            $documento->loadMissing('matricula');
+            $this->legacyNormativaGate->asegurarMatriculaListaParaCertificadoOficial(
+                $documento->matricula,
+                $usuarioId,
+                'aprobar_documento',
+            );
             $this->requisitos->validarParaAprobacion($documento);
+            $this->materiasSnapshot->generarSiNoExiste($documento->fresh(), $usuarioId);
 
             return $this->workflow->aprobar($documento->fresh(), $usuarioId, $motivo ?? 'Documento aprobado.', $ip, $userAgent);
         });

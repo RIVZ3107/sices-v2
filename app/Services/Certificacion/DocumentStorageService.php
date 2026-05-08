@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Certificacion;
 
+use App\Enums\Certificacion\DocumentoVersionTipo;
 use App\Models\DocumentoAcademico;
 use App\Models\DocumentoPayload;
 use App\Models\DocumentoVersion;
@@ -84,7 +85,20 @@ class DocumentStorageService
         ?int $createdBy = null,
         bool $desactivarAnteriores = true,
     ): DocumentoVersion {
-        $tiposVersion = ['XML_ORIGINAL', 'XML_SELLADO', 'XML_FIRMADO_SEP', 'PDF_OFICIAL', 'QR', 'EVIDENCIA'];
+        $tiposVersion = [
+            'XML_ORIGINAL',
+            'XML_SELLADO',
+            'XML_FIRMADO_SEP',
+            'PDF_OFICIAL',
+            'QR',
+            'EVIDENCIA',
+            DocumentoVersionTipo::XML_DEC_LOCAL->value,
+            DocumentoVersionTipo::XML_DEC_FIRMADO_RESPONSABLE->value,
+            DocumentoVersionTipo::XML_DEC_TIMBRADO_SEP->value,
+            DocumentoVersionTipo::PDF_REGENERADO->value,
+            DocumentoVersionTipo::PAYLOAD_DEC->value,
+            DocumentoVersionTipo::CADENA_ORIGINAL_DEC->value,
+        ];
         if (! in_array($tipo, $tiposVersion, true)) {
             throw new \InvalidArgumentException("Tipo de versión documental inválido: {$tipo}");
         }
@@ -112,6 +126,8 @@ class DocumentStorageService
                 'documento_payload_id' => $atributos['documento_payload_id'] ?? null,
                 'cadena_original_generada_id' => $atributos['cadena_original_generada_id'] ?? null,
                 'tipo' => $tipo,
+                'spec_code' => $atributos['spec_code'] ?? null,
+                'spec_version' => $atributos['spec_version'] ?? null,
                 'version' => $version,
                 'contenido' => $atributos['contenido'] ?? null,
                 'storage_disk' => $atributos['storage_disk'] ?? null,
@@ -121,6 +137,8 @@ class DocumentStorageService
                 'activo' => true,
                 'metadata' => $atributos['metadata'] ?? null,
                 'created_by' => $createdBy ?? ($atributos['created_by'] ?? null),
+                'generado_por' => $atributos['generado_por'] ?? ($createdBy ?? null),
+                'generado_en' => $atributos['generado_en'] ?? now(),
             ]);
         });
     }

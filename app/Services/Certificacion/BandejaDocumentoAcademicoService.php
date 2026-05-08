@@ -108,6 +108,9 @@ class BandejaDocumentoAcademicoService
             ->with([
                 'alumno:id,curp,nombre,primer_apellido,segundo_apellido',
                 'matricula:id,matricula',
+                'institucion:id,nombre,clave',
+                'sede:id,nombre,clave',
+                'cicloEscolar:id,nombre,clave',
                 'ultimaObservacion' => fn ($sub) => $sub->select([
                     'documento_observaciones.id',
                     'documento_observaciones.documento_academico_id',

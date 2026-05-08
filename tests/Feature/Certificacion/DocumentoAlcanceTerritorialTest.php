@@ -138,11 +138,10 @@ class DocumentoAlcanceTerritorialTest extends TestCase
     {
         $suf = $prefijo.'-'.substr(str_replace('.', '', uniqid('', true)), 0, 8);
 
-        $subsistema = Subsistema::query()->create([
-            'clave' => 'SUB-'.$suf,
-            'nombre' => 'Subsistema '.$prefijo,
-            'activo' => true,
-        ]);
+        $subsistema = Subsistema::query()->updateOrCreate(
+            ['clave' => 'NORMAL'],
+            ['nombre' => 'Educación Normal', 'nombre_corto' => 'Normal', 'activo' => true],
+        );
 
         $region = Region::query()->create([
             'subsistema_id' => $subsistema->id,

@@ -15,6 +15,7 @@ class ProgramaEstudio extends Model
 
     protected $fillable = [
         'nivel_academico_id',
+        'subsistema_id',
         'clave',
         'nombre',
         'area_conocimiento',
@@ -34,6 +35,11 @@ class ProgramaEstudio extends Model
     public function nivelAcademico(): BelongsTo
     {
         return $this->belongsTo(NivelAcademico::class);
+    }
+
+    public function subsistema(): BelongsTo
+    {
+        return $this->belongsTo(Subsistema::class);
     }
 
     public function planesEstudio(): HasMany

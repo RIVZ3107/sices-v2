@@ -15,6 +15,9 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         $this->call([
+            EntidadFederativaSeeder::class,
+            MunicipioSeeder::class,
+            SubsistemasSeeder::class,
             NivelAcademicoSeeder::class,
             EstadoCatalogoSeeder::class,
             TipoDocumentoSeeder::class,
@@ -27,6 +30,9 @@ class DatabaseSeeder extends Seeder
             XmlPlantillaSeeder::class,
             PlantillaDocumentoSeeder::class,
             FirmaConfiguracionSeeder::class,
+            Catalogos\InstitucionesSedesInicialSeeder::class,
+            Catalogos\InstitucionesLegacyBaseSeeder::class,
+            Catalogos\InstitucionesSubsedesLegacySeeder::class,
         ]);
     }
 }

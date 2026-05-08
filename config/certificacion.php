@@ -16,4 +16,22 @@ return [
     */
     'calificacion_aprobatoria_minima' => (float) env('CERT_CALIF_MIN', 6.0),
 
+    /*
+    |--------------------------------------------------------------------------
+    | UPN — matrícula (sin patrón oficial inventado)
+    |--------------------------------------------------------------------------
+    |
+    | Solo si la institución define generación automática y una expresión
+    | explícita; si no, prevalece captura manual con unicidad global SICES.
+    |
+    */
+    'upn' => [
+        'generar_matricula_automatica' => filter_var(
+            env('UPN_GENERAR_MATRICULA_AUTOMATICA', false),
+            FILTER_VALIDATE_BOOL,
+        ),
+        /** Regex sin delimitadores PHP; vacío = sin generador configurado. */
+        'patron_matricula_regex' => env('UPN_PATRON_MATRICULA_REGEX', ''),
+    ],
+
 ];

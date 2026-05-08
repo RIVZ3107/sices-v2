@@ -9,6 +9,7 @@ use App\Models\CicloEscolar;
 use App\Models\Institucion;
 use App\Models\OfertaAcademica;
 use App\Models\Region;
+use App\Models\Sede;
 use App\Models\Subsistema;
 use App\Services\Certificacion\CertificacionAlcanceService;
 use Illuminate\Http\JsonResponse;
@@ -96,5 +97,59 @@ class CatalogoCapturaController extends Controller
             ]);
 
         return response()->json(['data' => $filas]);
+    }
+
+    public function sedes(Request $request): JsonResponse
+    {
+        $q = Sede::query()->with(['institucion.subsistema'])->where('activo', true);
+        $modoTecnico = $request->user()?->can('ver_claves_legacy_catalogos') === true;
+
+        if ($request->filled('institucion_id')) {
+            $q->where('institucion_id', $request->integer('institucion_id'));
+        }
+        if ($request->filled('subsistema_id')) {
+            $subsistemaId = $request->integer('subsistema_id');
+            $q->whereHas('institucion', fn ($w) => $w->where('subsistema_id', $subsistemaId));
+        }
+        if ($request->filled('estatus')) {
+            $estatus = strtoupper(trim((string) $request->input('estatus')));
+            if (in_array($estatus, ['A', 'B'], true)) {
+                $q->where('activo', $estatus === 'A');
+            }
+        }
+        if ($request->filled('search')) {
+            $term = trim((string) $request->input('search'));
+            $q->where(function ($w) use ($term): void {
+                $w->where('nombre', 'like', '%'.$term.'%')
+                    ->orWhereHas('institucion', fn ($x) => $x->where('nombre', 'like', '%'.$term.'%'));
+            });
+        }
+
+        $this->alcance->aplicarAlcanceSedes($q, $request->user());
+
+        $rows = $q->orderBy('nombre')->get()->map(function (Sede $s) use ($modoTecnico): array {
+            $sub = $s->institucion?->subsistema;
+            $base = [
+                'id' => $s->id,
+                'nombre' => $s->nombre,
+                'institucion' => $s->institucion?->nombre ?? '—',
+                'subsistema' => $sub?->clave,
+                'cct' => $s->cct,
+                'municipio_nombre' => data_get($s->metadata, 'posible_municipio_detectado'),
+                'estatus' => $s->activo ? 'A' : 'B',
+            ];
+            if (! $modoTecnico) {
+                return $base;
+            }
+
+            return array_merge($base, [
+                'legacy_kcve_subsede' => $s->legacy_kcve_subsede,
+                'legacy_rcve_institucion' => $s->legacy_rcve_institucion,
+                'legacy_rcvect' => $s->legacy_rcvect,
+                'metadata' => $s->metadata,
+            ]);
+        })->values();
+
+        return response()->json(['data' => $rows]);
     }
 }

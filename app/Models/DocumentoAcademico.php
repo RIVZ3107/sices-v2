@@ -32,6 +32,7 @@ class DocumentoAcademico extends Model
         'estado_cadena',
         'estado_xml',
         'estado_firma',
+        'estado_sep',
         'estado_pdf',
         'fecha_solicitud',
         'fecha_aprobacion',
@@ -135,6 +136,11 @@ class DocumentoAcademico extends Model
     public function firmas(): HasMany
     {
         return $this->hasMany(DocumentoFirma::class);
+    }
+
+    public function materiasSnapshot(): HasMany
+    {
+        return $this->hasMany(DocumentoMateriaSnapshot::class);
     }
 
     public function integracionesLogs(): HasMany

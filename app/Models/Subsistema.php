@@ -58,4 +58,19 @@ class Subsistema extends Model
     {
         return $this->hasMany(DocumentoAcademico::class);
     }
+
+    public function programasEstudio(): HasMany
+    {
+        return $this->hasMany(ProgramaEstudio::class);
+    }
+
+    public function planesEstudio(): HasMany
+    {
+        return $this->hasMany(PlanEstudio::class);
+    }
+
+    public function matriculas(): HasMany
+    {
+        return $this->hasMany(Matricula::class);
+    }
 }

@@ -9,31 +9,14 @@ use App\Http\Requests\Certificacion\StoreAlumnoCapturaRequest;
 use App\Http\Requests\Certificacion\UpdateAlumnoCapturaRequest;
 use App\Http\Resources\Certificacion\AlumnoResource;
 use App\Models\Alumno;
+use App\Services\Certificacion\AlumnoInstitucionalResumenService;
 use App\Services\Certificacion\CertificacionAlcanceService;
-use Illuminate\Http\Request;
-use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
 class AlumnoCapturaController extends Controller
 {
-        public function index(Request $request): AnonymousResourceCollection
-    {
-        $termino = $request->input('q');
-
-        $alumnos = Alumno::query()
-            ->when($termino, function ($query, $termino) {
-                $query->where('curp', 'LIKE', "%{$termino}%")
-                      ->orWhere('nombre', 'LIKE', "%{$termino}%")
-                      ->orWhere('primer_apellido', 'LIKE', "%{$termino}%")
-                      ->orWhere('segundo_apellido', 'LIKE', "%{$termino}%");
-            })
-            ->limit(100) 
-            ->get();
-
-        return AlumnoResource::collection($alumnos);
-=======
     public function __construct(
         protected CertificacionAlcanceService $alcance,
     ) {}
@@ -75,7 +58,6 @@ class AlumnoCapturaController extends Controller
         return AlumnoResource::collection(
             $query->paginate((int) request()->integer('per_page', 20))->withQueryString()
         );
->>>>>>> 9578ba3 (Backend actualizado)
     }
 
     public function store(StoreAlumnoCapturaRequest $request): JsonResponse
@@ -94,6 +76,16 @@ class AlumnoCapturaController extends Controller
         $this->authorize('view', $alumno);
 
         return new AlumnoResource($alumno);
+    }
+
+    /** Vista operativa institucional (sin metadata cruda; etiquetas humanas). */
+    public function resumenInstitucional(Alumno $alumno, AlumnoInstitucionalResumenService $resumen): JsonResponse
+    {
+        $this->authorize('view', $alumno);
+
+        return response()->json([
+            'data' => $resumen->construir($alumno->fresh()),
+        ]);
     }
 
     public function update(UpdateAlumnoCapturaRequest $request, Alumno $alumno): AlumnoResource

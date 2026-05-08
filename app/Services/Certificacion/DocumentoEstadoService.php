@@ -7,6 +7,7 @@ namespace App\Services\Certificacion;
 use App\Enums\Certificacion\EstadoCadena;
 use App\Enums\Certificacion\EstadoFirma;
 use App\Enums\Certificacion\EstadoPdf;
+use App\Enums\Certificacion\EstadoSep;
 use App\Enums\Certificacion\EstadoWorkflow;
 use App\Enums\Certificacion\EstadoXml;
 use App\Models\DocumentoAcademico;
@@ -22,6 +23,7 @@ class DocumentoEstadoService
         'estado_cadena' => EstadoCadena::class,
         'estado_xml' => EstadoXml::class,
         'estado_firma' => EstadoFirma::class,
+        'estado_sep' => EstadoSep::class,
         'estado_pdf' => EstadoPdf::class,
     ];
 
