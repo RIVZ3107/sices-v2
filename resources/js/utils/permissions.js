@@ -20,16 +20,18 @@ const ACTIONS_BY_ROLE = {
     ],
     director_escuela: [
         'ver_alumno',
+        'revisar_expediente',
         'aprobar_documento',
         'rechazar_documento',
+        'autorizar_correccion_calificacion',
     ],
     educacion_superior: [
         'ver_alumno',
         'validar_normativamente',
-        'revisar_importacion_legacy_normativa',
-        'aprobar_importacion_legacy_normativa',
-        'rechazar_importacion_legacy_normativa',
         'liberar_proceso_tecnico',
+        'revisar_solicitud_matricula',
+        'asignar_matricula',
+        'aprobar_documento',
         'rechazar_documento',
     ],
     sistemas: [

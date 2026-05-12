@@ -22,6 +22,22 @@ class SedesCatalogoApiTest extends TestCase
         $this->seed(DatabaseSeeder::class);
     }
 
+    public function test_educacion_superior_no_recibe_campos_legacy_en_sedes(): void
+    {
+        $user = User::factory()->create();
+        $user->assignRole('educacion_superior');
+        Sanctum::actingAs($user);
+
+        $res = $this->getJson('/api/v1/certificacion/catalogos/sedes?search=U.P.N.')
+            ->assertOk();
+
+        $row = collect($res->json('data'))->first();
+        $this->assertNotNull($row);
+        $this->assertArrayNotHasKey('legacy_kcve_subsede', $row);
+        $this->assertArrayNotHasKey('legacy_rcve_institucion', $row);
+        $this->assertArrayNotHasKey('legacy_rcvect', $row);
+    }
+
     public function test_control_escolar_no_recibe_campos_legacy(): void
     {
         $user = User::factory()->create();

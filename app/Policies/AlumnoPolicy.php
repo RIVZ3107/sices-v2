@@ -7,6 +7,7 @@ namespace App\Policies;
 use App\Models\Alumno;
 use App\Models\User;
 use App\Services\Certificacion\CertificacionAlcanceService;
+use App\Support\SicesAuth;
 
 class AlumnoPolicy
 {
@@ -16,12 +17,12 @@ class AlumnoPolicy
 
     public function viewAny(User $user): bool
     {
-        return $user->can('ver_alumnos');
+        return SicesAuth::canAny($user, 'ver_alumnos', 'alumnos.ver', 'expedientes.ver');
     }
 
     public function view(User $user, Alumno $alumno): bool
     {
-        if (! $user->can('ver_alumnos')) {
+        if (! SicesAuth::canAny($user, 'ver_alumnos', 'alumnos.ver', 'expedientes.ver')) {
             return false;
         }
 
@@ -30,12 +31,12 @@ class AlumnoPolicy
 
     public function create(User $user): bool
     {
-        return $user->can('gestionar_alumnos');
+        return SicesAuth::canAny($user, 'gestionar_alumnos', 'alumnos.crear', 'expedientes.crear');
     }
 
     public function update(User $user, Alumno $alumno): bool
     {
-        if (! $user->can('gestionar_alumnos')) {
+        if (! SicesAuth::canAny($user, 'gestionar_alumnos', 'alumnos.editar', 'expedientes.editar', 'alumnos.crear')) {
             return false;
         }
 

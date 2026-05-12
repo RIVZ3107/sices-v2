@@ -14,17 +14,20 @@ use App\Models\TrayectoriaAcademica;
 use App\Models\User;
 use App\Services\Certificacion\CertificacionAlcanceService;
 use App\Services\Certificacion\CertificacionImportacionLegacyNormativaGate;
+use App\Services\Certificacion\SolicitudMatriculaService;
 use Illuminate\Database\Eloquent\Builder;
 
 class ControlEscolarDashboardService
 {
     public function __construct(
-        protected CertificacionAlcanceService $alcance
+        protected CertificacionAlcanceService $alcance,
+        protected SolicitudMatriculaService $solicitudesMatricula,
     ) {}
 
     public function resumen(User $user): array
     {
         $alumnosActivos = $this->alumnosBaseQuery($user)->where('estatus', 'activo')->count();
+        $aspirantesPendientes = $this->alumnosBaseQuery($user)->where('estatus', 'aspirante')->count();
         $matriculasIncompletas = $this->alumnosSinMatriculaActiva($user)->count();
         $inscripcionesPendientes = $this->matriculasSinInscripcionActiva($user)->count();
         $cargasPendientes = $this->inscripcionesSinCarga($user)->count();
@@ -34,6 +37,28 @@ class ControlEscolarDashboardService
         $documentosConObservaciones = $this->documentosConObservaciones($user)->count();
         $solicitudesRevision = $this->solicitudesEnRevision($user)->count();
 
+        $solicitudesMetricas = $user->can('ver_solicitud_matricula')
+            ? $this->solicitudesMatricula->metricasControlEscolar($user)
+            : [
+                'solicitudes_matricula_borrador' => 0,
+                'solicitudes_matricula_enviadas' => 0,
+                'solicitudes_matricula_con_observaciones' => 0,
+                'solicitudes_matricula_matricula_asignada' => 0,
+            ];
+
+        $metricas = array_merge([
+            'alumnos_activos' => $alumnosActivos,
+            'aspirantes_pendientes' => $aspirantesPendientes,
+            'matriculas_incompletas' => $matriculasIncompletas,
+            'inscripciones_pendientes' => $inscripcionesPendientes,
+            'cargas_academicas_pendientes' => $cargasPendientes,
+            'calificaciones_pendientes' => $calificacionesPendientes,
+            'importaciones_con_errores' => $importacionesConErrores,
+            'trayectorias_listas_para_certificar' => $trayectoriasListas,
+            'documentos_con_observaciones' => $documentosConObservaciones,
+            'solicitudes_en_revision' => $solicitudesRevision,
+        ], $solicitudesMetricas);
+
         return [
             'contexto' => [
                 'subsistema' => $user->instituciones()->with('subsistema')->first()?->subsistema?->nombre ?? 'Subsistema no asignado',
@@ -41,16 +66,13 @@ class ControlEscolarDashboardService
                 'sede' => $user->sedes()->first()?->nombre ?? 'Sede no asignada',
                 'ciclo_escolar' => now()->format('Y').'-'.(string) ((int) now()->format('Y') + 1),
             ],
-            'metricas' => [
-                'alumnos_activos' => $alumnosActivos,
-                'matriculas_incompletas' => $matriculasIncompletas,
-                'inscripciones_pendientes' => $inscripcionesPendientes,
-                'cargas_academicas_pendientes' => $cargasPendientes,
-                'calificaciones_pendientes' => $calificacionesPendientes,
-                'importaciones_con_errores' => $importacionesConErrores,
-                'trayectorias_listas_para_certificar' => $trayectoriasListas,
-                'documentos_con_observaciones' => $documentosConObservaciones,
-                'solicitudes_en_revision' => $solicitudesRevision,
+            'metricas' => $metricas,
+            'cards' => [
+                ['key' => 'alumnos_activos', 'title' => 'Alumnos activos', 'value' => $metricas['alumnos_activos'], 'href' => '/app/expedientes'],
+                ['key' => 'solicitudes_matricula', 'title' => 'Solicitudes de matrícula', 'value' => ($metricas['solicitudes_matricula_borrador'] ?? 0) + ($metricas['solicitudes_matricula_enviadas'] ?? 0) + ($metricas['solicitudes_matricula_con_observaciones'] ?? 0), 'href' => '/app/expedientes'],
+                ['key' => 'inscripciones_pendientes', 'title' => 'Inscripciones pendientes', 'value' => $metricas['inscripciones_pendientes'], 'href' => '/app/expedientes'],
+                ['key' => 'calificaciones_pendientes', 'title' => 'Calificaciones pendientes', 'value' => $metricas['calificaciones_pendientes'], 'href' => '/app/expedientes'],
+                ['key' => 'documentos_obs', 'title' => 'Documentos con observaciones', 'value' => $metricas['documentos_con_observaciones'], 'href' => '/app/expedientes'],
             ],
             'pendientes_prioritarios' => $this->pendientesPrioritarios($user),
             'documentos_en_proceso' => $this->documentosEnProceso($user),
@@ -77,7 +99,7 @@ class ControlEscolarDashboardService
         };
 
         foreach ($this->alumnosSinMatriculaActiva($user)->limit(3)->get() as $alumno) {
-            $push($pendientes, $this->nombreAlumno($alumno), (string) $alumno->curp, 'Sin matricula', 'Expediente incompleto: falta matricula activa', 'Alta', 'Registrar matricula', (int) $alumno->id);
+            $push($pendientes, $this->nombreAlumno($alumno), (string) $alumno->curp, 'Sin matricula', 'Expediente incompleto: falta matricula activa', 'Alta', 'Solicitar matricula a Educacion Superior', (int) $alumno->id);
         }
         foreach ($this->matriculasSinInscripcionActiva($user)->limit(3)->get() as $matricula) {
             $push($pendientes, $this->nombreAlumno($matricula->alumno), (string) $matricula->alumno?->curp, (string) $matricula->matricula, 'Inscripcion pendiente', 'Alta', 'Registrar inscripcion de periodo', (int) $matricula->alumno_id);

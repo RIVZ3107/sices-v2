@@ -27,8 +27,7 @@ use App\Models\TrayectoriaAcademica;
 use App\Models\User;
 use App\Enums\Certificacion\TipoCertificacion;
 use App\Services\Certificacion\CertificacionImportacionLegacyNormativaGate;
-use App\Support\ControlEscolar\DemoControlEscolarMetadata;
-use Database\Seeders\Support\DemoControlEscolarCatalogoResolver;
+use App\Services\ControlEscolar\ResetDemoControlEscolarService;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 
@@ -64,6 +63,24 @@ final class CertificacionControlEscolarDemoSeeder extends Seeder
 
     private int $contadorMatricula = 1;
 
+    /** Coincide con instituciones/subsedes legacy ya cargadas; no crea sedes. */
+    /** @var list<array{name: string, patterns: string[]}> */
+    private const CATALOGO_SEDES_DEMO = [
+        ['name' => 'U.P.N. UNIDAD 151 TOLUCA', 'patterns' => ['%151 TOLUCA%', '%UNIDAD 151%']],
+        ['name' => 'U.P.N. UNIDAD 152 ATIZAPÁN', 'patterns' => ['%152 ATIZ%', '%152 ATIZAP%']],
+        ['name' => 'U.P.N. UNIDAD 153 ECATEPEC', 'patterns' => ['%153 ECATEPEC%', '%153 ECATE%']],
+        ['name' => 'REGIONAL ACAMBAY', 'patterns' => ['%REGIONAL ACAMBAY%']],
+        ['name' => 'REGIONAL IXTLAHUACA', 'patterns' => ['%REGIONAL IXTLAHUACA%']],
+        ['name' => 'REGIONAL JILOTEPEC', 'patterns' => ['%REGIONAL JILOTEPEC%']],
+        ['name' => 'REGIONAL TEJUPILCO', 'patterns' => ['%REGIONAL TEJUPILCO%']],
+        ['name' => 'REGIONAL TULTEPEC', 'patterns' => ['%REGIONAL TULTEPEC%']],
+        ['name' => 'REGIONAL NEZAHUALCÓYOTL', 'patterns' => ['%REGIONAL NEZAHUALC%', '%REGIONAL NEZAHUALCO%']],
+        ['name' => 'REGIONAL NICOLÁS ROMERO', 'patterns' => ['%REGIONAL NICOLÁS ROMERO%', '%REGIONAL NICOLAS ROMERO%']],
+        ['name' => 'ESCUELA NORMAL SUPERIOR DEL VALLE DE TOLUCA', 'patterns' => ['%NORMAL SUPERIOR%DE TOLUCA%', '%VALLE DE TOLUCA%']],
+        ['name' => 'ESCUELA NORMAL SUPERIOR DEL VALLE DE MÉXICO', 'patterns' => ['%NORMAL SUPERIOR%DE MÉXICO%', '%NORMAL SUPERIOR%DE MEXICO%']],
+        ['name' => 'ESCUELA NORMAL RURAL “LÁZARO CÁRDENAS DEL RÍO”', 'patterns' => ['%LÁZARO CÁRDENAS%', '%LAZARO CARDENAS%']],
+    ];
+
     public function run(): void
     {
         $normal = Subsistema::query()->where('clave', 'NORMAL')->first();
@@ -73,7 +90,7 @@ final class CertificacionControlEscolarDemoSeeder extends Seeder
             throw new \RuntimeException('Ejecutar SubsistemasSeeder antes: se requiere NORMAL y UPN.');
         }
 
-        $sedes = DemoControlEscolarCatalogoResolver::obtenerSedesObligatorias();
+        $sedes = $this->sedesDesdeCatalogoLegacy();
         foreach ($sedes as $s) {
             $s->loadMissing('institucion.subsistema');
         }
@@ -135,7 +152,7 @@ final class CertificacionControlEscolarDemoSeeder extends Seeder
                 'fecha_fin' => '2027-07-31',
                 'es_actual' => true,
                 'activo' => true,
-                'metadata' => DemoControlEscolarMetadata::marca(),
+                'metadata' => ResetDemoControlEscolarService::metadata(),
             ],
         );
 
@@ -147,7 +164,7 @@ final class CertificacionControlEscolarDemoSeeder extends Seeder
                 'fecha_inicio' => '2026-08-01',
                 'fecha_fin' => '2026-12-20',
                 'estatus' => 'activo',
-                'metadata' => DemoControlEscolarMetadata::marca(),
+                'metadata' => ResetDemoControlEscolarService::metadata(),
             ],
         );
 
@@ -169,7 +186,7 @@ final class CertificacionControlEscolarDemoSeeder extends Seeder
                 'creditos_minimos' => 240,
                 'duracion_periodos' => 8,
                 'activo' => true,
-                'metadata' => DemoControlEscolarMetadata::marca(['normativa' => 'normal_planes_2022']),
+                'metadata' => ResetDemoControlEscolarService::metadata(['normativa' => 'normal_planes_2022']),
             ],
         );
 
@@ -183,7 +200,7 @@ final class CertificacionControlEscolarDemoSeeder extends Seeder
                 'creditos_minimos' => 288,
                 'duracion_periodos' => 9,
                 'activo' => true,
-                'metadata' => DemoControlEscolarMetadata::marca(),
+                'metadata' => ResetDemoControlEscolarService::metadata(),
             ],
         );
 
@@ -196,7 +213,7 @@ final class CertificacionControlEscolarDemoSeeder extends Seeder
                 'anio_aprobacion' => 2022,
                 'vigencia_inicio' => '2022-08-01',
                 'activo' => true,
-                'metadata' => DemoControlEscolarMetadata::marca(),
+                'metadata' => ResetDemoControlEscolarService::metadata(),
             ],
         );
 
@@ -209,7 +226,7 @@ final class CertificacionControlEscolarDemoSeeder extends Seeder
                 'anio_aprobacion' => 2025,
                 'vigencia_inicio' => '2025-08-01',
                 'activo' => true,
-                'metadata' => DemoControlEscolarMetadata::marca(),
+                'metadata' => ResetDemoControlEscolarService::metadata(),
             ],
         );
 
@@ -252,7 +269,7 @@ final class CertificacionControlEscolarDemoSeeder extends Seeder
 
             $claveOferta = 'SXCE-OFF'.$sede->id.'-'.$claveSubs.'-'.$this->ciclo->id;
 
-            $metadata = DemoControlEscolarMetadata::marca(['subsistema_oferta' => $claveSubs]);
+            $metadata = ResetDemoControlEscolarService::metadata(['subsistema_oferta' => $claveSubs]);
             if ($claveSubs === 'UPN') {
                 $metadata['modalidad_upn'] = \App\Services\Certificacion\UpnLicenciaturaRulesService::MOD_PRESENCIAL;
             }
@@ -282,6 +299,34 @@ final class CertificacionControlEscolarDemoSeeder extends Seeder
         return $map;
     }
 
+    /** @return list<Sede> */
+    private function sedesDesdeCatalogoLegacy(): array
+    {
+        /** @var list<Sede> $out */
+        $out = [];
+        foreach (self::CATALOGO_SEDES_DEMO as $regla) {
+            $sede = null;
+            foreach ($regla['patterns'] as $like) {
+                $sede = Sede::query()
+                    ->where('activo', true)
+                    ->where('nombre', 'like', $like)
+                    ->orderByDesc('legacy_kcve_subsede')
+                    ->first();
+                if ($sede !== null) {
+                    break;
+                }
+            }
+            if ($sede === null) {
+                throw new \RuntimeException(
+                    'Demo Control Escolar: falta en catálogo la sede ['.$regla['name'].']. Ejecute seeders de instituciones/subsedes legacy.'
+                );
+            }
+            $out[] = $sede;
+        }
+
+        return $out;
+    }
+
     private function crearAlumnoBase(int $secuencial, string $scenario, Subsistema $subsistema): Alumno
     {
         $curp = substr(strtoupper(hash('sha256', 'sxcedemo_curp_'.$secuencial.'_'.$subsistema->clave)), 0, 18);
@@ -296,7 +341,7 @@ final class CertificacionControlEscolarDemoSeeder extends Seeder
                 'genero' => ($secuencial % 2) === 0 ? 'M' : 'F',
                 'nacionalidad' => 'MEX',
                 'estatus' => 'activo',
-                'metadata' => DemoControlEscolarMetadata::marca([
+                'metadata' => ResetDemoControlEscolarService::metadata([
                     'synthetic_seq' => $secuencial,
                     'scenario' => $scenario,
                     'scenario_subsistema_sede_rotation' => $subsistema->clave,
@@ -305,7 +350,6 @@ final class CertificacionControlEscolarDemoSeeder extends Seeder
         );
     }
 
-    /** @internal */
     private function ejecutarCasoEscenario(string $caso, Alumno $alumno, OfertaAcademica $oferta, string $subsistemaClave): void
     {
         $esUpn = $subsistemaClave === 'UPN';
@@ -317,7 +361,7 @@ final class CertificacionControlEscolarDemoSeeder extends Seeder
                 $metaPrev = (array) ($matBaja->metadata ?? []);
                 $matBaja->forceFill([
                     'estado' => 'baja',
-                    'metadata' => array_merge($metaPrev, DemoControlEscolarMetadata::marca(['variacion' => 'sin_matricula_activa'])),
+                    'metadata' => array_merge($metaPrev, ResetDemoControlEscolarService::metadata(['variacion' => 'sin_matricula_activa'])),
                 ])->saveQuietly();
                 break;
 
@@ -336,7 +380,7 @@ final class CertificacionControlEscolarDemoSeeder extends Seeder
                     'filas_payload' => [['clave' => 'NMLEG01', 'nombre' => 'Asignatura sintética controlada']],
                     'validacion_payload' => ['tiene_bloqueos' => false],
                     'reconciliacion_payload' => [],
-                    'metadata' => DemoControlEscolarMetadata::marca(['caso_demo' => 'legacy_import']),
+                    'metadata' => ResetDemoControlEscolarService::metadata(['caso_demo' => 'legacy_import']),
                 ]);
                 CertificacionImportacionLegacyNormativaGate::marcarMatriculaPorImportLegacy(
                     Matricula::query()->findOrFail($mat->id),
@@ -379,7 +423,7 @@ final class CertificacionControlEscolarDemoSeeder extends Seeder
                             'errores' => ['Formato sintético: el registro fuera del plan institucional.'],
                         ],
                         'reconciliacion_payload' => ['estado' => 'pendiente_conciliacion'],
-                        'metadata' => DemoControlEscolarMetadata::marca(['caso_demo' => 'importacion_errores']),
+                        'metadata' => ResetDemoControlEscolarService::metadata(['caso_demo' => 'importacion_errores']),
                     ],
                 );
                 break;
@@ -401,7 +445,7 @@ final class CertificacionControlEscolarDemoSeeder extends Seeder
                         'materias_aprobadas' => 4,
                         'materias_reprobadas' => 0,
                         'estado' => 'consolidada',
-                        'metadata' => DemoControlEscolarMetadata::marca(),
+                        'metadata' => ResetDemoControlEscolarService::metadata(),
                     ],
                 );
                 break;
@@ -423,7 +467,7 @@ final class CertificacionControlEscolarDemoSeeder extends Seeder
                         'materias_aprobadas' => 4,
                         'materias_reprobadas' => 0,
                         'estado' => 'consolidada',
-                        'metadata' => DemoControlEscolarMetadata::marca(),
+                        'metadata' => ResetDemoControlEscolarService::metadata(),
                     ],
                 );
                 break;
@@ -442,18 +486,17 @@ final class CertificacionControlEscolarDemoSeeder extends Seeder
                         'materias_aprobadas' => 4,
                         'materias_reprobadas' => 0,
                         'estado' => 'lista_certificacion',
-                        'metadata' => DemoControlEscolarMetadata::marca(),
+                        'metadata' => ResetDemoControlEscolarService::metadata(),
                     ],
                 );
                 break;
         }
-        unset($esUpn);
     }
 
     private function crearMatricula(Alumno $alumno, OfertaAcademica $oferta, bool $esUpn): Matricula
     {
         $claveMat = sprintf('DMT-%s-%05d', $esUpn ? 'U' : 'N', $this->contadorMatricula++);
-        $metaMat = DemoControlEscolarMetadata::marca([
+        $metaMat = ResetDemoControlEscolarService::metadata([
             'protocolo' => $esUpn ? 'upn_sin_generador_sep' : 'normal_controlado_institucional',
         ]);
 
@@ -487,7 +530,7 @@ final class CertificacionControlEscolarDemoSeeder extends Seeder
                 'etiqueta_periodo_curricular' => '1.er semestre demo',
                 'estatus' => 'activa',
                 'fecha_inscripcion' => '2026-08-11',
-                'metadata' => DemoControlEscolarMetadata::marca(),
+                'metadata' => ResetDemoControlEscolarService::metadata(),
             ],
         );
     }
@@ -505,7 +548,7 @@ final class CertificacionControlEscolarDemoSeeder extends Seeder
                 [
                     'materia_id' => $fila['materia']->id,
                     'estatus' => 'activa',
-                    'metadata' => DemoControlEscolarMetadata::marca(['orden_demo' => $idx]),
+                    'metadata' => ResetDemoControlEscolarService::metadata(['orden_demo' => $idx]),
                 ],
             );
 
@@ -541,7 +584,7 @@ final class CertificacionControlEscolarDemoSeeder extends Seeder
                     'orden' => $idx + 1,
                     'estado' => 'final',
                     'estatus_acreditacion' => $conCalif ? 'acreditada' : 'pendiente',
-                    'metadata' => DemoControlEscolarMetadata::marca(),
+                    'metadata' => ResetDemoControlEscolarService::metadata(),
                 ],
             );
         }
@@ -586,7 +629,7 @@ final class CertificacionControlEscolarDemoSeeder extends Seeder
                 'estatus_acreditacion' => 'pendiente_revision',
                 'metadata' => [
                     'origen' => CertificacionImportacionLegacyNormativaGate::META_ORIGEN_LEGACY,
-                    'demo_dataset' => DemoControlEscolarMetadata::DEMO_DATASET,
+                    'demo_dataset' => ResetDemoControlEscolarService::DATASET,
                     'scenario' => 'legacy_control_demo',
                 ],
             ],
@@ -622,7 +665,7 @@ final class CertificacionControlEscolarDemoSeeder extends Seeder
                 'estado_pdf' => 'no_generado',
                 'fecha_solicitud' => now(),
                 'created_by' => $this->usuarioControl->id,
-                'metadata' => DemoControlEscolarMetadata::marca(),
+                'metadata' => ResetDemoControlEscolarService::metadata(),
             ],
         );
 
@@ -635,7 +678,7 @@ final class CertificacionControlEscolarDemoSeeder extends Seeder
                     'observacion' => 'Atender revisión sintética: conciliación de promedio y créditos (demo_control_escolar).',
                     'prioridad' => 'alta',
                     'creada_por' => $this->usuarioControl->id,
-                    'metadata' => DemoControlEscolarMetadata::marca(['scenario' => 'documento_observaciones']),
+                    'metadata' => ResetDemoControlEscolarService::metadata(['scenario' => 'documento_observaciones']),
                 ],
             );
         }
@@ -686,7 +729,7 @@ final class CertificacionControlEscolarDemoSeeder extends Seeder
                     'orden' => $orden + 1,
                     'tipo' => 'obligatoria',
                     'estatus' => 'activa',
-                    'metadata' => DemoControlEscolarMetadata::marca(),
+                    'metadata' => ResetDemoControlEscolarService::metadata(),
                 ]
             );
 
@@ -703,7 +746,7 @@ final class CertificacionControlEscolarDemoSeeder extends Seeder
                     'creditos' => $row['cred'],
                     'obligatoria' => true,
                     'estatus' => 'activa',
-                    'metadata' => DemoControlEscolarMetadata::marca(),
+                    'metadata' => ResetDemoControlEscolarService::metadata(),
                 ],
             );
 
@@ -724,7 +767,7 @@ final class CertificacionControlEscolarDemoSeeder extends Seeder
             ->pluck('alumno_id');
 
         foreach ($ids as $aid) {
-            if (! Alumno::withTrashed()->whereKey((int) $aid)->where('metadata->origen', DemoControlEscolarMetadata::ORIGEN)->exists()) {
+            if (! Alumno::withTrashed()->whereKey((int) $aid)->where('metadata->origen', ResetDemoControlEscolarService::ORIGEN)->exists()) {
                 continue;
             }
 

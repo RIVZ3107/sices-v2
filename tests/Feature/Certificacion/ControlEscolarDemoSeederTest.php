@@ -12,7 +12,6 @@ use App\Models\Sede;
 use App\Models\Subsistema;
 use App\Models\User;
 use App\Services\ControlEscolar\ResetDemoControlEscolarService;
-use App\Support\ControlEscolar\DemoControlEscolarMetadata;
 use Database\Seeders\CertificacionControlEscolarDemoSeeder;
 use Database\Seeders\DatabaseSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -32,10 +31,10 @@ final class ControlEscolarDemoSeederTest extends TestCase
 
     public function test_seeder_crea_al_menos_50_alumnos_demo_y_curp_unicas(): void
     {
-        $this->assertGreaterThanOrEqual(50, Alumno::query()->where('metadata->origen', DemoControlEscolarMetadata::ORIGEN)->count());
+        $this->assertGreaterThanOrEqual(50, Alumno::query()->where('metadata->origen', ResetDemoControlEscolarService::ORIGEN)->count());
         $duplicadosCurp = Alumno::query()
             ->selectRaw('curp, COUNT(*) as c')
-            ->where('metadata->origen', DemoControlEscolarMetadata::ORIGEN)
+            ->where('metadata->origen', ResetDemoControlEscolarService::ORIGEN)
             ->groupBy('curp')
             ->having('c', '>', 1)
             ->count();
@@ -56,7 +55,7 @@ final class ControlEscolarDemoSeederTest extends TestCase
         $dupActivas = Matricula::query()
             ->whereNull('deleted_at')
             ->whereIn('estado', ['activa', 'suspendida'])
-            ->whereHas('alumno', fn ($q) => $q->where('metadata->origen', DemoControlEscolarMetadata::ORIGEN))
+            ->whereHas('alumno', fn ($q) => $q->where('metadata->origen', ResetDemoControlEscolarService::ORIGEN))
             ->groupBy('alumno_id')
             ->havingRaw('COUNT(*) > 1')
             ->count();
@@ -85,7 +84,7 @@ final class ControlEscolarDemoSeederTest extends TestCase
             $this->assertGreaterThan(0, (int) ($metricas[$k] ?? 0), 'Métrica '.$k.' debe ser > 0');
         }
 
-        $alumno = Alumno::query()->where('metadata->origen', DemoControlEscolarMetadata::ORIGEN)->firstOrFail();
+        $alumno = Alumno::query()->where('metadata->origen', ResetDemoControlEscolarService::ORIGEN)->firstOrFail();
         $curp = (string) $alumno->curp;
         $mat = Matricula::query()->where('alumno_id', $alumno->id)->whereNotNull('matricula')->first();
 
@@ -105,7 +104,7 @@ final class ControlEscolarDemoSeederTest extends TestCase
         $this->assertGreaterThanOrEqual(
             1,
             \App\Models\TrayectoriaAcademica::query()
-                ->where('metadata->origen', DemoControlEscolarMetadata::ORIGEN)
+                ->where('metadata->origen', ResetDemoControlEscolarService::ORIGEN)
                 ->whereIn('estado', ['lista_certificacion', 'consolidada'])
                 ->count()
         );
@@ -113,7 +112,7 @@ final class ControlEscolarDemoSeederTest extends TestCase
         $this->assertGreaterThanOrEqual(
             1,
             \App\Models\DocumentoObservacion::query()
-                ->whereHas('documentoAcademico', fn ($q) => $q->where('metadata->origen', DemoControlEscolarMetadata::ORIGEN))
+                ->whereHas('documentoAcademico', fn ($q) => $q->where('metadata->origen', ResetDemoControlEscolarService::ORIGEN))
                 ->where('estado', 'pendiente')
                 ->count()
         );
@@ -121,7 +120,7 @@ final class ControlEscolarDemoSeederTest extends TestCase
         $this->assertGreaterThanOrEqual(
             1,
             \App\Models\ImportacionHistoricaMaterias::query()
-                ->where('metadata->origen', DemoControlEscolarMetadata::ORIGEN)
+                ->where('metadata->origen', ResetDemoControlEscolarService::ORIGEN)
                 ->where(function ($q): void {
                     $q->where('estado', 'error')
                         ->orWhere('validacion_payload->tiene_bloqueos', true);
@@ -139,7 +138,7 @@ final class ControlEscolarDemoSeederTest extends TestCase
 
         app(ResetDemoControlEscolarService::class)->ejecutar();
 
-        $this->assertSame(0, Alumno::query()->where('metadata->origen', DemoControlEscolarMetadata::ORIGEN)->count());
+        $this->assertSame(0, Alumno::query()->where('metadata->origen', ResetDemoControlEscolarService::ORIGEN)->count());
         $this->assertSame($nMuni, Municipio::query()->count());
         $this->assertSame($nInst, Institucion::query()->count());
         $this->assertSame($nSede, Sede::query()->count());

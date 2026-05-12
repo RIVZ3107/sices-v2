@@ -33,6 +33,19 @@ const menuByRole = {
         { section: 'ADMINISTRACIÓN', links: [i('/app/admin/dashboard', 'Panel institucional', 'home'), i('/app/admin/usuarios-roles', 'Usuarios y roles', 'users'), i('/app/admin/catalogos', 'Catálogos', 'settings'), i('/app/admin/parametros', 'Parámetros', 'settings')] },
         { section: 'OPERACIÓN', links: [i('/app/documentos/bandejas', 'Documentos académicos', 'docs'), i('/app/importaciones', 'Importaciones', 'docs'), i('/app/sistemas/listos-para-firma', 'Listos para firma', 'status'), i('/app/admin/reportes-basicos', 'Reportes básicos', 'report')] },
     ],
+    control_escolar_escuela: [
+        { section: 'MAIN', links: [i('/app/dashboard', 'Inicio', 'home')] },
+        {
+            section: 'OPERACIÓN',
+            links: [
+                i('/app/expedientes', 'Expedientes', 'users'),
+                i('/app/solicitudes-matricula', 'Solicitudes de matrícula', 'docs'),
+                i('/app/importaciones', 'Importaciones', 'docs'),
+                i('/app/observaciones', 'Observaciones', 'audit'),
+                i('/app/admin/reportes-basicos', 'Reportes', 'report'),
+            ],
+        },
+    ],
 };
 
 export function Sidebar({ user, open = false, collapsed = false, onClose, onToggleCollapse, onLogout, onEditProfile }) {
@@ -136,8 +149,25 @@ const menuByRole = {
         { section: 'OPERACIÓN', links: [item('/app/documentos/bandejas', 'Documentos académicos', 'docs'), item('/app/importaciones', 'Importaciones', 'import'), item('/app/sistemas/listos-para-firma', 'Listos para firma', 'signature'), item('/app/admin/reportes-basicos', 'Reportes básicos', 'reports')] },
     ],
     control_escolar_escuela: [
-        { section: 'MAIN', links: [item('/app/dashboard', 'Dashboard', 'dashboard')] },
-        { section: 'OPERACIÓN', links: [item('/app/documentos/nuevo', 'Documentos académicos', 'docs'), item('/app/importaciones', 'Importaciones', 'import'), item('/app/documentos/bandejas/por-rol', 'Bandeja de revisión', 'history')] },
+        { section: 'MAIN', links: [item('/app/dashboard', 'Inicio', 'dashboard')] },
+        {
+            section: 'OPERACIÓN',
+            links: [
+                item('/app/expedientes', 'Expedientes', 'docs'),
+                item('/app/expedientes?tab=ingreso', 'Aspirantes / Inscripciones', 'users'),
+                item('/app/solicitudes-matricula', 'Solicitudes de matrícula', 'docs'),
+                item('/app/materias-cursadas', 'Calificaciones', 'reports'),
+                item('/app/trayectorias', 'Trayectoria / Kardex', 'reports'),
+                item('/app/documentos/bandejas/por-rol', 'Documentos y constancias', 'docs'),
+                item('/app/bajas-cambios', 'Bajas y cambios', 'audit'),
+                item('/app/reinscripciones', 'Reinscripciones', 'reports'),
+                item('/app/importaciones', 'Importaciones', 'import'),
+                item('/app/observaciones', 'Observaciones', 'audit'),
+                item('/app/admin/reportes-basicos', 'Reportes', 'reports'),
+                item('/app/notificaciones', 'Notificaciones', 'status'),
+            ],
+        },
+        { section: 'CONSULTA', links: [item('/app/alumnos', 'Alumnos (consulta)', 'users')] },
     ],
     director_escuela: [
         { section: 'MAIN', links: [item('/app/dashboard', 'Dashboard', 'dashboard')] },
@@ -145,7 +175,21 @@ const menuByRole = {
     ],
     educacion_superior: [
         { section: 'MAIN', links: [item('/app/dashboard', 'Dashboard', 'dashboard')] },
-        { section: 'OPERACIÓN', links: [item('/app/documentos/bandejas/pendientes-revision', 'Documentos académicos', 'docs'), item('/app/documentos/validacion', 'Validación', 'status'), item('/app/sistemas/listos-para-firma', 'Listos para firma', 'signature')] },
+        {
+            section: 'OPERACIÓN',
+            links: [
+                item('/app/educacion-superior/instituciones', 'Instituciones', 'settings'),
+                item('/app/educacion-superior/sedes', 'Sedes / Subsedes', 'settings'),
+                item('/app/educacion-superior/programas', 'Programas académicos', 'panel'),
+                item('/app/educacion-superior/planes', 'Planes de estudio', 'panel'),
+                item('/app/solicitudes-matricula', 'Solicitudes de matrícula', 'reports'),
+                item('/app/educacion-superior/validaciones-normativas', 'Validaciones normativas', 'status'),
+                item('/app/educacion-superior/certificacion', 'Certificación', 'docs'),
+                item('/app/educacion-superior/reportes-oficiales', 'Reportes oficiales', 'reports'),
+                item('/app/consulta/documentos', 'Consulta pública', 'search'),
+                item('/app/notificaciones', 'Notificaciones', 'status'),
+            ],
+        },
     ],
     sistemas: [
         { section: 'MAIN', links: [item('/app/dashboard', 'Dashboard', 'dashboard')] },
@@ -265,8 +309,25 @@ const menuByRole = {
         { section: 'OPERACIÓN', links: [item('/app/documentos/bandejas', 'Documentos académicos', 'docs'), item('/app/importaciones', 'Importaciones', 'import'), item('/app/sistemas/listos-para-firma', 'Listos para firma', 'signature'), item('/app/admin/reportes-basicos', 'Reportes básicos', 'reports')] },
     ],
     control_escolar_escuela: [
-        { section: 'MAIN', links: [item('/app/dashboard', 'Dashboard', 'dashboard')] },
-        { section: 'OPERACIÓN', links: [item('/app/documentos/nuevo', 'Documentos académicos', 'docs'), item('/app/importaciones', 'Importaciones', 'import'), item('/app/documentos/bandejas/por-rol', 'Bandeja de revisión', 'history')] },
+        { section: 'MAIN', links: [item('/app/dashboard', 'Inicio', 'dashboard')] },
+        {
+            section: 'OPERACIÓN',
+            links: [
+                item('/app/expedientes', 'Expedientes', 'docs'),
+                item('/app/expedientes?tab=ingreso', 'Aspirantes / Inscripciones', 'users'),
+                item('/app/solicitudes-matricula', 'Solicitudes de matrícula', 'docs'),
+                item('/app/materias-cursadas', 'Calificaciones', 'reports'),
+                item('/app/trayectorias', 'Trayectoria / Kardex', 'reports'),
+                item('/app/documentos/bandejas/por-rol', 'Documentos y constancias', 'docs'),
+                item('/app/bajas-cambios', 'Bajas y cambios', 'audit'),
+                item('/app/reinscripciones', 'Reinscripciones', 'reports'),
+                item('/app/importaciones', 'Importaciones', 'import'),
+                item('/app/observaciones', 'Observaciones', 'audit'),
+                item('/app/admin/reportes-basicos', 'Reportes', 'reports'),
+                item('/app/notificaciones', 'Notificaciones', 'status'),
+            ],
+        },
+        { section: 'CONSULTA', links: [item('/app/alumnos', 'Alumnos (consulta)', 'users')] },
     ],
     director_escuela: [
         { section: 'MAIN', links: [item('/app/dashboard', 'Dashboard', 'dashboard')] },
@@ -274,7 +335,21 @@ const menuByRole = {
     ],
     educacion_superior: [
         { section: 'MAIN', links: [item('/app/dashboard', 'Dashboard', 'dashboard')] },
-        { section: 'OPERACIÓN', links: [item('/app/documentos/bandejas/pendientes-revision', 'Documentos académicos', 'docs'), item('/app/documentos/validacion', 'Validación', 'status'), item('/app/sistemas/listos-para-firma', 'Listos para firma', 'signature')] },
+        {
+            section: 'OPERACIÓN',
+            links: [
+                item('/app/educacion-superior/instituciones', 'Instituciones', 'settings'),
+                item('/app/educacion-superior/sedes', 'Sedes / Subsedes', 'settings'),
+                item('/app/educacion-superior/programas', 'Programas académicos', 'panel'),
+                item('/app/educacion-superior/planes', 'Planes de estudio', 'panel'),
+                item('/app/solicitudes-matricula', 'Solicitudes de matrícula', 'reports'),
+                item('/app/educacion-superior/validaciones-normativas', 'Validaciones normativas', 'status'),
+                item('/app/educacion-superior/certificacion', 'Certificación', 'docs'),
+                item('/app/educacion-superior/reportes-oficiales', 'Reportes oficiales', 'reports'),
+                item('/app/consulta/documentos', 'Consulta pública', 'search'),
+                item('/app/notificaciones', 'Notificaciones', 'status'),
+            ],
+        },
     ],
     sistemas: [
         { section: 'MAIN', links: [item('/app/dashboard', 'Dashboard', 'dashboard')] },
@@ -415,15 +490,25 @@ const menuByRole = {
         },
     ],
     control_escolar_escuela: [
-        { section: 'MAIN', links: [item('/app/dashboard', 'Dashboard', '🏠')] },
+        { section: 'MAIN', links: [item('/app/dashboard', 'Inicio', 'dashboard')] },
         {
             section: 'OPERACIÓN',
             links: [
-                item('/app/documentos/nuevo', 'Documentos académicos', '📄'),
+                item('/app/expedientes', 'Expedientes', 'docs'),
+                item('/app/expedientes?tab=ingreso', 'Aspirantes / Inscripciones', 'users'),
+                item('/app/solicitudes-matricula', 'Solicitudes de matrícula', '📄'),
+                item('/app/materias-cursadas', 'Calificaciones', '📊'),
+                item('/app/trayectorias', 'Trayectoria / Kardex', '📊'),
+                item('/app/documentos/bandejas/por-rol', 'Documentos y constancias', '📄'),
+                item('/app/bajas-cambios', 'Bajas y cambios', '🔔'),
+                item('/app/reinscripciones', 'Reinscripciones', '📊'),
                 item('/app/importaciones', 'Importaciones', '⬆️'),
-                item('/app/documentos/bandejas/por-rol', 'Bandeja de revisión', '📬'),
+                item('/app/observaciones', 'Observaciones', '📬'),
+                item('/app/admin/reportes-basicos', 'Reportes', '📊'),
+                item('/app/notificaciones', 'Notificaciones', '🔔'),
             ],
         },
+        { section: 'CONSULTA', links: [item('/app/alumnos', 'Alumnos (consulta)', '👥')] },
     ],
     director_escuela: [
         { section: 'MAIN', links: [item('/app/dashboard', 'Dashboard', '🏠')] },
@@ -440,9 +525,16 @@ const menuByRole = {
         {
             section: 'OPERACIÓN',
             links: [
-                item('/app/documentos/bandejas/pendientes-revision', 'Documentos académicos', '📄'),
-                item('/app/documentos/validacion', 'Validación', '✅'),
-                item('/app/sistemas/listos-para-firma', 'Listos para firma', '✍️'),
+                item('/app/educacion-superior/instituciones', 'Instituciones', '🏫'),
+                item('/app/educacion-superior/sedes', 'Sedes / Subsedes', '📍'),
+                item('/app/educacion-superior/programas', 'Programas académicos', '📚'),
+                item('/app/educacion-superior/planes', 'Planes de estudio', '📋'),
+                item('/app/solicitudes-matricula', 'Solicitudes de matrícula', '📝'),
+                item('/app/educacion-superior/validaciones-normativas', 'Validaciones normativas', '✅'),
+                item('/app/educacion-superior/certificacion', 'Certificación', '📄'),
+                item('/app/educacion-superior/reportes-oficiales', 'Reportes oficiales', '📊'),
+                item('/app/consulta/documentos', 'Consulta pública', '🔎'),
+                item('/app/notificaciones', 'Notificaciones', '🔔'),
             ],
         },
     ],

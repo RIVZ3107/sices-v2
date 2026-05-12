@@ -1,12 +1,33 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { alumnosApi } from '../../api/alumnos';
+import { catalogosApi } from '../../api/catalogos';
 import { controlEscolarApi } from '../../api/controlEscolar';
+import { solicitudesMatriculaApi } from '../../api/solicitudesMatricula';
+import { getUser } from '../../authStore';
 import { ErrorState } from '../../components/ErrorState';
 import { PageHeader } from '../../components/PageHeader';
 import { AlertBox } from '../../components/ui/AlertBox';
 import { SectionCard } from '../../components/ui/SectionCard';
 import { DataTable } from '../../components/ui/DataTable';
+
+function permiso(nombre) {
+    return Boolean(getUser()?.permissions?.includes(nombre));
+}
+
+function etiquetaEstadoSolicitudMatricula(estado) {
+    const mapa = {
+        borrador: 'Borrador (preparación)',
+        enviada: 'Enviada a Educación Superior',
+        en_revision: 'En revisión',
+        con_observaciones: 'Con observaciones (ES)',
+        aprobada: 'Aprobada — pendiente asignar clave',
+        matricula_asignada: 'Matrícula asignada',
+        rechazada: 'Rechazada',
+        cancelada: 'Cancelada',
+    };
+    return mapa[estado] ?? estado ?? '—';
+}
 
 function etiquetaModalidadUpn(mod) {
     if (mod === null || mod === undefined || mod === '') return '—';
@@ -41,6 +62,11 @@ export function AlumnoDetallePage() {
     const [data, setData] = useState(null);
     const [error, setError] = useState('');
     const [busy, setBusy] = useState(false);
+    const [ofertasOpts, setOfertasOpts] = useState([]);
+    const [ciclosOpts, setCiclosOpts] = useState([]);
+    const [ofertaSel, setOfertaSel] = useState('');
+    const [cicloSel, setCicloSel] = useState('');
+    const [msgMat, setMsgMat] = useState('');
 
     const cargar = useCallback(async () => {
         if (!Number.isFinite(alumnoPk) || alumnoPk <= 0) {
@@ -92,6 +118,29 @@ export function AlumnoDetallePage() {
         return () => clearTimeout(t);
     }, [q]);
 
+    useEffect(() => {
+        if (tab !== 'matricula' || !Number.isFinite(alumnoPk) || alumnoPk <= 0) {
+            return undefined;
+        }
+        let cancel = false;
+        (async () => {
+            try {
+                const [ro, rc] = await Promise.all([catalogosApi.ofertasAcademicas(), catalogosApi.ciclosEscolares()]);
+                if (cancel) return;
+                setOfertasOpts(Array.isArray(ro?.data) ? ro.data : []);
+                setCiclosOpts(Array.isArray(rc?.data) ? rc.data : []);
+            } catch {
+                if (!cancel) {
+                    setOfertasOpts([]);
+                    setCiclosOpts([]);
+                }
+            }
+        })();
+        return () => {
+            cancel = true;
+        };
+    }, [tab, alumnoPk]);
+
     const abrirExpediente = (alumnoId) => {
         setSearchParams({ alumno: String(alumnoId), tab: 'resumen' });
     };
@@ -102,6 +151,7 @@ export function AlumnoDetallePage() {
     const mensajesNormativos = expedienteNormativo?.mensajes_institucionales ?? [];
     const alumno = data?.alumno;
     const mat = data?.matricula;
+    const solicitudMat = data?.solicitud_matricula;
     const trayectoria = data?.trayectoria;
     const docs = data?.documentos_certificacion ?? [];
     const observacionesPend = docs.filter((d) => d.requiere_revision_observaciones);
@@ -111,17 +161,51 @@ export function AlumnoDetallePage() {
         { label: 'Plan reconocido', ok: Boolean(mat?.plan_estudios) },
         { label: 'Materias registradas', ok: (data?.materias_cursadas ?? []).length > 0 },
         { label: 'Trayectoria consolidada', ok: Boolean(trayectoria) },
-        { label: 'Sin bloqueos normativos', ok: !Boolean(legacy?.requiere_atencion) },
+        { label: 'Sin bloqueos de validación institucional', ok: !Boolean(legacy?.requiere_atencion) },
     ];
 
+    const tabLista = searchParams.get('tab') ?? 'resumen';
+
     if (!Number.isFinite(alumnoPk) || alumnoPk <= 0) {
+        if (tabLista === 'ingreso') {
+            return (
+                <section className="grid gap-4">
+                    <PageHeader
+                        title="Aspirantes / Inscripciones"
+                        subtitle="Flujo unificado de ingreso: aspirante, preinscripción, solicitud de matrícula e inscripción por ciclo. La inscripción escolar requiere matrícula asignada por Educación Superior."
+                        actions={<Link to="/app/expedientes" className="inst-btn inst-btn-secondary text-sm">Volver a expedientes</Link>}
+                    />
+                    <SectionCard title="Acciones">
+                        <div className="flex flex-wrap gap-2">
+                            <Link to="/app/alumnos/crear" className="inst-btn inst-btn-primary text-sm">Registrar aspirante</Link>
+                            <Link to="/app/solicitudes-matricula" className="inst-btn inst-btn-secondary text-sm">Solicitudes de matrícula</Link>
+                            <Link to="/app/importaciones" className="inst-btn inst-btn-secondary text-sm">Importaciones</Link>
+                        </div>
+                    </SectionCard>
+                    <SectionCard title="Reglas operativas">
+                        <ul className="list-disc pl-5 text-sm text-slate-700 space-y-2">
+                            <li>No confirme inscripción escolar sin matrícula asignada por Educación Superior.</li>
+                            <li>Use expediente 360 para validar documentos operativos del expediente de ingreso.</li>
+                            <li>Programas de licenciatura en educación (Normal / UPN); no aplique flujos de bachillerato genérico.</li>
+                        </ul>
+                    </SectionCard>
+                </section>
+            );
+        }
+        if (tabLista === 'bajas') {
+            return (
+                <section className="grid gap-4">
+                    <PageHeader title="Bajas y cambios (desde expediente)" subtitle="Use el módulo dedicado para el registro formal o abra un expediente." actions={<Link to="/app/bajas-cambios" className="inst-btn inst-btn-primary text-sm">Ir a Bajas y cambios</Link>} />
+                </section>
+            );
+        }
         return (
             <section className="grid gap-4">
-                <PageHeader title="Expedientes" subtitle="Centro operativo de Control Escolar." />
+                <PageHeader title="Expedientes académicos" subtitle="Centro operativo Expediente 360 — licenciaturas en educación (Normal / UPN)." />
                 <SectionCard title="Buscar expediente" subtitle="Busque por CURP, nombre o matrícula.">
                     <input className="inst-input text-sm" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Ej. CURP, nombre completo o matrícula" />
                     {q.trim().length === 0 ? (
-                        <p className="mt-3 text-sm text-slate-600">Busca un alumno por CURP, nombre o matrícula para abrir su expediente.</p>
+                        <p className="mt-3 text-sm text-slate-600">Busque un alumno por CURP, nombre o matrícula para abrir su expediente.</p>
                     ) : null}
                     {searchDone && hits.length === 0 ? (
                         <div className="mt-3 rounded border border-slate-200 p-3">
@@ -136,11 +220,18 @@ export function AlumnoDetallePage() {
                     {hits.length > 0 ? (
                         <DataTable
                             columns={[
+                                { key: 'folio_expediente', label: 'Folio expediente' },
                                 { key: 'alumno', label: 'Alumno' },
                                 { key: 'curp', label: 'CURP' },
-                                { key: 'matricula_activa', label: 'Matrícula' },
-                                { key: 'programa_plan', label: 'Programa/plan' },
-                                { key: 'estado_academico', label: 'Estado' },
+                                { key: 'subsistema', label: 'Subsistema' },
+                                { key: 'programa_plan', label: 'Programa' },
+                                { key: 'sede_subsede', label: 'Sede / subsede' },
+                                { key: 'estado_academico', label: 'Estado expediente' },
+                                {
+                                    key: 'ultima_actualizacion',
+                                    label: 'Última actualización',
+                                    render: (row) => (row.ultima_actualizacion ? String(row.ultima_actualizacion).slice(0, 10) : '—'),
+                                },
                                 {
                                     key: 'acciones',
                                     label: 'Acción',
@@ -162,8 +253,8 @@ export function AlumnoDetallePage() {
     return (
         <section className="grid gap-4">
             <PageHeader
-                title="Expediente del alumno"
-                subtitle="Operación centralizada por pestañas, sin módulos sueltos."
+                title="Expediente académico (360)"
+                subtitle="Operación por pestañas: matrícula vía solicitud a Educación Superior, inscripción, carga, calificaciones y documentos operativos."
                 actions={<Link to="/app/expedientes" className="inst-btn inst-btn-secondary text-sm">Cambiar alumno</Link>}
             />
             {error ? <ErrorState message={error} /> : null}
@@ -224,23 +315,186 @@ export function AlumnoDetallePage() {
 
             {tab === 'datos' ? <SectionCard title="Datos personales"><p className="text-sm">Nombre: {alumno?.nombre_completo} · CURP: {alumno?.curp}</p></SectionCard> : null}
             {tab === 'matricula' ? (
-                <SectionCard title="Matrícula">
-                    <p className="text-sm">
-                        Matrícula activa: {mat?.clave_matricula ?? 'Sin matrícula'} · Estado: {mat?.estado ?? 'Pendiente'}
-                    </p>
+                <SectionCard title="Matrícula institucional">
+                    <AlertBox
+                        type="info"
+                        message="La asignación oficial de matrícula corresponde a Educación Superior. Control Escolar prepara y envía la solicitud; no puede generar ni forzar la clave institucional."
+                    />
+                    <div className="mt-3 grid gap-2 text-sm">
+                        <p>
+                            <strong>Matrícula activa en expediente:</strong> {mat?.clave_matricula ?? 'Sin matrícula asignada'}{' '}
+                            {mat?.estado ? <>· Estado: {mat.estado}</> : null}
+                        </p>
+                        {solicitudMat ? (
+                            <div className="rounded border border-slate-200 p-3 bg-slate-50">
+                                <p className="font-medium text-slate-900">Solicitud de matrícula</p>
+                                <p className="text-xs mt-1">
+                                    <strong>Estado:</strong> {etiquetaEstadoSolicitudMatricula(solicitudMat.estado)}
+                                </p>
+                                {solicitudMat.programa_etiqueta ? (
+                                    <p className="text-xs">
+                                        <strong>Programa:</strong> {solicitudMat.programa_etiqueta}
+                                    </p>
+                                ) : null}
+                                {solicitudMat.plan_etiqueta ? (
+                                    <p className="text-xs">
+                                        <strong>Plan:</strong> {solicitudMat.plan_etiqueta}
+                                    </p>
+                                ) : null}
+                                {solicitudMat.ciclo_ingreso_etiqueta ? (
+                                    <p className="text-xs">
+                                        <strong>Ciclo de ingreso:</strong> {solicitudMat.ciclo_ingreso_etiqueta}
+                                    </p>
+                                ) : null}
+                                {solicitudMat.observaciones ? (
+                                    <p className="text-xs text-amber-800 mt-2">
+                                        <strong>Observaciones de Educación Superior:</strong> {solicitudMat.observaciones}
+                                    </p>
+                                ) : null}
+                                {solicitudMat.motivo_rechazo ? (
+                                    <p className="text-xs text-red-800 mt-2">
+                                        <strong>Motivo de rechazo:</strong> {solicitudMat.motivo_rechazo}
+                                    </p>
+                                ) : null}
+                                {solicitudMat.matricula_asignada_clave ? (
+                                    <p className="text-xs text-green-800 mt-2">
+                                        <strong>Matrícula asignada por autoridad:</strong> {solicitudMat.matricula_asignada_clave}
+                                    </p>
+                                ) : null}
+                            </div>
+                        ) : (
+                            <p className="text-xs text-slate-600">No hay solicitud de matrícula registrada para este alumno.</p>
+                        )}
+                    </div>
+
                     {expedienteNormativo?.subsistema_clave === 'NORMAL' && uiNorm.mostrar_ayuda_matricula_normal_2022 ? (
-                        <p className="text-xs text-slate-600 mt-2">
-                            Educación Normal (Planes 2022): use la ayuda institucional de matrícula escolarizada según el plantel (año, entidad, consecutivo, traslado cuando aplique).
+                        <p className="text-xs text-slate-600 mt-3">
+                            Educación Normal (Planes 2022): la clave definitiva la emite Educación Superior conforme al esquema escolarizado del plantel.
                         </p>
                     ) : null}
                     {expedienteNormativo?.subsistema_clave === 'UPN' ? (
-                        <p className="text-xs text-slate-600 mt-2">
-                            UPN: matrícula única global en SICES; captura validada o generador solo si el plantel activó regla explícita. No aplica el formato de matrícula Educación Normal 2022.
+                        <p className="text-xs text-slate-600 mt-3">
+                            UPN: matrícula única global en SICES; la captura oficial la valida y registra Educación Superior (sin formato Normal 2022).
                         </p>
                     ) : null}
-                    <Link className="inst-btn inst-btn-secondary text-sm mt-2 inline-flex" to="/app/matriculas">
-                        Gestionar matrícula
-                    </Link>
+
+                    {msgMat ? <p className="text-xs text-slate-700 mt-2">{msgMat}</p> : null}
+
+                    {permiso('crear_solicitud_matricula') || permiso('enviar_solicitud_matricula') || permiso('atender_observacion_solicitud_matricula') ? (
+                        <div className="mt-4 grid gap-3 border-t border-slate-200 pt-3">
+                            <p className="text-xs font-semibold text-slate-800">Acciones Control Escolar</p>
+                            {!mat?.clave_matricula &&
+                            permiso('crear_solicitud_matricula') &&
+                            (!solicitudMat || ['borrador', 'rechazada'].includes(solicitudMat.estado)) ? (
+                                <div className="grid gap-2 max-w-lg">
+                                    <label className="text-xs text-slate-600">Oferta académica</label>
+                                    <select className="inst-input text-sm" value={ofertaSel} onChange={(e) => setOfertaSel(e.target.value)}>
+                                        <option value="">Seleccione…</option>
+                                        {ofertasOpts.map((o) => (
+                                            <option key={o.id} value={String(o.id)}>
+                                                {o.clave} · modalidad {o.modalidad ?? '—'}
+                                            </option>
+                                        ))}
+                                    </select>
+                                    <label className="text-xs text-slate-600">Ciclo de ingreso</label>
+                                    <select className="inst-input text-sm" value={cicloSel} onChange={(e) => setCicloSel(e.target.value)}>
+                                        <option value="">Seleccione…</option>
+                                        {ciclosOpts.map((c) => (
+                                            <option key={c.id} value={String(c.id)}>
+                                                {c.nombre ?? c.clave}
+                                            </option>
+                                        ))}
+                                    </select>
+                                    <button
+                                        type="button"
+                                        className="inst-btn inst-btn-secondary text-sm"
+                                        disabled={busy || !ofertaSel || !cicloSel}
+                                        onClick={async () => {
+                                            setMsgMat('');
+                                            setBusy(true);
+                                            try {
+                                                await solicitudesMatriculaApi.crearBorrador({
+                                                    alumno_id: alumnoPk,
+                                                    oferta_academica_id: Number(ofertaSel),
+                                                    ciclo_ingreso_id: Number(cicloSel),
+                                                });
+                                                setMsgMat('Solicitud preparada (borrador).');
+                                                await cargar();
+                                            } catch (e) {
+                                                setMsgMat(e?.message ?? 'No se pudo crear el borrador.');
+                                            } finally {
+                                                setBusy(false);
+                                            }
+                                        }}
+                                    >
+                                        Preparar solicitud
+                                    </button>
+                                </div>
+                            ) : null}
+
+                            {permiso('enviar_solicitud_matricula') && solicitudMat?.estado === 'borrador' ? (
+                                <button
+                                    type="button"
+                                    className="inst-btn inst-btn-primary text-sm"
+                                    disabled={busy}
+                                    onClick={async () => {
+                                        setMsgMat('');
+                                        setBusy(true);
+                                        try {
+                                            await solicitudesMatriculaApi.enviar(solicitudMat.id);
+                                            setMsgMat('Solicitud enviada a Educación Superior.');
+                                            await cargar();
+                                        } catch (e) {
+                                            setMsgMat(e?.message ?? 'No se pudo enviar.');
+                                        } finally {
+                                            setBusy(false);
+                                        }
+                                    }}
+                                >
+                                    Enviar solicitud
+                                </button>
+                            ) : null}
+
+                            {permiso('atender_observacion_solicitud_matricula') && solicitudMat?.estado === 'con_observaciones' ? (
+                                <button
+                                    type="button"
+                                    className="inst-btn inst-btn-secondary text-sm"
+                                    disabled={busy}
+                                    onClick={async () => {
+                                        setMsgMat('');
+                                        setBusy(true);
+                                        try {
+                                            await solicitudesMatriculaApi.atenderObservaciones(solicitudMat.id);
+                                            setMsgMat('Observaciones atendidas. Actualice datos y vuelva a enviar.');
+                                            await cargar();
+                                        } catch (e) {
+                                            setMsgMat(e?.message ?? 'No se pudo atender.');
+                                        } finally {
+                                            setBusy(false);
+                                        }
+                                    }}
+                                >
+                                    Atender observaciones
+                                </button>
+                            ) : null}
+
+                            {mat?.clave_matricula ? (
+                                <p className="text-xs text-green-800">
+                                    Matrícula visible en expediente: <strong>{mat.clave_matricula}</strong>
+                                </p>
+                            ) : null}
+                        </div>
+                    ) : null}
+
+                    {permiso('revisar_solicitud_matricula') ? (
+                        <p className="text-xs text-slate-600 mt-3">
+                            Para dictaminar solicitudes use la bandeja de Educación Superior:{' '}
+                            <Link className="underline" to="/app/solicitudes-matricula">
+                                Solicitudes de matrícula
+                            </Link>
+                            .
+                        </p>
+                    ) : null}
                 </SectionCard>
             ) : null}
             {tab === 'inscripcion' ? (

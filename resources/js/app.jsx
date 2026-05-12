@@ -6,13 +6,16 @@ import '../css/app.css';
 import './styles/sices-ui.css';
 import './styles/sices-institucional.css';
 import { router } from './router';
+import { SicesThemeProvider } from './theme/SicesThemeProvider';
 
 const rootNode = document.getElementById('app');
 
 if (rootNode) {
     createRoot(rootNode).render(
         <React.StrictMode>
-            <RouterProvider router={router} />
+            <SicesThemeProvider>
+                <RouterProvider router={router} />
+            </SicesThemeProvider>
         </React.StrictMode>,
     );
 }

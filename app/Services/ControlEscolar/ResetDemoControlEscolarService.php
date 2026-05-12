@@ -32,17 +32,32 @@ use App\Models\PlanEstudio;
 use App\Models\PlanMateria;
 use App\Models\ProgramaEstudio;
 use App\Models\Sede;
+use App\Models\SolicitudMatricula;
+use App\Models\Subsistema;
 use App\Models\TrayectoriaAcademica;
 use App\Models\UrlShortToken;
-use App\Support\ControlEscolar\DemoControlEscolarMetadata;
 use Illuminate\Support\Facades\DB;
 
 /**
- * Elimina exclusivamente datos demo Control Escolar (marcados en metadata.origen).
- * También borra cargas/inscripciones ligadas por matricula_id de alumno demo aun si faltaran metadatos.
+ * Reset idempotente de datos sintéticos Control Escolar y convención única de metadata (`origen` / `demo_dataset`).
+ *
+ * No sustituye políticas de negocio reales; solo etiqueta y elimina el universo demo.
  */
 final class ResetDemoControlEscolarService
 {
+    public const ORIGEN = 'demo_control_escolar';
+
+    public const DATASET = 'control_escolar_v1';
+
+    /** @param  array<string, mixed>  $extra */
+    public static function metadata(array $extra = []): array
+    {
+        return array_merge([
+            'origen' => self::ORIGEN,
+            'demo_dataset' => self::DATASET,
+        ], $extra);
+    }
+
     /** @var list<string> */
     public const PLANES_DEMO_CLAVES = [
         'SXCE-DEMO-PL-NORM-2022',
@@ -62,7 +77,7 @@ final class ResetDemoControlEscolarService
 
     public static function marcaMetadata(): string
     {
-        return DemoControlEscolarMetadata::ORIGEN;
+        return self::ORIGEN;
     }
 
     public function ejecutar(): void
@@ -72,6 +87,10 @@ final class ResetDemoControlEscolarService
                 ->withTrashed()
                 ->where('metadata->origen', self::marcaMetadata())
                 ->pluck('id')->all();
+
+            if (count($idsAlumnosDemo) > 0) {
+                SolicitudMatricula::query()->whereIn('alumno_id', $idsAlumnosDemo)->delete();
+            }
 
             $idsDocs = DocumentoAcademico::query()
                 ->withTrashed()

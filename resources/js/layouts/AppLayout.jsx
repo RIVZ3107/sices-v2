@@ -4,6 +4,7 @@ import { clearSession, getUser } from '../authStore';
 import { logout } from '../api/auth';
 import { SidebarPro } from './SidebarPro';
 import { NotificationDropdown } from '../components/ui/NotificationDropdown';
+import { useSicesTheme } from '../theme/useSicesTheme';
 
 function Icon({ name }) {
     const cls = 'h-4 w-4';
@@ -12,6 +13,9 @@ function Icon({ name }) {
     }
     if (name === 'sun') {
         return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className={cls}><circle cx="12" cy="12" r="4" /><path d="M12 2v2.2M12 19.8V22M4.2 12H2m20 0h-2.2M5.6 5.6 4 4m16 16-1.6-1.6M18.4 5.6 20 4M4 20l1.6-1.6" /></svg>;
+    }
+    if (name === 'moon') {
+        return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className={cls}><path d="M21 14.5A8.5 8.5 0 0 1 9.5 3 8.5 8.5 0 1 0 21 14.5Z" /></svg>;
     }
     if (name === 'search') {
         return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className={cls}><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>;
@@ -24,16 +28,24 @@ function roleLabel(role) {
         superadmin: 'Superadmin',
         admin: 'Administrador',
         control_escolar_escuela: 'Control Escolar',
-        director_escuela: 'Director Escuela',
+        director_escuela: 'Dirección de Escuela',
         educacion_superior: 'Educación Superior',
+        responsable_admision: 'Responsable admisión',
+        responsable_evaluacion: 'Responsable evaluación',
+        responsable_certificacion_titulacion: 'Certificación / titulación',
+        alumno_egresado: 'Alumno / egresado',
+        aspirante_preinscrito: 'Aspirante',
         sistemas: 'Sistemas',
         auditor: 'Auditor',
+        docente: 'Docente',
+        coordinador_academico: 'Coordinador académico',
         consulta: 'Consulta',
     };
     return labels[role] ?? role ?? 'Sin rol';
 }
 
 export function AppLayout() {
+    const { theme, refreshTheme } = useSicesTheme();
     const user = getUser();
     const navigate = useNavigate();
     const location = useLocation();
@@ -41,7 +53,12 @@ export function AppLayout() {
     const [darkMode, setDarkMode] = useState(() => window.localStorage.getItem('sices_dark_mode') === '1');
     const [notificationsOpen, setNotificationsOpen] = useState(false);
 
-    const currentRole = user?.roles?.[0] ?? 'sin-rol';
+    const isControlEscolar = (user?.roles ?? []).includes('control_escolar_escuela');
+    const isDirectorEscuela = (user?.roles ?? []).includes('director_escuela');
+    const institutionalShell = isControlEscolar || isDirectorEscuela;
+    const roles = user?.roles ?? [];
+    const currentRole =
+        roles.find((r) => ['director_escuela', 'control_escolar_escuela', 'educacion_superior', 'sistemas'].includes(r)) ?? roles[0] ?? 'consulta';
     const initials = (user?.name ?? 'US')
         .split(' ')
         .filter(Boolean)
@@ -66,6 +83,7 @@ export function AppLayout() {
             // noop
         } finally {
             clearSession();
+            await refreshTheme();
             navigate('/login');
         }
     }
@@ -87,27 +105,43 @@ export function AppLayout() {
                     {/* Izquierda: título + sección actual */}
                     <div className="admin-topbar-left">
                         <div>
-                            <p className="admin-topbar-title">SICES V2</p>
+                            <p className="admin-topbar-title">{theme?.app_name ?? 'SICES v2'}</p>
                             <p className="admin-topbar-subtitle capitalize">{currentSection}</p>
+                            {theme?.app_subtitle ? (
+                                <p className="mt-1 text-[11px] font-medium text-slate-500">{theme.app_subtitle}</p>
+                            ) : null}
                         </div>
                     </div>
 
                     {/* Derecha: búsqueda + acciones + usuario */}
                     <div className="admin-topbar-actions">
+                        {institutionalShell ? (
+                            <label className="hidden shrink-0 items-center gap-2 text-xs text-slate-600 lg:flex">
+                                <span className="font-semibold">Ciclo escolar</span>
+                                <select className="admin-ciclo-select" aria-label="Ciclo escolar">
+                                    <option>2024 — 2025</option>
+                                    <option>2023 — 2024</option>
+                                </select>
+                            </label>
+                        ) : null}
                         {/* Search */}
-                        <div className="relative flex items-center">
+                        <div className="relative flex min-w-0 flex-1 items-center">
                             <div className="absolute left-3 text-slate-400">
                                 <Icon name="search" />
                             </div>
                             <input
                                 className="admin-search pl-9"
                                 style={{ paddingLeft: '35px' }}
-                                placeholder="Buscar módulo o documento..."
+                                placeholder={
+                                    institutionalShell
+                                        ? 'Buscar alumnos, expedientes, trámites, documentos…'
+                                        : 'Buscar módulo o documento...'
+                                }
                             />
                         </div>
 
                         {/* Notificaciones */}
-                        <div className="relative">
+                        <div className="relative shrink-0">
                             <button
                                 className="admin-icon-btn"
                                 aria-label="Notificaciones"
@@ -115,6 +149,9 @@ export function AppLayout() {
                             >
                                 <Icon name="bell" />
                             </button>
+                            {institutionalShell ? (
+                                <span className="admin-bell-badge">{isControlEscolar ? '8' : '5'}</span>
+                            ) : null}
                             {notificationsOpen && (
                                 <NotificationDropdown items={['Bandeja sincronizada correctamente.', 'Sin alertas críticas.']} />
                             )}

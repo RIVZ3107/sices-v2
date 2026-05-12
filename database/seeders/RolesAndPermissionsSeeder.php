@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Database\Seeders;
 
+use Database\Seeders\Support\SicesPermissionsCatalog;
 use Illuminate\Database\Seeder;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
@@ -18,73 +19,7 @@ class RolesAndPermissionsSeeder extends Seeder
 
         $guard = 'web';
 
-        /** @var list<string> Permisos canónicos (Bloque 14) y extensión operativa/técnica. */
-        $permissions = [
-            // Catálogos (certificación)
-            'ver_catalogos',
-            'gestionar_catalogos',
-            // Catálogos extendidos (institucional)
-            'ver_subsistemas',
-            'gestionar_subsistemas',
-            'ver_regiones',
-            'gestionar_regiones',
-            'ver_instituciones',
-            'gestionar_instituciones',
-            'ver_sedes',
-            'gestionar_sedes',
-            'ver_ofertas_academicas',
-            'gestionar_ofertas_academicas',
-            'ver_claves_legacy_catalogos',
-            // Entidades de captura
-            'ver_alumnos',
-            'gestionar_alumnos',
-            'ver_matriculas',
-            'gestionar_matriculas',
-            'ver_materias',
-            'gestionar_materias',
-            'gestionar_planes_estudio',
-            'gestionar_plan_materias',
-            'gestionar_inscripciones_periodo',
-            'generar_carga_academica',
-            'importar_calificaciones',
-            'forzar_importacion_historica_sin_plan_materia',
-            'emitir_certificado_oficial_legacy_sin_validacion_normativa',
-            'revisar_importacion_legacy_normativa',
-            'aprobar_importacion_legacy_normativa',
-            'rechazar_importacion_legacy_normativa',
-            'validar_materias_cursadas',
-            'recalcular_trayectoria',
-            'ver_trayectorias',
-            'gestionar_trayectorias',
-            // Documentos académicos
-            'ver_documentos',
-            'crear_documentos',
-            'editar_documentos',
-            'enviar_revision',
-            'aprobar_documentos',
-            'rechazar_documentos',
-            'cancelar_documentos',
-            'preparar_documento_firma',
-            // Configuración técnica / integración (bloques posteriores)
-            'gestionar_configuracion_firma',
-            'gestionar_plantillas_documentos',
-            'gestionar_reglas_cadena',
-            'gestionar_plantillas_xml',
-            'gestionar_firmantes',
-            'generar_cadena',
-            'generar_xml',
-            'solicitar_firma',
-            'reintentar_firma',
-            'generar_pdf',
-            'ver_pdf',
-            'ver_xml',
-            // Auditoría e historial
-            'ver_logs_integracion',
-            'ver_auditoria',
-            'ver_historial_estados',
-        ];
-
-        foreach ($permissions as $name) {
+        foreach (SicesPermissionsCatalog::allRegisterablePermissionNames() as $name) {
             Permission::firstOrCreate(
                 ['name' => $name, 'guard_name' => $guard],
             );
@@ -98,144 +33,36 @@ class RolesAndPermissionsSeeder extends Seeder
             ->pluck('name')
             ->all();
 
-        $controlEscolarEscuela = [
-            'ver_catalogos',
-            'ver_alumnos',
-            'gestionar_alumnos',
-            'ver_matriculas',
-            'gestionar_matriculas',
-            'ver_materias',
-            'gestionar_materias',
-            'gestionar_inscripciones_periodo',
-            'generar_carga_academica',
-            'importar_calificaciones',
-            'validar_materias_cursadas',
-            'recalcular_trayectoria',
-            'ver_trayectorias',
-            'gestionar_trayectorias',
-            'ver_documentos',
-            'crear_documentos',
-            'editar_documentos',
-            'enviar_revision',
+        $rolesConLista = [
+            'superadmin',
+            'admin',
+            'sistemas',
+            'educacion_superior',
+            'director_escuela',
+            'control_escolar_escuela',
+            'responsable_admision',
+            'responsable_evaluacion',
+            'responsable_certificacion_titulacion',
+            'docente',
+            'auditor',
+            'alumno_egresado',
+            'aspirante_preinscrito',
+            'coordinador_academico',
+            'consulta',
         ];
 
-        $directorEscuela = [
-            'ver_catalogos',
-            'ver_alumnos',
-            'ver_matriculas',
-            'ver_materias',
-            'ver_trayectorias',
-            'ver_documentos',
-            'enviar_revision',
-        ];
-
-        $educacionSuperior = [
-            'ver_catalogos',
-            'ver_alumnos',
-            'ver_matriculas',
-            'ver_materias',
-            'validar_materias_cursadas',
-            'ver_trayectorias',
-            'ver_documentos',
-            'editar_documentos',
-            'aprobar_documentos',
-            'rechazar_documentos',
-            'cancelar_documentos',
-            'preparar_documento_firma',
-            'ver_historial_estados',
-            'revisar_importacion_legacy_normativa',
-            'aprobar_importacion_legacy_normativa',
-            'rechazar_importacion_legacy_normativa',
-        ];
-
-        $sistemas = [
-            'ver_catalogos',
-            'ver_claves_legacy_catalogos',
-            'ver_documentos',
-            'preparar_documento_firma',
-            'generar_cadena',
-            'generar_xml',
-            'ver_xml',
-            'gestionar_configuracion_firma',
-            'gestionar_plantillas_documentos',
-            'gestionar_reglas_cadena',
-            'gestionar_plantillas_xml',
-            'ver_logs_integracion',
-            'ver_auditoria',
-            'ver_historial_estados',
-        ];
-
-        $admin = [
-            'ver_catalogos',
-            'gestionar_catalogos',
-            'gestionar_planes_estudio',
-            'gestionar_plan_materias',
-            'ver_alumnos',
-            'gestionar_alumnos',
-            'ver_matriculas',
-            'gestionar_matriculas',
-            'ver_materias',
-            'gestionar_materias',
-            'gestionar_inscripciones_periodo',
-            'generar_carga_academica',
-            'importar_calificaciones',
-            'validar_materias_cursadas',
-            'recalcular_trayectoria',
-            'ver_trayectorias',
-            'gestionar_trayectorias',
-            'ver_documentos',
-            'crear_documentos',
-            'editar_documentos',
-            'enviar_revision',
-            'aprobar_documentos',
-            'rechazar_documentos',
-            'cancelar_documentos',
-            'preparar_documento_firma',
-            'ver_historial_estados',
-        ];
-
-        $docente = [
-            'ver_catalogos',
-            'ver_materias',
-        ];
-
-        $coordinadorAcademico = [
-            'ver_catalogos',
-            'ver_alumnos',
-            'ver_materias',
-            'ver_matriculas',
-        ];
-
-        $auditor = [
-            'ver_auditoria',
-            'ver_logs_integracion',
-            'ver_historial_estados',
-            'ver_documentos',
-            'ver_catalogos',
-        ];
-
-        $consulta = [
-            'ver_documentos',
-        ];
-
-        $roles = [
-            'superadmin' => $todos,
-            'admin' => $admin,
-            'control_escolar_escuela' => $controlEscolarEscuela,
-            'director_escuela' => $directorEscuela,
-            'educacion_superior' => $educacionSuperior,
-            'sistemas' => $sistemas,
-            'docente' => $docente,
-            'coordinador_academico' => $coordinadorAcademico,
-            'auditor' => $auditor,
-            'consulta' => $consulta,
-        ];
-
-        foreach ($roles as $nombre => $lista) {
+        foreach ($rolesConLista as $nombre) {
             $role = Role::firstOrCreate(
                 ['name' => $nombre, 'guard_name' => $guard],
             );
-            $role->syncPermissions($lista);
+
+            if ($nombre === 'superadmin' || $nombre === 'admin') {
+                $role->syncPermissions($todos);
+
+                continue;
+            }
+
+            $role->syncPermissions(SicesPermissionsCatalog::mergeRolePermissions($nombre));
         }
 
         $registrar->forgetCachedPermissions();

@@ -8,6 +8,7 @@ use App\Models\DocumentoAcademico;
 use App\Models\Matricula;
 use App\Models\User;
 use App\Services\Certificacion\CertificacionAlcanceService;
+use App\Support\SicesAuth;
 
 class MatriculaPolicy
 {
@@ -17,7 +18,7 @@ class MatriculaPolicy
 
     public function view(User $user, Matricula $matricula): bool
     {
-        if (! $user->can('ver_matriculas')) {
+        if (! SicesAuth::canAny($user, 'ver_matriculas', 'matriculas.ver')) {
             return false;
         }
 
@@ -26,12 +27,12 @@ class MatriculaPolicy
 
     public function create(User $user): bool
     {
-        return $user->can('gestionar_matriculas');
+        return SicesAuth::canAny($user, 'asignar_matricula', 'matriculas.asignar');
     }
 
     public function capturarMaterias(User $user, Matricula $matricula): bool
     {
-        if (! $user->can('gestionar_materias')) {
+        if (! SicesAuth::canAny($user, 'gestionar_materias', 'calificaciones.capturar', 'materias.editar', 'calificaciones.capturar_propias')) {
             return false;
         }
 
@@ -49,7 +50,7 @@ class MatriculaPolicy
 
     public function sincronizarTrayectoria(User $user, Matricula $matricula): bool
     {
-        if (! $user->can('gestionar_trayectorias')) {
+        if (! SicesAuth::canAny($user, 'gestionar_trayectorias', 'trayectoria.editar', 'trayectoria.recalcular')) {
             return false;
         }
 

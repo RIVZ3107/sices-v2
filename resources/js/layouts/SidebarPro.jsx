@@ -1,5 +1,7 @@
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { NavLink } from 'react-router-dom';
+import { fetchMyMenus } from '../api/menus';
+import { useSicesTheme } from '../theme/useSicesTheme';
 
 const icon = (children) => (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" width="15" height="15">
@@ -39,6 +41,7 @@ const routeIconMap = {
     '/app/admin/usuarios-roles':               'users',
     '/app/admin/catalogos':                    'settings',
     '/app/admin/parametros':                   'settings',
+    '/app/admin/menus':                        'panel',
     '/app/documentos/bandejas':                'docs',
     '/app/documentos':                         'docs',
     '/app/documentos/nuevo':                   'docs',
@@ -51,9 +54,9 @@ const routeIconMap = {
     '/app/documentos/validacion':              'validate',
     '/app/documentos/observaciones':           'audit',
     '/app/importaciones':                      'import',
-    '/app/expedientes':                       'users',
-    '/app/observaciones':                     'audit',
-    '/app/importaciones/legacy-normativa':   'validate',
+    '/app/expedientes':                        'users',
+    '/app/observaciones':                      'audit',
+    '/app/importaciones/legacy-normativa':     'validate',
     '/app/alumnos/captura-guiado':             'users',
     '/app/certificacion/solicitud':            'validate',
     '/app/sistemas/listos-para-firma':         'validate',
@@ -62,54 +65,97 @@ const routeIconMap = {
     '/app/sistemas/configuracion':             'integrations',
     '/app/sistemas/logs':                      'logs',
     '/app/sistemas/dashboard':                 'status',
+    '/app/sistema/apariencia':                 'settings',
     '/app/alumnos':                            'users',
-    '/app/expedientes':                        'users',
-    '/app/observaciones':                      'audit',
-    '/app/matriculas':                         'matriculas',
+    '/app/solicitudes-matricula':              'matriculas',
+    '/app/bajas-cambios':                      'audit',
+    '/app/reinscripciones':                    'matriculas',
+    '/app/notificaciones':                     'status',
+    '/app/direccion/indicadores':             'report',
+    '/app/direccion/alumnos':                  'users',
+    '/app/direccion/inscripciones':            'matriculas',
+    '/app/direccion/reinscripciones':          'matriculas',
+    '/app/direccion/calificaciones':           'materias',
+    '/app/direccion/egreso-titulacion':        'docs',
+    '/app/direccion/documentos':               'docs',
+    '/app/direccion/autorizaciones-observaciones': 'audit',
+    '/app/direccion/reportes': 'report',
+    '/app/direccion/notificaciones': 'status',
     '/app/materias-cursadas':                  'materias',
     '/app/trayectorias':                       'trayectoria',
     '/app/consulta/dashboard':                 'history',
     '/app/consulta/documentos':                'docs',
     '/app/docente/dashboard':                  'panel',
-    '/app/coordinador/dashboard':              'panel',
+    '/app/coordinador/dashboard':             'panel',
+    '/app/educacion-superior/instituciones':  'settings',
+    '/app/educacion-superior/sedes':          'settings',
+    '/app/educacion-superior/programas':      'panel',
+    '/app/educacion-superior/planes':         'panel',
+    '/app/educacion-superior/validaciones-normativas': 'validate',
+    '/app/educacion-superior/certificacion':  'docs',
+    '/app/educacion-superior/reportes-oficiales': 'report',
+    '/app/control-escolar/alumnos': 'users',
+    '/app/control-escolar/expedientes': 'docs',
+    '/app/control-escolar/inscripciones': 'matriculas',
+    '/app/control-escolar/reinscripciones': 'matriculas',
+    '/app/control-escolar/trayectoria': 'trayectoria',
+    '/app/control-escolar/calificaciones': 'materias',
+    '/app/control-escolar/documentos': 'docs',
+    '/app/control-escolar/bajas-cambios': 'audit',
+    '/app/control-escolar/solicitudes': 'matriculas',
+    '/app/control-escolar/importaciones': 'import',
+    '/app/control-escolar/observaciones': 'audit',
+    '/app/control-escolar/reportes': 'report',
+    '/app/control-escolar/notificaciones': 'status',
 };
 
 const i = (to, label) => ({ to, label });
 
+/** Fallback mínimo si falla la API de menús (solo emergencia). */
 const menuByRole = {
     superadmin: [
         { section: 'MAIN', links: [i('/app/dashboard', 'Dashboard')] },
-        { section: 'ADMINISTRACIÓN', links: [i('/app/superadmin/dashboard', 'Panel institucional'), i('/app/admin/usuarios-roles', 'Usuarios y roles'), i('/app/admin/catalogos', 'Catálogos'), i('/app/admin/parametros', 'Parámetros')] },
-        { section: 'OPERACIÓN', links: [i('/app/documentos/bandejas', 'Documentos académicos'), i('/app/importaciones', 'Importaciones'), i('/app/importaciones/legacy-normativa', 'Validación legacy (normativa)'), i('/app/sistemas/listos-para-firma', 'Listos para firma'), i('/app/admin/reportes-basicos', 'Reportes básicos')] },
-        { section: 'TÉCNICO', links: [i('/app/auditoria', 'Auditoría'), i('/app/sistemas/configuracion', 'Integraciones'), i('/app/sistemas/logs', 'Logs del sistema'), i('/app/sistemas/dashboard', 'Estado del sistema')] },
     ],
     admin: [
         { section: 'MAIN', links: [i('/app/dashboard', 'Dashboard')] },
-        { section: 'ADMINISTRACIÓN', links: [i('/app/admin/dashboard', 'Panel institucional'), i('/app/admin/usuarios-roles', 'Usuarios y roles'), i('/app/admin/catalogos', 'Catálogos'), i('/app/admin/parametros', 'Parámetros')] },
-        { section: 'OPERACIÓN', links: [i('/app/documentos/bandejas', 'Documentos académicos'), i('/app/importaciones', 'Importaciones'), i('/app/sistemas/listos-para-firma', 'Listos para firma'), i('/app/admin/reportes-basicos', 'Reportes básicos')] },
     ],
     control_escolar_escuela: [
-        { section: 'MAIN', links: [i('/app/dashboard', 'Inicio')] },
+        { section: 'MAIN', links: [i('/app/dashboard', 'Dashboard')] },
         {
             section: 'OPERACIÓN',
             links: [
-                i('/app/expedientes', 'Expedientes'),
-                i('/app/importaciones', 'Importaciones'),
-                i('/app/observaciones', 'Observaciones'),
-                i('/app/documentos', 'Documentos'),
+                i('/app/control-escolar/alumnos', 'Alumnos'),
+                i('/app/control-escolar/expedientes', 'Expedientes'),
+                i('/app/control-escolar/inscripciones', 'Inscripciones'),
+                i('/app/control-escolar/reinscripciones', 'Reinscripciones'),
+                i('/app/control-escolar/trayectoria', 'Trayectoria académica'),
+                i('/app/control-escolar/calificaciones', 'Calificaciones'),
+                i('/app/control-escolar/documentos', 'Documentos'),
+                i('/app/control-escolar/bajas-cambios', 'Bajas y cambios'),
+                i('/app/control-escolar/solicitudes', 'Solicitudes'),
+                i('/app/control-escolar/importaciones', 'Importaciones'),
+                i('/app/control-escolar/observaciones', 'Observaciones'),
+                i('/app/control-escolar/reportes', 'Reportes'),
+                i('/app/control-escolar/notificaciones', 'Notificaciones'),
             ],
         },
     ],
     director_escuela: [
         { section: 'MAIN', links: [i('/app/dashboard', 'Dashboard')] },
         {
-            section: 'OPERACIÓN',
+            section: 'SUPERVISIÓN',
             links: [
-                i('/app/documentos/bandejas/pendientes-revision', 'Pendientes'),
-                i('/app/documentos/bandejas/en-revision', 'En revisión'),
-                i('/app/documentos/bandejas/aprobados', 'Aprobados'),
-                i('/app/documentos/bandejas/rechazados', 'Rechazados'),
-                i('/app/documentos/bandejas/firmados', 'Firmados'),
+                i('/app/direccion/indicadores', 'Indicadores'),
+                i('/app/direccion/alumnos', 'Alumnos'),
+                i('/app/direccion/inscripciones', 'Inscripciones'),
+                i('/app/direccion/reinscripciones', 'Reinscripciones'),
+                i('/app/direccion/calificaciones', 'Calificaciones'),
+                i('/app/direccion/egreso-titulacion', 'Egreso y titulación'),
+                i('/app/direccion/reportes', 'Reportes'),
+                i('/app/direccion/documentos', 'Documentos'),
+                i('/app/direccion/notificaciones', 'Notificaciones'),
+                i('/app/expedientes', 'Expedientes'),
+                i('/app/direccion/autorizaciones-observaciones', 'Autorizaciones / Observaciones'),
             ],
         },
     ],
@@ -118,48 +164,118 @@ const menuByRole = {
         {
             section: 'OPERACIÓN',
             links: [
-                i('/app/documentos/bandejas/pendientes-revision', 'Pendientes'),
-                i('/app/documentos/validacion', 'Validación académica'),
-                i('/app/importaciones/legacy-normativa', 'Importaciones legacy pendientes'),
-                i('/app/documentos/bandejas/aprobados', 'Documentos liberados'),
-                i('/app/documentos/bandejas/rechazados', 'Rechazados normativamente'),
-                i('/app/admin/reportes-basicos', 'Reportes'),
+                i('/app/educacion-superior/instituciones', 'Instituciones'),
+                i('/app/educacion-superior/sedes', 'Sedes / Subsedes'),
+                i('/app/educacion-superior/programas', 'Programas académicos'),
+                i('/app/educacion-superior/planes', 'Planes de estudio'),
+                i('/app/solicitudes-matricula', 'Solicitudes de matrícula'),
+                i('/app/educacion-superior/validaciones-normativas', 'Validaciones normativas'),
+                i('/app/educacion-superior/certificacion', 'Certificación'),
+                i('/app/educacion-superior/reportes-oficiales', 'Reportes oficiales'),
+                i('/app/consulta/documentos', 'Consulta pública'),
+                i('/app/notificaciones', 'Notificaciones'),
             ],
         },
     ],
     sistemas: [
         { section: 'MAIN', links: [i('/app/dashboard', 'Dashboard')] },
-        { section: 'TÉCNICO', links: [i('/app/sistemas/dashboard', 'Procesos técnicos'), i('/app/sistemas/listos-para-firma', 'Firma / SEP'), i('/app/sistemas/logs', 'Errores técnicos'), i('/app/sistemas/configuracion', 'Cadena / XML / PDF / QR')] },
     ],
     auditor: [
         { section: 'MAIN', links: [i('/app/dashboard', 'Dashboard')] },
-        { section: 'CONSULTA', links: [i('/app/consulta/documentos', 'Consulta documental'), i('/app/consulta/dashboard', 'Historial'), i('/app/auditoria', 'Auditoría'), i('/app/admin/reportes-basicos', 'Exportaciones')] },
     ],
     consulta: [
         { section: 'MAIN', links: [i('/app/dashboard', 'Dashboard')] },
-        { section: 'CONSULTA', links: [i('/app/consulta/dashboard', 'Panel consulta'), i('/app/consulta/documentos', 'Consulta de documentos'), i('/app/admin/reportes-basicos', 'Reportes lectura')] },
     ],
     docente: [
-        { section: 'MAIN', links: [i('/app/dashboard', 'Dashboard')] },
-        { section: 'OPERACIÓN', links: [i('/app/docente/dashboard', 'Panel docente')] },
+        { section: 'MAIN', links: [i('/app/docente/dashboard', 'Panel docente')] },
     ],
     coordinador_academico: [
-        { section: 'MAIN', links: [i('/app/dashboard', 'Dashboard')] },
-        { section: 'OPERACIÓN', links: [i('/app/coordinador/dashboard', 'Panel coordinación')] },
+        { section: 'MAIN', links: [i('/app/coordinador/dashboard', 'Panel coordinación')] },
     ],
 };
 
+/**
+ * Convierte árbol de GET /me/menus en grupos { section, links } para el sidebar.
+ */
+function menuTreeToGroups(tree) {
+    const flat = [];
+    const walk = (nodes) => {
+        for (const n of nodes) {
+            if (n.route && n.route !== '#') {
+                flat.push({
+                    section: n.section || 'MAIN',
+                    to: n.route,
+                    label: n.label,
+                    icon: n.icon || 'docs',
+                });
+            }
+            if (n.children?.length) {
+                walk(n.children);
+            }
+        }
+    };
+    walk(tree);
+
+    const order = [];
+    const bySection = new Map();
+    for (const item of flat) {
+        if (!bySection.has(item.section)) {
+            bySection.set(item.section, []);
+            order.push(item.section);
+        }
+        bySection.get(item.section).push({ to: item.to, label: item.label, icon: item.icon });
+    }
+
+    return order.map((section) => ({ section, links: bySection.get(section) }));
+}
+
 export function SidebarPro({ user, open = false, collapsed = false, onClose, onToggleCollapse, onLogout, onEditProfile }) {
+    const { theme } = useSicesTheme();
     const role = user?.roles?.[0] ?? 'admin';
-    const groups = menuByRole[role] ?? menuByRole.admin;
+    const [groups, setGroups] = useState(() => menuByRole[role] ?? menuByRole.admin);
     const [logoutHover, setLogoutHover] = useState(false);
+
+    useEffect(() => {
+        let cancelled = false;
+        (async () => {
+            try {
+                const res = await fetchMyMenus();
+                const tree = res?.data ?? [];
+                const next = menuTreeToGroups(tree);
+                if (!cancelled && next.length > 0) {
+                    setGroups(next);
+                }
+            } catch {
+                if (!cancelled) {
+                    setGroups(menuByRole[role] ?? menuByRole.admin);
+                }
+            }
+        })();
+        return () => {
+            cancelled = true;
+        };
+    }, [role]);
+
+    const resolvedGroups = useMemo(() => groups, [groups]);
 
     return (
         <aside className={`admin-sidebar ${collapsed ? 'is-collapsed' : ''} ${open ? 'is-open' : ''}`}>
             <div className="admin-sidebar-head">
-                <div>
-                    <p className="admin-logo">SICES V2</p>
-                    {!collapsed && <p className="admin-logo-sub">Panel institucional</p>}
+                <div className="min-w-0">
+                    {theme?.logo_url ? (
+                        <img src={theme.logo_url} alt="" className="mb-2 h-9 w-auto max-w-[180px] object-contain" />
+                    ) : (
+                        <p className="admin-logo">{theme?.app_name ?? 'SICES v2'}</p>
+                    )}
+                    {!collapsed && (
+                        <p className="admin-logo-sub">
+                            {role === 'control_escolar_escuela'
+                                ? 'Control Escolar de Escuela'
+                                : role === 'director_escuela'
+                                  ? 'Dirección de Escuela'
+                                  : (theme?.app_subtitle ?? 'Panel institucional')}
+                        </p>
+                    )}
                 </div>
                 <button
                     className="admin-icon-btn hidden md:inline-flex"
@@ -184,15 +300,15 @@ export function SidebarPro({ user, open = false, collapsed = false, onClose, onT
             </div>
 
             <nav className="admin-menu">
-                {groups.map((group) => (
+                {resolvedGroups.map((group) => (
                     <section key={group.section} className="admin-menu-section">
                         {!collapsed && <p className="admin-menu-title">{group.section}</p>}
                         <div className="admin-menu-links">
                             {group.links.map((link) => {
-                                const iconName = routeIconMap[link.to] ?? 'docs';
+                                const iconName = link.icon && icons[link.icon] ? link.icon : (routeIconMap[link.to] ?? 'docs');
                                 return (
                                     <NavLink
-                                        key={link.to}
+                                        key={`${group.section}-${link.to}`}
                                         to={link.to}
                                         onClick={onClose}
                                         className={({ isActive }) => `admin-menu-link ${isActive ? 'is-active' : ''}`}

@@ -25,7 +25,8 @@ class DatabaseSeeder extends Seeder
             MotorDocumentoSeeder::class,
             ProveedorFirmaSeeder::class,
             RolesAndPermissionsSeeder::class,
-            DemoUsuariosPorRolSeeder::class,
+            SystemMenusSeeder::class,
+            Sistema\ConfiguracionVisualSistemaSeeder::class,
             CadenaOriginalReglaSeeder::class,
             XmlPlantillaSeeder::class,
             PlantillaDocumentoSeeder::class,
@@ -34,5 +35,9 @@ class DatabaseSeeder extends Seeder
             Catalogos\InstitucionesLegacyBaseSeeder::class,
             Catalogos\InstitucionesSubsedesLegacySeeder::class,
         ]);
+
+        if (! app()->environment('production')) {
+            $this->call(DemoUsuariosPorRolSeeder::class);
+        }
     }
 }

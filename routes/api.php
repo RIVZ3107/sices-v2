@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\BandejaDocumentoAcademicoController;
+use App\Http\Controllers\Api\V1\Admin\MenuAdminController;
 use App\Http\Controllers\Api\V1\Admin\RoleManagementController;
 use App\Http\Controllers\Api\V1\Admin\UserManagementController;
 use App\Http\Controllers\Api\V1\Academico\ImportacionHistoricaMateriasController;
@@ -14,8 +15,12 @@ use App\Http\Controllers\Api\V1\Certificacion\DocumentoObservacionController;
 use App\Http\Controllers\Api\V1\Certificacion\InscripcionPeriodoController;
 use App\Http\Controllers\Api\V1\Certificacion\MateriaCursadaCapturaController;
 use App\Http\Controllers\Api\V1\Certificacion\MatriculaCapturaController;
+use App\Http\Controllers\Api\V1\Certificacion\SolicitudMatriculaController;
 use App\Http\Controllers\Api\V1\Certificacion\TrayectoriaCapturaController;
-use App\Http\Controllers\Api\V1\ControlEscolar\ControlEscolarController;
+use App\Http\Controllers\Api\V1\Dashboard\DashboardController;
+use App\Http\Controllers\Api\V1\Me\MeAparienciaController;
+use App\Http\Controllers\Api\V1\Me\UserMenuController;
+use App\Http\Controllers\Api\V1\Sistema\ConfiguracionVisualSistemaController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -32,6 +37,31 @@ Route::prefix('v1/auth')->group(function () {
     });
 });
 
+Route::prefix('v1/me')
+    ->middleware('auth:sanctum')
+    ->group(function () {
+        Route::get('menus', UserMenuController::class);
+        Route::get('apariencia', MeAparienciaController::class);
+    });
+
+Route::prefix('v1/sistema/apariencia')
+    ->middleware('auth:sanctum')
+    ->group(function () {
+        Route::get('actual', [ConfiguracionVisualSistemaController::class, 'actual']);
+        Route::get('/', [ConfiguracionVisualSistemaController::class, 'index']);
+        Route::post('/', [ConfiguracionVisualSistemaController::class, 'store']);
+        Route::put('{configuracion}', [ConfiguracionVisualSistemaController::class, 'update'])
+            ->whereNumber('configuracion');
+        Route::post('{configuracion}/activar', [ConfiguracionVisualSistemaController::class, 'activar'])
+            ->whereNumber('configuracion');
+        Route::post('{configuracion}/restaurar-default', [ConfiguracionVisualSistemaController::class, 'restaurarDefault'])
+            ->whereNumber('configuracion');
+        Route::post('upload', [ConfiguracionVisualSistemaController::class, 'upload']);
+    });
+
+Route::get('v1/dashboard', DashboardController::class)
+    ->middleware('auth:sanctum');
+
 Route::prefix('v1/academico')
     ->middleware('auth:sanctum')
     ->group(function () {
@@ -47,7 +77,7 @@ Route::prefix('v1/academico')
 Route::prefix('v1/certificacion')
     ->middleware('auth:sanctum')
     ->group(function () {
-        Route::middleware('permission:ver_catalogos')->group(function () {
+        Route::middleware('permission_or:ver_catalogos|catalogos.ver|dashboard.ver')->group(function () {
             Route::get('catalogos/ciclos-escolares', [CatalogoCapturaController::class, 'ciclosEscolares']);
             Route::get('catalogos/subsistemas', [CatalogoCapturaController::class, 'subsistemas']);
             Route::get('catalogos/regiones', [CatalogoCapturaController::class, 'regiones']);
@@ -57,36 +87,55 @@ Route::prefix('v1/certificacion')
         });
 
         Route::get('alumnos', [AlumnoCapturaController::class, 'index'])
-            ->middleware('permission:ver_alumnos');
+            ->middleware('permission_or:ver_alumnos|alumnos.ver|expedientes.ver');
         Route::post('alumnos', [AlumnoCapturaController::class, 'store'])
-            ->middleware('permission:gestionar_alumnos');
-        Route::get('alumnos', [AlumnoCapturaController::class, 'index'])
-            ->middleware('permission:ver_alumnos');
+            ->middleware('permission_or:gestionar_alumnos|alumnos.crear|expedientes.crear');
         Route::get('alumnos/{alumno}', [AlumnoCapturaController::class, 'show'])
-            ->middleware('permission:ver_alumnos');
+            ->middleware('permission_or:ver_alumnos|alumnos.ver|expedientes.ver');
         Route::put('alumnos/{alumno}', [AlumnoCapturaController::class, 'update'])
-            ->middleware('permission:gestionar_alumnos');
+            ->middleware('permission_or:gestionar_alumnos|alumnos.editar|expedientes.editar');
         Route::get('alumnos/{alumno}/resumen-institucional', [AlumnoCapturaController::class, 'resumenInstitucional'])
-            ->middleware('permission:ver_alumnos');
+            ->middleware('permission_or:ver_alumnos|alumnos.ver|expedientes.ver');
 
         Route::post('matriculas', [MatriculaCapturaController::class, 'store'])
-            ->middleware('permission:gestionar_matriculas');
+            ->middleware('permission_or:asignar_matricula|matriculas.asignar');
         Route::get('matriculas/{matricula}', [MatriculaCapturaController::class, 'show'])
-            ->middleware('permission:ver_matriculas');
+            ->middleware('permission_or:ver_matriculas|matriculas.ver');
         Route::get('matriculas/{matricula}/trayectoria-academica', [TrayectoriaCapturaController::class, 'showPorMatricula'])
-            ->middleware('permission:ver_trayectorias');
+            ->middleware('permission_or:ver_trayectorias|trayectoria.ver');
         Route::post(
             'matriculas/{matricula}/trayectoria-academica/recalcular',
             [TrayectoriaCapturaController::class, 'recalcularPorMatricula'],
-        )->middleware('permission:gestionar_trayectorias');
+        )->middleware('permission_or:gestionar_trayectorias|trayectoria.editar|trayectoria.recalcular');
+
+        Route::get('solicitudes-matricula', [SolicitudMatriculaController::class, 'index'])
+            ->middleware('permission_or:ver_solicitud_matricula|solicitudes_matricula.ver');
+        Route::get('solicitudes-matricula/alumno/{alumno}', [SolicitudMatriculaController::class, 'ultimaPorAlumno'])
+            ->middleware('permission_or:ver_solicitud_matricula|solicitudes_matricula.ver');
+        Route::post('solicitudes-matricula', [SolicitudMatriculaController::class, 'store'])
+            ->middleware('permission_or:crear_solicitud_matricula|solicitudes_matricula.crear');
+        Route::post('solicitudes-matricula/{solicitudMatricula}/enviar', [SolicitudMatriculaController::class, 'enviar'])
+            ->middleware('permission_or:enviar_solicitud_matricula|solicitudes_matricula.enviar');
+        Route::post('solicitudes-matricula/{solicitudMatricula}/tomar-revision', [SolicitudMatriculaController::class, 'tomarEnRevision'])
+            ->middleware('permission_or:revisar_solicitud_matricula|solicitudes_matricula.revisar');
+        Route::post('solicitudes-matricula/{solicitudMatricula}/devolver-observaciones', [SolicitudMatriculaController::class, 'devolverConObservaciones'])
+            ->middleware('permission_or:devolver_solicitud_matricula|solicitudes_matricula.devolver');
+        Route::post('solicitudes-matricula/{solicitudMatricula}/atender-observaciones', [SolicitudMatriculaController::class, 'atenderObservaciones'])
+            ->middleware('permission_or:atender_observacion_solicitud_matricula|solicitudes_matricula.atender_observaciones');
+        Route::post('solicitudes-matricula/{solicitudMatricula}/aprobar', [SolicitudMatriculaController::class, 'aprobar'])
+            ->middleware('permission_or:aprobar_solicitud_matricula|solicitudes_matricula.aprobar');
+        Route::post('solicitudes-matricula/{solicitudMatricula}/rechazar', [SolicitudMatriculaController::class, 'rechazar'])
+            ->middleware('permission_or:rechazar_solicitud_matricula|solicitudes_matricula.rechazar');
+        Route::post('solicitudes-matricula/{solicitudMatricula}/asignar-matricula', [SolicitudMatriculaController::class, 'asignarMatricula'])
+            ->middleware('permission_or:asignar_matricula|matriculas.asignar');
 
         Route::post('materias-cursadas', [MateriaCursadaCapturaController::class, 'store'])
-            ->middleware('permission:gestionar_materias');
+            ->middleware('permission_or:gestionar_materias|calificaciones.capturar|materias.editar|calificaciones.capturar_propias');
         Route::post('inscripciones-periodo', [InscripcionPeriodoController::class, 'store'])
-            ->middleware('permission:gestionar_matriculas');
+            ->middleware('permission_or:gestionar_matriculas|inscripciones.editar|inscripciones.crear');
 
         Route::put('trayectorias-academicas', [TrayectoriaCapturaController::class, 'upsert'])
-            ->middleware('permission:gestionar_trayectorias');
+            ->middleware('permission_or:gestionar_trayectorias|trayectoria.editar|trayectoria.recalcular');
 
         Route::post('documentos-academicos', [DocumentoAcademicoProcesoController::class, 'store']);
         Route::get('documentos-academicos/{documento}', [DocumentoAcademicoProcesoController::class, 'show']);
@@ -104,33 +153,33 @@ Route::prefix('v1/certificacion')
         Route::post('documentos-academicos/{documento}/dec-normal/validar-xml', [DocumentoDecNormalController::class, 'validarXml']);
         Route::get('documentos-academicos/{documento}/dec-normal/errores', [DocumentoDecNormalController::class, 'errores']);
         Route::get('documentos-academicos/{documento}/observaciones', [DocumentoObservacionController::class, 'index'])
-            ->middleware('permission:ver_documentos');
+            ->middleware('permission_or:ver_documentos|documentos.ver');
         Route::post('documentos-academicos/{documento}/observaciones', [DocumentoObservacionController::class, 'store'])
-            ->middleware('permission:rechazar_documentos');
+            ->middleware('permission_or:rechazar_documentos|documentos.rechazar|documentos.rechazar_institucionalmente');
         Route::post('documentos-academicos/{documento}/observaciones/{observacion}/atender', [DocumentoObservacionController::class, 'atender'])
-            ->middleware('permission:editar_documentos');
+            ->middleware('permission_or:editar_documentos|documentos.editar');
         Route::post('documentos-academicos/{documento}/devolver-correccion', [DocumentoObservacionController::class, 'devolver'])
-            ->middleware('permission:rechazar_documentos');
+            ->middleware('permission_or:rechazar_documentos|documentos.rechazar|documentos.rechazar_institucionalmente');
 
         Route::get(
             'matriculas-legacy-normativa/pendientes',
             [ValidacionNormativaImportacionLegacyController::class, 'index']
-        )->middleware('permission:revisar_importacion_legacy_normativa');
+        )->middleware('permission_or:revisar_importacion_legacy_normativa|importaciones_academicas.ver');
         Route::get(
             'matriculas-legacy-normativa/{matricula}',
             [ValidacionNormativaImportacionLegacyController::class, 'show']
-        )->middleware('permission:revisar_importacion_legacy_normativa');
+        )->middleware('permission_or:revisar_importacion_legacy_normativa|importaciones_academicas.ver');
         Route::post(
             'matriculas-legacy-normativa/{matricula}/aprobar-validacion-normativa',
             [ValidacionNormativaImportacionLegacyController::class, 'aprobar']
-        )->middleware('permission:aprobar_importacion_legacy_normativa');
+        )->middleware('permission_or:aprobar_importacion_legacy_normativa|importaciones_academicas.importar');
         Route::post(
             'matriculas-legacy-normativa/{matricula}/rechazar-validacion-normativa',
             [ValidacionNormativaImportacionLegacyController::class, 'rechazar']
-        )->middleware('permission:rechazar_importacion_legacy_normativa');
+        )->middleware('permission_or:rechazar_importacion_legacy_normativa|importaciones_academicas.ver');
 
         Route::prefix('bandejas/documentos-academicos')
-            ->middleware('permission:ver_documentos')
+            ->middleware('permission_or:ver_documentos|documentos.ver')
             ->group(function () {
                 Route::get('/', [BandejaDocumentoAcademicoController::class, 'index']);
                 Route::get('/por-rol', [BandejaDocumentoAcademicoController::class, 'porRol']);
@@ -153,27 +202,40 @@ Route::prefix('v1/admin')
     ->middleware('auth:sanctum')
     ->group(function () {
         Route::get('roles', [RoleManagementController::class, 'index'])
-            ->middleware('permission:ver_catalogos');
+            ->middleware('permission_or:ver_catalogos|catalogos.ver|dashboard.ver|roles.ver');
         Route::get('usuarios', [UserManagementController::class, 'index'])
-            ->middleware('permission:ver_catalogos');
+            ->middleware('permission_or:ver_catalogos|catalogos.ver|dashboard.ver|usuarios.ver');
         Route::post('usuarios', [UserManagementController::class, 'store'])
-            ->middleware('permission:gestionar_catalogos');
+            ->middleware('permission_or:gestionar_catalogos|catalogos.editar|catalogos.configurar|usuarios.crear');
         Route::put('usuarios/{user}', [UserManagementController::class, 'update'])
-            ->middleware('permission:gestionar_catalogos');
+            ->middleware('permission_or:gestionar_catalogos|catalogos.editar|catalogos.configurar|usuarios.editar');
+
+        Route::get('menus', [MenuAdminController::class, 'index'])
+            ->middleware('permission:menus.administrar');
+        Route::post('menus', [MenuAdminController::class, 'store'])
+            ->middleware('permission:menus.administrar');
+        Route::put('menus/{menu}', [MenuAdminController::class, 'update'])
+            ->middleware('permission:menus.administrar');
+        Route::delete('menus/{menu}', [MenuAdminController::class, 'destroy'])
+            ->middleware('permission:menus.administrar');
+        Route::post('menus/{menu}/roles', [MenuAdminController::class, 'syncRoles'])
+            ->middleware('permission:menus.administrar');
+        Route::post('menus/{menu}/permissions', [MenuAdminController::class, 'syncPermissions'])
+            ->middleware('permission:menus.administrar');
     });
 
 Route::prefix('v1/control-escolar')
     ->middleware('auth:sanctum')
     ->group(function () {
         Route::get('dashboard', [ControlEscolarController::class, 'dashboard'])
-            ->middleware('permission:ver_documentos');
+            ->middleware('permission_or:ver_documentos|documentos.ver|dashboard.ver');
         Route::get('expedientes', [ControlEscolarController::class, 'expedientes'])
-            ->middleware('permission:ver_alumnos');
+            ->middleware('permission_or:ver_alumnos|alumnos.ver|expedientes.ver');
     });
 
 Route::prefix('v1/catalogos')
     ->middleware('auth:sanctum')
     ->group(function () {
         Route::get('sedes', [CatalogoCapturaController::class, 'sedes'])
-            ->middleware('permission:ver_catalogos');
+            ->middleware('permission_or:ver_catalogos|catalogos.ver|dashboard.ver|sedes.ver');
     });

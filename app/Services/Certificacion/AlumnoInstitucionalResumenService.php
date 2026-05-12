@@ -16,6 +16,7 @@ use App\Models\DocumentoAcademico;
 use App\Models\DocumentoMateriaSnapshot;
 use App\Models\MateriaCursada;
 use App\Models\PlanMateria;
+use App\Models\SolicitudMatricula;
 use Illuminate\Support\Collection;
 
 final class AlumnoInstitucionalResumenService
@@ -52,6 +53,7 @@ final class AlumnoInstitucionalResumenService
             'refs' => $this->refsOperativas($alumno),
             'alumno' => $this->resumenPersona($alumno),
             'matricula' => $this->resumenMatricula($alumno),
+            'solicitud_matricula' => $this->resumenSolicitudMatricula($alumno),
             'expediente_normativo' => $this->expedienteNormativoContexto($alumno),
             'contexto_legacy_normativo' => $this->contextoLegacyNormativo($alumno),
             'inscripciones_periodo' => $this->inscripciones($alumno),
@@ -182,6 +184,42 @@ final class AlumnoInstitucionalResumenService
                     ->where('estatus', 'activa')
                     ->sum('creditos')
                 : null,
+        ];
+    }
+
+    /** @return array<string, mixed>|null */
+    private function resumenSolicitudMatricula(Alumno $alumno): ?array
+    {
+        $s = SolicitudMatricula::query()
+            ->where('alumno_id', $alumno->id)
+            ->whereNot('estado', SolicitudMatricula::ESTADO_CANCELADA)
+            ->orderByDesc('id')
+            ->first();
+
+        if ($s === null) {
+            return null;
+        }
+
+        $s->loadMissing([
+            'ofertaAcademica.institucion',
+            'programaEstudio',
+            'planEstudio',
+            'cicloIngreso',
+            'matricula',
+        ]);
+
+        return [
+            'id' => $s->id,
+            'estado' => $s->estado,
+            'observaciones' => $s->observaciones,
+            'motivo_rechazo' => $s->motivo_rechazo,
+            'matricula_asignada_clave' => $s->matricula?->matricula,
+            'matricula_id' => $s->matricula_id,
+            'oferta_academica_id' => $s->oferta_academica_id,
+            'ciclo_ingreso_etiqueta' => $s->cicloIngreso?->nombre ?? $s->cicloIngreso?->clave,
+            'programa_etiqueta' => $s->programaEstudio?->nombre,
+            'plan_etiqueta' => $s->planEstudio?->nombre,
+            'actualizado_en' => $s->updated_at?->toIso8601String(),
         ];
     }
 

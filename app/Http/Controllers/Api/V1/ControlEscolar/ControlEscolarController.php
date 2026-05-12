@@ -49,6 +49,7 @@ class ControlEscolarController extends Controller
         $query = Alumno::query()
             ->with([
                 'matriculaActiva.ofertaAcademica.institucion.subsistema',
+                'matriculaActiva.ofertaAcademica.sede',
                 'matriculaActiva.ofertaAcademica.planEstudio.programaEstudio',
                 'documentosAcademicos' => fn ($q) => $q->latest('id')->limit(1),
             ])
@@ -73,15 +74,18 @@ class ControlEscolarController extends Controller
             ], true);
 
             return [
+                'folio_expediente' => 'EXP-'.str_pad((string) $alumno->id, 6, '0', STR_PAD_LEFT),
                 'alumno_id' => $alumno->id,
                 'alumno' => trim(implode(' ', array_filter([$alumno->nombre, $alumno->primer_apellido, $alumno->segundo_apellido]))),
                 'curp' => $alumno->curp,
-                'matricula_activa' => $mat?->matricula ?? 'Sin matricula',
+                'matricula_activa' => $mat?->matricula ?? 'Pendiente de asignación',
                 'subsistema' => $oferta?->institucion?->subsistema?->nombre ?? 'Sin subsistema',
                 'institucion' => $oferta?->institucion?->nombre ?? 'Sin institucion',
+                'sede_subsede' => $oferta?->sede?->nombre ?? '—',
                 'programa_plan' => trim(($oferta?->planEstudio?->programaEstudio?->nombre ?? 'Sin programa').' / '.($oferta?->planEstudio?->clave ?? 'Sin plan')),
                 'estado_academico' => $this->estadoAcademicoHumano($alumno),
                 'estado_documental' => $this->estadoDocumentalHumano($doc?->estado_workflow),
+                'ultima_actualizacion' => $alumno->updated_at?->toIso8601String() ?? '',
                 'siguiente_accion' => $this->siguienteAccion($alumno, $bloqueoNormativo),
                 'expediente_url' => '/app/expedientes?alumno='.$alumno->id,
             ];
@@ -127,10 +131,10 @@ class ControlEscolarController extends Controller
     {
         $mat = $alumno->matriculaActiva;
         if ($mat === null) {
-            return 'Registrar matricula';
+            return 'Solicitar matrícula a Educación Superior';
         }
         if ($bloqueoNormativo) {
-            return 'Atender bloqueo normativo';
+            return 'Atender validación institucional pendiente';
         }
         if (! $mat->inscripcionesPeriodo()->whereIn('estatus', ['activa', 'inscrita'])->exists()) {
             return 'Registrar inscripcion';

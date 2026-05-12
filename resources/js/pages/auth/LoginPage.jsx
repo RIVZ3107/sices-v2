@@ -3,10 +3,12 @@ import { useNavigate } from 'react-router-dom';
 import axios from '../../bootstrap';
 import { login, me } from '../../api/auth';
 import { saveSession } from '../../authStore';
+import { useSicesTheme } from '../../theme/useSicesTheme';
 import { ErrorState } from '../../components/ErrorState';
 import { FormField } from '../../components/FormField';
 
 export function LoginPage() {
+    const { refreshTheme } = useSicesTheme();
     const navigate = useNavigate();
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
@@ -23,6 +25,7 @@ export function LoginPage() {
             axios.defaults.headers.common.Authorization = `Bearer ${token}`;
             const meRes = await me();
             saveSession(token, meRes.data);
+            await refreshTheme();
             navigate('/app/dashboard');
         } catch (err) {
             const status = err?.status ?? err?.response?.status;

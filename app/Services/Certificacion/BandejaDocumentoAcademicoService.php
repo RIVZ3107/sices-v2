@@ -24,6 +24,7 @@ class BandejaDocumentoAcademicoService
 
     public function __construct(
         protected CertificacionAlcanceService $alcance,
+        protected SolicitudMatriculaService $solicitudesMatricula,
     ) {}
 
     public function listar(Request $request, string $bandeja): LengthAwarePaginator
@@ -57,6 +58,10 @@ class BandejaDocumentoAcademicoService
             $this->aplicarBandeja($q, $bandeja, $user);
             $this->aplicarFiltros($q, $request);
             $resumen[$bandeja] = (int) $q->count();
+        }
+
+        if ($user->can('ver_solicitud_matricula') && $user->hasAnyRole(['superadmin', 'admin', 'educacion_superior'])) {
+            $resumen = array_merge($resumen, $this->solicitudesMatricula->metricasEducacionSuperior($user));
         }
 
         return $resumen;
@@ -97,6 +102,18 @@ class BandejaDocumentoAcademicoService
 
         if ($user->hasRole('sistemas')) {
             return ['listos_para_firma', 'firmados', 'error_firma', 'pendientes_tecnicos'];
+        }
+
+        if ($user->hasRole('responsable_certificacion_titulacion')) {
+            return ['pendientes_revision', 'aprobados', 'rechazados', 'cancelados', 'listos_para_firma'];
+        }
+
+        if ($user->hasRole('responsable_evaluacion')) {
+            return ['en_revision', 'aprobados', 'rechazados'];
+        }
+
+        if ($user->hasRole('responsable_admision')) {
+            return ['borradores', 'pendientes_revision', 'aprobados', 'rechazados'];
         }
 
         return ['aprobados'];

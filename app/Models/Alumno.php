@@ -43,6 +43,11 @@ class Alumno extends Model
         return $this->hasMany(Matricula::class);
     }
 
+    public function solicitudesMatricula(): HasMany
+    {
+        return $this->hasMany(SolicitudMatricula::class);
+    }
+
     /**
      * Compatibilidad legacy: ahora apunta a la matrícula activa, no a matrícula única vitalicia.
      */
