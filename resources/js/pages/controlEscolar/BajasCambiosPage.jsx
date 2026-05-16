@@ -186,7 +186,6 @@ const Icons = {
     ),
 };
 
-// --- DATOS DEMO (Fallbacks para coincidir con la imagen) ---
 const DEMO_BAJAS = [
     { alumno: 'María Fernanda López Ruiz', matricula: 'A23010245', tipo: 'Baja temporal', motivo: 'Problemas de salud', fecha: '20/05/2025', hora: '09:32 a. m.', estatus: 'Pendiente', tone: 'green', typeColor: '#DC2626', icon: Icons.lock },
     { alumno: 'José Andrés Martínez Díaz', matricula: 'A23009876', tipo: 'Baja definitiva', motivo: 'Cambio de residencia', fecha: '20/05/2025', hora: '09:15 a. m.', estatus: 'En revisión', tone: 'blue', typeColor: '#6B21A8', icon: Icons.boxX },
@@ -215,7 +214,6 @@ const CAMBIOS_RECIENTES = [
 ];
 
 export function BajasCambiosPage() {
-    /* Estilos compartidos de tarjeta (surface) */
     const surface = {
         background: 'white',
         border: '1px solid #e2e8f0',
@@ -237,7 +235,6 @@ export function BajasCambiosPage() {
         margin: 0,
     };
 
-    // Calculo dinámico del gradiente cónico para la Dona
     const grad = `conic-gradient(${MOTIVOS_DONUT.map((m, i, arr) => {
         const start = (arr.slice(0, i).reduce((s, x) => s + x.pct, 0) / 100) * 360;
         const end = (arr.slice(0, i + 1).reduce((s, x) => s + x.pct, 0) / 100) * 360;
@@ -247,7 +244,7 @@ export function BajasCambiosPage() {
     return (
         <div style={{ padding: '24px 32px', background: '#f8fafc', minHeight: '100vh', fontFamily: 'system-ui, -apple-system, sans-serif' }}>
 
-            {/* ── Header Layout ── */}
+                
             <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 24, flexWrap: 'wrap', gap: 16 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                     <h1 style={{ fontSize: 24, fontWeight: 700, color: '#0f172a', margin: 0 }}>Bajas y cambios de estatus</h1>
@@ -261,7 +258,7 @@ export function BajasCambiosPage() {
                 </div>
             </div>
 
-            {/* ── Action bar ── */}
+            
             <div style={{ display: 'flex', gap: 12, marginBottom: 24, flexWrap: 'wrap', justifyContent: 'space-between' }}>
                 <div style={{ display: 'flex', gap: 12 }}>
                     {[
@@ -301,7 +298,6 @@ export function BajasCambiosPage() {
                 </Link>
             </div>
 
-            {/* ── Metrics Grid (Tonos Pastel Unificados) ── */}
             <div style={{ display: 'flex', gap: 16, marginBottom: 24, flexWrap: 'wrap' }}>
                 <MetricCard 
                     icon={Icons.lock} iconBg="#FEE2E2" iconColor="#DC2626" 
@@ -325,12 +321,12 @@ export function BajasCambiosPage() {
                 />
             </div>
 
-            {/* ── Main grid (Izquierda Tabla, Derecha Paneles) ── */}
+            
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: 16, alignItems: 'start' }}>
 
-                {/* Left Area: Tabla */}
-                <div style={surface}>
-                    {/* Table top bar */}
+                
+                <div style={surface}>   
+                    
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, gap: 8, flexWrap: 'wrap' }}>
                         <h2 style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14, fontWeight: 600, color: '#0f172a', margin: 0 }}>
                             Solicitudes de bajas y cambios {Icons.infoCircle}
@@ -361,7 +357,6 @@ export function BajasCambiosPage() {
                         </div>
                     </div>
 
-                    {/* Table */}
                     <div style={{ overflowX: 'auto' }}>
                         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                             <thead>
@@ -439,7 +434,6 @@ export function BajasCambiosPage() {
                         </table>
                     </div>
 
-                    {/* Pagination */}
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 16, paddingTop: 16, borderTop: '1px solid #f1f5f9', flexWrap: 'wrap', gap: 8 }}>
                         <span style={{ fontSize: 12, color: '#64748b' }}>Mostrando 1 a 7 de 57 resultados</span>
                         <div style={{ display: 'flex', gap: 6 }}>
@@ -461,10 +455,8 @@ export function BajasCambiosPage() {
                     </div>
                 </div>
 
-                {/* Right Sidebar: Paneles */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                     
-                    {/* Motivos frecuentes */}
                     <div style={surface}>
                         <p style={surfaceTitle}>Motivos frecuentes</p>
                         
@@ -487,7 +479,6 @@ export function BajasCambiosPage() {
                         </div>
                     </div>
 
-                    {/* Cambios recientes (Timeline) */}
                     <div style={surface}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
                             <p style={{ fontSize: 14, fontWeight: 600, color: '#0f172a', margin: 0 }}>Cambios recientes</p>
@@ -495,7 +486,6 @@ export function BajasCambiosPage() {
                         </div>
 
                         <div style={{ position: 'relative', paddingLeft: 10 }}>
-                            {/* Línea vertical del timeline */}
                             <div style={{ position: 'absolute', left: 14, top: 8, bottom: 8, width: 2, background: '#e2e8f0' }} />
                             
                             <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>

@@ -2,7 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { CE_DEMO_CALIFICACIONES_TABLA, CE_DEMO_GRUPOS_CALIFICACION } from '../../data/controlEscolarDemoData';
 
-// --- UTILIDADES DE ESTILO (PALETA UNIFICADA BASE) ---
+
 function initials(nombre = '') {
     return nombre
         .split(' ')
@@ -91,7 +91,6 @@ function MetricCard({ icon, iconBg, iconColor, title, value, trend, trendColor }
     );
 }
 
-// --- ICONOS UNIFICADOS ---
 const Icons = {
     users: (
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
@@ -172,7 +171,6 @@ const Icons = {
     ),
 };
 
-// --- DATOS DEMO (Fallbacks) ---
 const DEMO_GRUPOS_CALIFICACION = [
     { grupo: '301-A', sede: 'Plantel Centro', avancePct: 100, pendientes: 0 },
     { grupo: '302-A', sede: 'Plantel Centro', avancePct: 45, pendientes: 12 },
@@ -189,7 +187,6 @@ export function CalificacionesCePage() {
     const grupos = (typeof CE_DEMO_GRUPOS_CALIFICACION !== 'undefined' && CE_DEMO_GRUPOS_CALIFICACION.length) ? CE_DEMO_GRUPOS_CALIFICACION : DEMO_GRUPOS_CALIFICACION;
     const calificaciones = (typeof CE_DEMO_CALIFICACIONES_TABLA !== 'undefined' && CE_DEMO_CALIFICACIONES_TABLA.length) ? CE_DEMO_CALIFICACIONES_TABLA : DEMO_CALIFICACIONES_TABLA;
 
-    /* Estilos compartidos de tarjeta (surface) */
     const surface = {
         background: 'white',
         border: '1px solid #e2e8f0',
@@ -214,7 +211,6 @@ export function CalificacionesCePage() {
     return (
         <div style={{ padding: '24px 32px', background: '#f8fafc', minHeight: '100vh', fontFamily: 'system-ui, -apple-system, sans-serif' }}>
 
-            {/* ── Header Layout ── */}
             <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 24, flexWrap: 'wrap', gap: 16 }}>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -233,7 +229,6 @@ export function CalificacionesCePage() {
                 </div>
             </div>
 
-            {/* ── Action bar ── */}
             <div style={{ display: 'flex', gap: 12, marginBottom: 24, flexWrap: 'wrap', justifyContent: 'space-between' }}>
                 <div style={{ display: 'flex', gap: 12 }}>
                     {[
@@ -271,7 +266,6 @@ export function CalificacionesCePage() {
                 </Link>
             </div>
 
-            {/* ── Metrics Grid (Tonos Pastel Unificados) ── */}
             <div style={{ display: 'flex', gap: 16, marginBottom: 24, flexWrap: 'wrap' }}>
                 <MetricCard icon={Icons.users} iconBg="#DBEAFE" iconColor="#185FA5" title="Grupos en captura" value="14" trend="Ciclo 2024-2025" trendColor="#185FA5" />
                 <MetricCard icon={Icons.trendingUp} iconBg="#DCFCE7" iconColor="#0F6E56" title="Avance global" value="76%" trend="↑ vs. semana anterior" trendColor="#0F6E56" />
@@ -279,10 +273,8 @@ export function CalificacionesCePage() {
                 <MetricCard icon={Icons.messageSquare} iconBg="#EEEDFE" iconColor="#534AB7" title="Correcciones solicitadas" value="9" trend="En flujo con Dirección" trendColor="#534AB7" />
             </div>
 
-            {/* ── Grid Superior (Avance y Grupos) ── */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: 16, alignItems: 'start', marginBottom: 16 }}>
                 
-                {/* Avance de captura */}
                 <div style={surface}>
                     <p style={surfaceTitle}>Avance de captura</p>
                     <div style={{ marginTop: 16 }}>
@@ -299,7 +291,6 @@ export function CalificacionesCePage() {
                     </div>
                 </div>
 
-                {/* Grupos / materias */}
                 <div style={surface}>
                     <p style={surfaceTitle}>Estado por Grupos / Materias</p>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 8 }}>
@@ -323,10 +314,8 @@ export function CalificacionesCePage() {
                 </div>
             </div>
 
-            {/* ── Grid Inferior (Acciones Rápidas y Tabla) ── */}
             <div style={{ display: 'grid', gridTemplateColumns: '280px 1fr', gap: 16, alignItems: 'start' }}>
                 
-                {/* Left Sidebar: Acciones Rápidas */}
                 <div style={surface}>
                     <p style={surfaceTitle}>Acciones rápidas</p>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 8 }}>
@@ -342,7 +331,6 @@ export function CalificacionesCePage() {
                     </div>
                 </div>
 
-                {/* Right Area: Tabla */}
                 <div style={surface}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, gap: 8, flexWrap: 'wrap' }}>
                         <h2 style={{ fontSize: 14, fontWeight: 600, color: '#0f172a', margin: 0 }}>
@@ -444,7 +432,6 @@ export function CalificacionesCePage() {
                         </table>
                     </div>
 
-                    {/* Pagination */}
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 16, paddingTop: 16, borderTop: '1px solid #f1f5f9', flexWrap: 'wrap', gap: 8 }}>
                         <span style={{ fontSize: 12, color: '#64748b' }}>Mostrando 1 a 3 de 42 alumnos</span>
                         <div style={{ display: 'flex', gap: 6 }}>
@@ -468,7 +455,6 @@ export function CalificacionesCePage() {
 
             </div>
 
-            {/* Footer */}
             <p style={{ marginTop: 32, textAlign: 'center', fontSize: 12, color: '#94a3b8' }}>
                 © 2025 SICES v2 – Control Escolar de Escuela. Todos los derechos reservados. &nbsp;&nbsp; Versión 2.0.0
             </p>

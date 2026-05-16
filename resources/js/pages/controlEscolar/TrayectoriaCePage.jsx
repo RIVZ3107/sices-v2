@@ -2,7 +2,6 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { CE_DEMO_ALUMNO_TRAYECTORIA, CE_DEMO_MATERIAS_HISTORIAL, CE_MATERIAS } from '../../data/controlEscolarDemoData';
 
-// --- UTILIDADES DE ESTILO (PALETA UNIFICADA) ---
 function initials(nombre = '') {
     return nombre
         .split(' ')
@@ -14,19 +13,15 @@ function initials(nombre = '') {
 function StatusBadge({ children }) {
     const v = String(children).toLowerCase();
     const styles = {
-        // Verdes (Éxito / Activo / Estable)
         'activo': { background: '#EAF3DE', color: '#3B6D11' },
         'aprobada': { background: '#EAF3DE', color: '#3B6D11' },
         'estable': { background: '#EAF3DE', color: '#3B6D11' },
         
-        // Azules (Informativo / Bueno)
         'bueno': { background: '#DBEAFE', color: '#185FA5' },
         
-        // Naranjas (Pendiente / En curso / Observaciones)
         'en curso': { background: '#FAEEDA', color: '#854F0B' },
         'pendiente': { background: '#FAEEDA', color: '#854F0B' },
         
-        // Rojos (Error / Riesgo / Reprobada)
         'reprobada': { background: '#FEE2E2', color: '#991B1B' },
         'alto': { background: '#FEE2E2', color: '#991B1B' },
     };
@@ -48,7 +43,6 @@ function StatusBadge({ children }) {
     );
 }
 
-// Tarjeta de Métrica adaptada a la vista de Trayectoria (con barra de progreso o badge)
 function TrayectoriaMetricCard({ icon, iconBg, iconColor, title, value, subValue, bottomType, progressPercent, badgeText }) {
     return (
         <div
@@ -85,7 +79,6 @@ function TrayectoriaMetricCard({ icon, iconBg, iconColor, title, value, subValue
                 <p style={{ fontSize: 24, fontWeight: 700, color: '#0f172a', lineHeight: 1 }}>{value}</p>
                 <p style={{ fontSize: 11, marginTop: 6, color: '#64748b' }}>{subValue}</p>
                 
-                {/* Render Condicional: Barra de progreso o Badge */}
                 {bottomType === 'progress' && (
                     <div style={{ marginTop: 12 }}>
                         <div style={{ width: '100%', height: 4, background: '#e2e8f0', borderRadius: 2, overflow: 'hidden' }}>
@@ -107,7 +100,6 @@ function TrayectoriaMetricCard({ icon, iconBg, iconColor, title, value, subValue
     );
 }
 
-// --- ICONOS UNIFICADOS ---
 const Icons = {
     graduationCap: (
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -205,7 +197,6 @@ const Icons = {
     )
 };
 
-// --- DATOS DEMO (Fallbacks por si no existen en tu archivo de data) ---
 const DEMO_ALUMNO_TRAYECTORIA = {
     nombre: 'María Fernanda López Ruiz',
     matricula: 'A23010245',
@@ -227,7 +218,6 @@ export function TrayectoriaCePage() {
     const alumno = (typeof CE_DEMO_ALUMNO_TRAYECTORIA !== 'undefined' && CE_DEMO_ALUMNO_TRAYECTORIA.nombre) ? CE_DEMO_ALUMNO_TRAYECTORIA : DEMO_ALUMNO_TRAYECTORIA;
     const historial = (typeof CE_DEMO_MATERIAS_HISTORIAL !== 'undefined' && CE_DEMO_MATERIAS_HISTORIAL.length) ? CE_DEMO_MATERIAS_HISTORIAL : DEMO_MATERIAS_HISTORIAL;
 
-    /* Estilos compartidos de tarjeta (surface) */
     const surface = {
         background: 'white',
         border: '1px solid #e2e8f0',
@@ -252,7 +242,6 @@ export function TrayectoriaCePage() {
     return (
         <div style={{ padding: '24px 32px', background: '#f8fafc', minHeight: '100vh', fontFamily: 'system-ui, -apple-system, sans-serif' }}>
 
-            {/* ── Header Layout ── */}
             <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 24, flexWrap: 'wrap', gap: 16 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                     <h1 style={{ fontSize: 24, fontWeight: 700, color: '#0f172a', margin: 0 }}>Trayectoria académica</h1>
@@ -266,7 +255,6 @@ export function TrayectoriaCePage() {
                 </div>
             </div>
 
-            {/* ── Action bar ── */}
             <div style={{ display: 'flex', gap: 12, marginBottom: 24, flexWrap: 'wrap', justifyContent: 'space-between' }}>
                 <div style={{ display: 'flex', gap: 12 }}>
                     {[
@@ -304,11 +292,9 @@ export function TrayectoriaCePage() {
                 </Link>
             </div>
 
-            {/* ── Sección: Selecciona un alumno ── */}
             <div style={{ ...surface, marginBottom: 16 }}>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 24, alignItems: 'center', justifyContent: 'space-between' }}>
-                    
-                    {/* Buscador */}
+
                     <div style={{ flex: '1 1 250px' }}>
                         <p style={{ fontSize: 14, fontWeight: 600, color: '#0f172a', marginBottom: 12 }}>Selecciona un alumno</p>
                         <div style={{ position: 'relative', display: 'inline-block', width: '100%', maxWidth: 350 }}>
@@ -329,7 +315,6 @@ export function TrayectoriaCePage() {
                         </div>
                     </div>
 
-                    {/* Tarjeta del alumno seleccionado */}
                     <div style={{ flex: '2 1 450px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 16px', borderLeft: '1px solid #f1f5f9' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
                             <div style={{ position: 'relative' }}>
@@ -362,7 +347,6 @@ export function TrayectoriaCePage() {
                 </div>
             </div>
 
-            {/* ── Metrics Grid (Tonos Pastel Unificados) ── */}
             <div style={{ display: 'flex', gap: 16, marginBottom: 16, flexWrap: 'wrap' }}>
                 <TrayectoriaMetricCard 
                     icon={Icons.bookOpen} iconBg="#DCFCE7" iconColor="#0F6E56" 
@@ -386,10 +370,8 @@ export function TrayectoriaCePage() {
                 />
             </div>
 
-            {/* ── Grid Central: Gráficas y Alertas ── */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 16 }}>
                 
-                {/* Donut Chart 1: Avance curricular */}
                 <div style={surface}>
                     <p style={{...surfaceTitle, fontSize: 13, paddingBottom: 8 }}>Avance curricular</p>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-start', gap: 20, paddingTop: 10 }}>
@@ -418,7 +400,6 @@ export function TrayectoriaCePage() {
                     </div>
                 </div>
 
-                {/* Donut Chart 2: Materias aprobadas / reprobadas */}
                 <div style={surface}>
                     <p style={{...surfaceTitle, fontSize: 13, paddingBottom: 8 }}>Materias aprobadas / reprobadas</p>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-start', gap: 20, paddingTop: 10 }}>
@@ -454,7 +435,6 @@ export function TrayectoriaCePage() {
                     </div>
                 </div>
 
-                {/* Bar Chart: Avance por semestre */}
                 <div style={surface}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                         <p style={{...surfaceTitle, fontSize: 13, paddingBottom: 8, border: 'none', margin: 0 }}>Avance por semestre</p>
@@ -482,7 +462,6 @@ export function TrayectoriaCePage() {
                     <p style={{ fontSize: 10, color: '#64748b', textAlign: 'center', margin: '4px 0 0 0' }}>Semestre actual: 6°</p>
                 </div>
 
-                {/* Alertas */}
                 <div style={surface}>
                     <p style={{...surfaceTitle, fontSize: 13, paddingBottom: 8 }}>
                         Alertas académicas
@@ -523,7 +502,6 @@ export function TrayectoriaCePage() {
                 </div>
             </div>
 
-            {/* ── Tabla de Historial de Materias ── */}
             <div style={surface}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, gap: 8, flexWrap: 'wrap' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -615,8 +593,7 @@ export function TrayectoriaCePage() {
                     </table>
                 </div>
             </div>
-
-            {/* Footer */}
+                            
             <p style={{ marginTop: 32, textAlign: 'center', fontSize: 12, color: '#94a3b8' }}>
                 © 2025 SICES v2 – Control Escolar de Escuela. Todos los derechos reservados. &nbsp;&nbsp; Versión 2.0.0
             </p>

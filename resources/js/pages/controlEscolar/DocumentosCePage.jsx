@@ -2,15 +2,14 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { CE_DEMO_DOCUMENTOS_EMITIDOS, CE_PLANTILLAS_RAPIDAS } from '../../data/controlEscolarDemoData';
 
-// --- UTILIDADES DE ESTILO (PALETA UNIFICADA BASE) ---
 function StatusBadge({ children }) {
     const v = String(children).toLowerCase();
     const styles = {
-        'concluido': { background: '#EAF3DE', color: '#3B6D11' },     // Verde pastel
-        'en proceso': { background: '#DBEAFE', color: '#185FA5' },    // Azul pastel
-        'en revisión': { background: '#FEF3C7', color: '#BA7517' },   // Naranja pastel
-        'rechazado': { background: '#FEE2E2', color: '#991B1B' },     // Rojo pastel
-        'cancelado': { background: '#F1EFE8', color: '#5F5E5A' },     // Gris pastel
+        'concluido': { background: '#EAF3DE', color: '#3B6D11' },     
+        'en proceso': { background: '#DBEAFE', color: '#185FA5' },    
+        'en revisión': { background: '#FEF3C7', color: '#BA7517' },   
+        'rechazado': { background: '#FEE2E2', color: '#991B1B' },     
+        'cancelado': { background: '#F1EFE8', color: '#5F5E5A' },     
     };
     const s = styles[v] ?? { background: '#F1EFE8', color: '#5F5E5A' };
     return (
@@ -78,7 +77,6 @@ function MetricCard({ icon, iconBg, iconColor, title, value, trend, trendColor, 
     );
 }
 
-// --- ICONOS UNIFICADOS ---
 const Icons = {
     fileText: (
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -195,7 +193,6 @@ const Icons = {
     )
 };
 
-// --- DATOS DEMO (Fallbacks para coincidir con la imagen) ---
 const DEMO_DOCS_EMITIDOS = [
     { tipo: 'Constancia de estudios', subTipo: 'Constancia', alumno: 'María Fernanda López Ruiz', matricula: 'A23010245', fecha: '20/05/2025', hora: '09:32 a. m.', estatus: 'Concluido', colorTipo: '#534AB7' },
     { tipo: 'Historial académico', subTipo: 'Historial', alumno: 'José Andrés Martínez Díaz', matricula: 'A23009876', fecha: '20/05/2025', hora: '09:15 a. m.', estatus: 'En proceso', colorTipo: '#185FA5' },
@@ -226,7 +223,6 @@ export function DocumentosCePage() {
     const plantillas = DEMO_PLANTILLAS;
     const accesos = DEMO_ACCESOS;
 
-    /* Estilos compartidos de tarjeta (surface) */
     const surface = {
         background: 'white',
         border: '1px solid #e2e8f0',
@@ -248,7 +244,6 @@ export function DocumentosCePage() {
         margin: 0,
     };
 
-    // Función para renderizar el icono correcto de la tabla
     const getTipoIcon = (color) => {
         return (
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2">
@@ -264,7 +259,6 @@ export function DocumentosCePage() {
     return (
         <div style={{ padding: '24px 32px', background: '#f8fafc', minHeight: '100vh', fontFamily: 'system-ui, -apple-system, sans-serif' }}>
 
-            {/* ── Header Layout ── */}
             <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 24, flexWrap: 'wrap', gap: 16 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                     <h1 style={{ fontSize: 24, fontWeight: 700, color: '#0f172a', margin: 0 }}>Documentos y constancias</h1>
@@ -278,7 +272,6 @@ export function DocumentosCePage() {
                 </div>
             </div>
 
-            {/* ── Action bar ── */}
             <div style={{ display: 'flex', gap: 12, marginBottom: 24, flexWrap: 'wrap', justifyContent: 'space-between' }}>
                 <div style={{ display: 'flex', gap: 12 }}>
                     {[
@@ -317,7 +310,6 @@ export function DocumentosCePage() {
                 </Link>
             </div>
 
-            {/* ── Metrics Grid (Tonos Pastel Unificados) ── */}
             <div style={{ display: 'flex', gap: 16, marginBottom: 24, flexWrap: 'wrap' }}>
                 <MetricCard 
                     icon={Icons.fileText} iconBg="#EEEDFE" iconColor="#534AB7" 
@@ -342,12 +334,9 @@ export function DocumentosCePage() {
                 />
             </div>
 
-            {/* ── Main grid (Izquierda Tabla, Derecha Paneles) ── */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: 16, alignItems: 'start' }}>
 
-                {/* Left Area: Tabla */}
                 <div style={surface}>
-                    {/* Table top bar */}
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, gap: 8, flexWrap: 'wrap' }}>
                         <h2 style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14, fontWeight: 600, color: '#0f172a', margin: 0 }}>
                             <span style={{ color: '#64748b' }}>{Icons.list}</span> Documentos emitidos
@@ -358,7 +347,6 @@ export function DocumentosCePage() {
                         </Link>
                     </div>
 
-                    {/* Table */}
                     <div style={{ overflowX: 'auto' }}>
                         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                             <thead>

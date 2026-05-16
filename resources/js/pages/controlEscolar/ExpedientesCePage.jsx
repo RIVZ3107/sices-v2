@@ -2,13 +2,12 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { CE_ACTIVIDAD_RECIENTE, CE_DOCUMENTOS_REQUERIDOS, CE_DEMO_EXPEDIENTES } from '../../data/controlEscolarDemoData';
 
-// --- UTILIDADES DE ESTILO (PALETA UNIFICADA) ---
 function StatusBadge({ children }) {
     const v = String(children).toLowerCase();
     const styles = {
-        'completo': { background: '#EAF3DE', color: '#3B6D11' },         // Verde pastel (igual que activo/completada)
-        'pendiente': { background: '#DBEAFE', color: '#185FA5' },        // Azul pastel 
-        'con observaciones': { background: '#FAEEDA', color: '#854F0B' }, // Naranja pastel (igual que en proceso/revisión)
+        'completo': { background: '#EAF3DE', color: '#3B6D11' },         
+        'pendiente': { background: '#DBEAFE', color: '#185FA5' },        
+        'con observaciones': { background: '#FAEEDA', color: '#854F0B' }, 
     };
     const s = styles[v] ?? { background: '#F1EFE8', color: '#5F5E5A' };
     return (
@@ -70,7 +69,6 @@ function MetricCard({ icon, iconBg, iconColor, title, value, trend, trendUp }) {
     );
 }
 
-// --- ICONOS UNIFICADOS ---
 const Icons = {
     shieldCheck: (
         <svg width="20" height="20" viewBox="0 0 24 24" fill="#185FA5" stroke="white" strokeWidth="1">
@@ -162,7 +160,6 @@ const Icons = {
     )
 };
 
-// --- DATOS DEMO (Fallbacks por si no existen en tu archivo de data) ---
 const DEMO_EXPEDIENTES = [
     { folio: 'EXP-2025-000123', alumno: 'María Fernanda López Ruiz', matricula: 'A23010245', programa: 'Licenciatura en Administración', actualizado: '20/05/2025 09:32 a. m.', usuario: 'por Usuario Escuela', estatus: 'Completo' },
     { folio: 'EXP-2025-000124', alumno: 'José Andrés Martínez Díaz', matricula: 'A23009876', programa: 'Ingeniería en Sistemas Computacionales', actualizado: '20/05/2025 09:15 a. m.', usuario: 'por Usuario Escuela', estatus: 'Con observaciones' },
@@ -194,7 +191,6 @@ export function ExpedientesCePage() {
     const documentos = (typeof CE_DOCUMENTOS_REQUERIDOS !== 'undefined' && CE_DOCUMENTOS_REQUERIDOS.length) ? CE_DOCUMENTOS_REQUERIDOS : DEMO_DOCS;
     const actividad = (typeof CE_ACTIVIDAD_RECIENTE !== 'undefined' && CE_ACTIVIDAD_RECIENTE.length) ? CE_ACTIVIDAD_RECIENTE : DEMO_ACT;
 
-    /* Estilos compartidos de tarjeta (surface) */
     const surface = {
         background: 'white',
         border: '1px solid #e2e8f0',
@@ -219,10 +215,8 @@ export function ExpedientesCePage() {
     return (
         <div style={{ padding: '24px 32px', background: '#f8fafc', minHeight: '100vh', fontFamily: 'system-ui, -apple-system, sans-serif' }}>
 
-            {/* ── Header Layout ── */}
             <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 24, flexWrap: 'wrap', gap: 16 }}>
                 
-                 {/* Title */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, paddingBottom: 4 }}>
                     <h1 style={{ fontSize: 24, fontWeight: 700, color: '#0f172a', margin: 0 }}>Expedientes de alumnos</h1>
                     {Icons.shieldCheck}
@@ -235,7 +229,6 @@ export function ExpedientesCePage() {
                 </div>
             </div>
 
-            {/* ── Action bar ── */}
             <div style={{ display: 'flex', gap: 12, marginBottom: 24, flexWrap: 'wrap', justifyContent: 'space-between' }}>
                 <div style={{ display: 'flex', gap: 8 }}>
                     {[
@@ -273,7 +266,6 @@ export function ExpedientesCePage() {
                 </Link>
             </div>
 
-            {/* ── Metrics (Mismos colores pastel unificados) ── */}
             <div style={{ display: 'flex', gap: 16, marginBottom: 24, flexWrap: 'wrap' }}>
                 <MetricCard icon={Icons.folder} iconBg="#DBEAFE" iconColor="#185FA5" title="Expedientes pendientes" value="58" trend="18% vs. ciclo anterior" trendUp={true} />
                 <MetricCard icon={Icons.checkCircle} iconBg="#DCFCE7" iconColor="#0F6E56" title="Completos" value="1,842" trend="12% vs. ciclo anterior" trendUp={false} />
@@ -281,12 +273,9 @@ export function ExpedientesCePage() {
                 <MetricCard icon={Icons.fileText} iconBg="#EEEDFE" iconColor="#534AB7" title="Documentos faltantes" value="312" trend="14% vs. ciclo anterior" trendUp={true} />
             </div>
 
-            {/* ── Main grid (Izquierda Tabla, Derecha Paneles) ── */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: 16, alignItems: 'start' }}>
 
-                {/* Left Area: Tabla */}
                 <div style={surface}>
-                    {/* Table top bar */}
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, gap: 8, flexWrap: 'wrap' }}>
                         <h2 style={{ fontSize: 14, fontWeight: 600, color: '#0f172a', margin: 0 }}>Listado de expedientes</h2>
                         
@@ -313,7 +302,6 @@ export function ExpedientesCePage() {
                         </div>
                     </div>
 
-                    {/* Table */}
                     <div style={{ overflowX: 'auto' }}>
                         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                             <thead>
@@ -388,7 +376,6 @@ export function ExpedientesCePage() {
                         </table>
                     </div>
 
-                    {/* Pagination */}
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 16, paddingTop: 16, borderTop: '1px solid #f1f5f9', flexWrap: 'wrap', gap: 8 }}>
                         <span style={{ fontSize: 12, color: '#64748b' }}>Mostrando 1 a 8 de 58 expedientes</span>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>

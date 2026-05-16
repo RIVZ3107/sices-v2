@@ -2,7 +2,6 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { CE_DEMO_ALUMNOS, CE_DEMO_ALUMNOS_RECENTES } from '../../data/controlEscolarDemoData';
 
-// --- UTILIDADES DE ESTILO ---
 function initials(nombre = '') {
     return nombre
         .split(' ')
@@ -132,7 +131,6 @@ function QuickAction({ to, iconBg, iconColor, icon, label, sub }) {
     );
 }
 
-// --- ICONOS ---
 const Icons = {
     users: (
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -272,7 +270,6 @@ const Icons = {
 };
 
 
-// --- DATOS DEMO ---
 const DEMO_ALUMNOS = [
     { matricula: 'A23010245', nombre: 'María Fernanda López Ruiz', programa: 'Ingeniería en Sistemas', periodo: '6°', estatus: 'Activo' },
     { matricula: 'A23009876', nombre: 'José Andrés Martínez Díaz', programa: 'Ingeniería Industrial', periodo: '4°', estatus: 'Activo' },
@@ -297,7 +294,7 @@ export function AlumnosCePage() {
     const rows = (typeof CE_DEMO_ALUMNOS !== 'undefined' ? CE_DEMO_ALUMNOS : DEMO_ALUMNOS);
     const recientes = (typeof CE_DEMO_ALUMNOS_RECENTES !== 'undefined' ? CE_DEMO_ALUMNOS_RECENTES : DEMO_RECIENTES);
 
-    /* Estilos compartidos de tarjeta (surface) */
+        
     const surface = {
         background: 'white',
         border: '1px solid #e2e8f0',
@@ -322,16 +319,16 @@ export function AlumnosCePage() {
     return (
         <div style={{ padding: '24px 32px', background: '#f8fafc', minHeight: '100vh', fontFamily: 'system-ui, -apple-system, sans-serif' }}>
 
-            {/* ── Header Layout (Título y Acciones) ── */}
+                
             <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 24, flexWrap: 'wrap', gap: 16 }}>
                 
-                {/* Title */}
+                
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, paddingBottom: 4 }}>
                     <h1 style={{ fontSize: 24, fontWeight: 700, color: '#0f172a', margin: 0 }}>Gestión de alumnos</h1>
                     {Icons.shieldCheck}
                 </div>
 
-                {/* Right Area: Last updated & Action buttons */}
+                    
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 12 }}>
                     <p style={{ fontSize: 11, color: '#94a3b8', margin: 0 }}>
                         🕐 Actualizado: 20/05/2025 09:45 a. m.
@@ -363,7 +360,7 @@ export function AlumnosCePage() {
                 </div>
             </div>
 
-            {/* ── Metrics ── */}
+           
             <div style={{ display: 'flex', gap: 16, marginBottom: 24, flexWrap: 'wrap' }}>
                 <MetricCard icon={Icons.users} iconBg="#DBEAFE" iconColor="#185FA5" title="Alumnos activos" value="2,124" trend="↓ 3% vs. ciclo anterior" trendColor="#0F6E56" />
                 <MetricCard icon={Icons.clock} iconBg="#FEF3C7" iconColor="#BA7517" title="Baja temporal" value="196" trend="↓ 5% vs. ciclo anterior" trendColor="#0F6E56" />
@@ -371,13 +368,13 @@ export function AlumnosCePage() {
                 <MetricCard icon={Icons.warn} iconBg="#FFEDD5" iconColor="#C2410C" title="Expedientes incompletos" value="32" trend="↓ 11% vs. ciclo anterior" trendColor="#0F6E56" />
             </div>
 
-            {/* ── Main grid ── */}
+            
             <div style={{ display: 'grid', gridTemplateColumns: '280px 1fr', gap: 16, alignItems: 'start' }}>
 
-                {/* Left sidebar */}
+               
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
 
-                    {/* Acciones rápidas */}
+                    
                     <div style={surface}>
                         <p style={surfaceTitle}>Acciones rápidas</p>
                         <div style={{ marginTop: 8 }}>
@@ -389,7 +386,7 @@ export function AlumnosCePage() {
                         </div>
                     </div>
 
-                    {/* Alumnos recientes */}
+                    
                     <div style={surface}>
                         <p style={surfaceTitle}>
                             Alumnos recientes
@@ -434,7 +431,7 @@ export function AlumnosCePage() {
                     </div>
                 </div>
 
-                {/* Table Area */}
+                
                 <div style={surface}>
                     {/* Table top bar */}
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, gap: 8, flexWrap: 'wrap' }}>
@@ -465,7 +462,7 @@ export function AlumnosCePage() {
                         </div>
                     </div>
 
-                    {/* Table */}
+                    
                     <div style={{ overflowX: 'auto' }}>
                         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                             <thead>
@@ -542,7 +539,7 @@ export function AlumnosCePage() {
                         </table>
                     </div>
 
-                    {/* Pagination */}
+                    
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 16, paddingTop: 16, borderTop: '1px solid #f1f5f9', flexWrap: 'wrap', gap: 8 }}>
                         <span style={{ fontSize: 12, color: '#64748b' }}>Mostrando 1 a 10 de 2,124 registros</span>
                         <div style={{ display: 'flex', gap: 6 }}>
@@ -568,7 +565,7 @@ export function AlumnosCePage() {
                 </div>
             </div>
 
-            {/* Footer */}
+            
             <p style={{ marginTop: 32, textAlign: 'center', fontSize: 12, color: '#94a3b8' }}>
                 © 2025 SICES v2 – Control Escolar de Escuela. Todos los derechos reservados. &nbsp;&nbsp; Versión 2.0.0
             </p>

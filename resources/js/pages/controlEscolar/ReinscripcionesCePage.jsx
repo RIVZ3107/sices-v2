@@ -2,7 +2,6 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { CE_DEMO_REINSCRIPCIONES, CE_MOTIVOS_BLOQUEO } from '../../data/controlEscolarDemoData';
 
-// --- UTILIDADES DE ESTILO (PALETA UNIFICADA BASE) ---
 function initials(nombre = '') {
     return nombre
         .split(' ')
@@ -12,11 +11,11 @@ function initials(nombre = '') {
 }
 
 const AVATAR_COLORS = [
-    { bg: '#DBEAFE', text: '#185FA5' }, // Azul
-    { bg: '#DCFCE7', text: '#0F6E56' }, // Verde
-    { bg: '#FEF3C7', text: '#BA7517' }, // Naranja
-    { bg: '#EEEDFE', text: '#534AB7' }, // Morado
-    { bg: '#F1F5F9', text: '#475569' }, // Gris
+    { bg: '#DBEAFE', text: '#185FA5' }, 
+    { bg: '#DCFCE7', text: '#0F6E56' }, 
+    { bg: '#FEF3C7', text: '#BA7517' }, 
+    { bg: '#EEEDFE', text: '#534AB7' }, 
+    { bg: '#F1F5F9', text: '#475569' }, 
 ];
 
 function avatarStyle(i) {
@@ -27,10 +26,10 @@ function avatarStyle(i) {
 function StatusBadge({ children }) {
     const v = String(children).toLowerCase();
     const styles = {
-        'completada': { background: '#EAF3DE', color: '#3B6D11' }, // Verde pastel
-        'en proceso': { background: '#DBEAFE', color: '#185FA5' }, // Azul pastel
-        'bloqueada': { background: '#FAEEDA', color: '#854F0B' },  // Naranja pastel
-        'observada': { background: '#EEEDFE', color: '#534AB7' },  // Morado pastel
+        'completada': { background: '#EAF3DE', color: '#3B6D11' }, 
+        'en proceso': { background: '#DBEAFE', color: '#185FA5' }, 
+        'bloqueada': { background: '#FAEEDA', color: '#854F0B' }, 
+        'observada': { background: '#EEEDFE', color: '#534AB7' }, 
     };
     const s = styles[v] ?? { background: '#F1EFE8', color: '#5F5E5A' };
     return (
@@ -92,7 +91,6 @@ function MetricCard({ icon, iconBg, iconColor, title, value, trend, trendUp }) {
     );
 }
 
-// --- ICONOS UNIFICADOS ---
 const Icons = {
     users: (
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
@@ -196,7 +194,6 @@ export function ReinscripcionesCePage() {
     const rows = CE_DEMO_REINSCRIPCIONES || [];
     const motivosBloqueo = CE_MOTIVOS_BLOQUEO || [];
 
-    /* Estilos compartidos de tarjeta (surface) */
     const surface = {
         background: 'white',
         border: '1px solid #e2e8f0',
@@ -221,7 +218,6 @@ export function ReinscripcionesCePage() {
     return (
         <div style={{ padding: '24px 32px', background: '#f8fafc', minHeight: '100vh', fontFamily: 'system-ui, -apple-system, sans-serif' }}>
 
-            {/* ── Header Layout ── */}
             <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 24, flexWrap: 'wrap', gap: 16 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                     <h1 style={{ fontSize: 24, fontWeight: 700, color: '#0f172a', margin: 0 }}>Gestión de reinscripciones</h1>
@@ -235,7 +231,6 @@ export function ReinscripcionesCePage() {
                 </div>
             </div>
 
-            {/* ── Action bar ── */}
             <div style={{ display: 'flex', gap: 12, marginBottom: 24, flexWrap: 'wrap', justifyContent: 'space-between' }}>
                 <div style={{ display: 'flex', gap: 12 }}>
                     {[
@@ -273,7 +268,6 @@ export function ReinscripcionesCePage() {
                 </Link>
             </div>
 
-            {/* ── Metrics Grid (Tonos Pastel Unificados) ── */}
             <div style={{ display: 'flex', gap: 16, marginBottom: 24, flexWrap: 'wrap' }}>
                 <MetricCard icon={Icons.refreshCw} iconBg="#DBEAFE" iconColor="#185FA5" title="Reinscripciones en proceso" value="156" trend="8% vs. ciclo anterior" trendUp={false} />
                 <MetricCard icon={Icons.lockOpen} iconBg="#FEF3C7" iconColor="#BA7517" title="Bloqueadas" value="48" trend="15% vs. ciclo anterior" trendUp={true} />
@@ -281,12 +275,9 @@ export function ReinscripcionesCePage() {
                 <MetricCard icon={Icons.warn} iconBg="#EEEDFE" iconColor="#534AB7" title="Adeudos detectados" value="63" trend="9% vs. ciclo anterior" trendUp={true} />
             </div>
 
-            {/* ── Main grid (Izquierda Tabla, Derecha Paneles) ── */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: 16, alignItems: 'start' }}>
 
-                {/* Left Area: Tabla */}
                 <div style={surface}>
-                    {/* Table top bar */}
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, gap: 8, flexWrap: 'wrap' }}>
                         <h2 style={{ fontSize: 14, fontWeight: 600, color: '#0f172a', margin: 0 }}>
                             Lista de reinscripciones <span style={{ color: '#94a3b8', fontSize: 12, fontWeight: 400 }}>ⓘ</span>
@@ -317,7 +308,6 @@ export function ReinscripcionesCePage() {
                         </div>
                     </div>
 
-                    {/* Table */}
                     <div style={{ overflowX: 'auto' }}>
                         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                             <thead>
@@ -404,7 +394,6 @@ export function ReinscripcionesCePage() {
                         </table>
                     </div>
 
-                    {/* Pagination */}
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 16, paddingTop: 16, borderTop: '1px solid #f1f5f9', flexWrap: 'wrap', gap: 8 }}>
                         <span style={{ fontSize: 12, color: '#64748b' }}>Mostrando 1 a 10 de 516 resultados</span>
                         <div style={{ display: 'flex', gap: 6 }}>
@@ -426,10 +415,8 @@ export function ReinscripcionesCePage() {
                     </div>
                 </div>
 
-                {/* Right Sidebar: Paneles */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                     
-                    {/* Motivos de Bloqueo */}
                     <div style={surface}>
                         <p style={surfaceTitle}>
                             Motivos de bloqueo
@@ -445,7 +432,6 @@ export function ReinscripcionesCePage() {
                         </ul>
                     </div>
 
-                    {/* Flujo de reinscripción */}
                     <div style={surface}>
                         <p style={surfaceTitle}>
                             Flujo de reinscripción
@@ -474,7 +460,6 @@ export function ReinscripcionesCePage() {
                 </div>
             </div>
 
-            {/* Footer */}
             <p style={{ marginTop: 32, textAlign: 'center', fontSize: 12, color: '#94a3b8' }}>
                 © 2025 SICES v2 – Control Escolar de Escuela. Todos los derechos reservados. &nbsp;&nbsp; Versión 2.0.0
             </p>

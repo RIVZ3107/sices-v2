@@ -2,7 +2,6 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { CE_DEMO_INSCRIPCIONES, CE_FECHAS_IMPORTANTES } from '../../data/controlEscolarDemoData';
 
-// --- UTILIDADES DE ESTILO (PALETA UNIFICADA) ---
 function initials(nombre = '') {
     return nombre
         .split(' ')
@@ -93,7 +92,6 @@ function MetricCard({ icon, iconBg, iconColor, title, value, trend, trendColor }
     );
 }
 
-// --- ICONOS UNIFICADOS ---
 const Icons = {
     fileNew: (
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
@@ -202,7 +200,6 @@ const Icons = {
     )
 };
 
-// --- DATOS DEMO (Fallbacks por si no existen en tu archivo de data) ---
 const DEMO_INSCRIPCIONES = [
     { folio: 'INS-2025-000258', alumno: 'María Fernanda López Ruiz', id: 'A23010245', programa: 'Bachillerato General', fecha: '20/05/2025 09:32 a. m.', estatus: 'Por validar' },
     { folio: 'INS-2025-000257', alumno: 'José Andrés Martínez Díaz', id: 'A23009876', programa: 'Bachillerato General', fecha: '20/05/2025 09:15 a. m.', estatus: 'Por validar' },
@@ -223,7 +220,6 @@ export function InscripcionesCePage() {
     const rows = (typeof CE_DEMO_INSCRIPCIONES !== 'undefined' && CE_DEMO_INSCRIPCIONES.length) ? CE_DEMO_INSCRIPCIONES : DEMO_INSCRIPCIONES;
     const fechas = (typeof CE_FECHAS_IMPORTANTES !== 'undefined' && CE_FECHAS_IMPORTANTES.length) ? CE_FECHAS_IMPORTANTES : DEMO_FECHAS;
 
-    /* Estilos compartidos de tarjeta (surface) */
     const surface = {
         background: 'white',
         border: '1px solid #e2e8f0',
@@ -248,7 +244,6 @@ export function InscripcionesCePage() {
     return (
         <div style={{ padding: '24px 32px', background: '#f8fafc', minHeight: '100vh', fontFamily: 'system-ui, -apple-system, sans-serif' }}>
 
-            {/* ── Header Layout ── */}
             <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 24, flexWrap: 'wrap', gap: 16 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                     <h1 style={{ fontSize: 24, fontWeight: 700, color: '#0f172a', margin: 0 }}>Control de inscripciones</h1>
@@ -262,7 +257,6 @@ export function InscripcionesCePage() {
                 </div>
             </div>
 
-            {/* ── Action bar ── */}
             <div style={{ display: 'flex', gap: 12, marginBottom: 24, flexWrap: 'wrap', justifyContent: 'space-between' }}>
                 <div style={{ display: 'flex', gap: 12 }}>
                     {[
@@ -301,20 +295,16 @@ export function InscripcionesCePage() {
                 </Link>
             </div>
 
-            {/* ── Metrics Grid (Tonos Pastel Unificados) ── */}
             <div style={{ display: 'flex', gap: 16, marginBottom: 24, flexWrap: 'wrap' }}>
                 <MetricCard icon={Icons.fileNew} iconBg="#DBEAFE" iconColor="#185FA5" title="Inscripciones nuevas" value="58" trend="↓ 8% vs. ciclo anterior" trendColor="#0F6E56" />
                 <MetricCard icon={Icons.clock} iconBg="#FEF3C7" iconColor="#BA7517" title="Por validar" value="42" trend="↑ 15% vs. ciclo anterior" trendColor="#C2410C" />
                 <MetricCard icon={Icons.checkCircle} iconBg="#DCFCE7" iconColor="#0F6E56" title="Confirmadas" value="196" trend="↑ 12% vs. ciclo anterior" trendColor="#0F6E56" />
                 <MetricCard icon={Icons.eyeBig} iconBg="#EEEDFE" iconColor="#534AB7" title="Observadas" value="16" trend="↑ 6% vs. ciclo anterior" trendColor="#C2410C" />
             </div>
-
-            {/* ── Main grid (Izquierda Tabla, Derecha Paneles) ── */}
+                        
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: 16, alignItems: 'start' }}>
 
-                {/* Left Area: Tabla */}
                 <div style={surface}>
-                    {/* Table top bar */}
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, gap: 8, flexWrap: 'wrap' }}>
                         <h2 style={{ fontSize: 14, fontWeight: 600, color: '#0f172a', margin: 0 }}>
                             Inscripciones <span style={{ color: '#94a3b8', fontSize: 12, fontWeight: 400 }}>ⓘ</span>
@@ -345,7 +335,6 @@ export function InscripcionesCePage() {
                         </div>
                     </div>
 
-                    {/* Table */}
                     <div style={{ overflowX: 'auto' }}>
                         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                             <thead>
@@ -435,7 +424,6 @@ export function InscripcionesCePage() {
                         </table>
                     </div>
 
-                    {/* Pagination */}
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 16, paddingTop: 16, borderTop: '1px solid #f1f5f9', flexWrap: 'wrap', gap: 8 }}>
                         <span style={{ fontSize: 12, color: '#64748b' }}>Mostrando 1 a 10 de 312 resultados</span>
                         <div style={{ display: 'flex', gap: 6 }}>
@@ -457,10 +445,8 @@ export function InscripcionesCePage() {
                     </div>
                 </div>
 
-                {/* Right Sidebar: Paneles */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                     
-                    {/* Pasos del proceso */}
                     <div style={surface}>
                         <p style={surfaceTitle}>Pasos del proceso de inscripción</p>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 16, marginTop: 10 }}>
@@ -485,7 +471,6 @@ export function InscripcionesCePage() {
                         </div>
                     </div>
 
-                    {/* Próximas fechas importantes */}
                     <div style={surface}>
                         <p style={surfaceTitle}>
                             Próximas fechas importantes
