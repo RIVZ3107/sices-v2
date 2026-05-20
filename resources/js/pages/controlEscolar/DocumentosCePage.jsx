@@ -1,6 +1,19 @@
-import React from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { CE_DEMO_DOCUMENTOS_EMITIDOS, CE_PLANTILLAS_RAPIDAS } from '../../data/controlEscolarDemoData';
+import { controlEscolarApi } from '../../api/controlEscolar';
+
+function formatActualizado(iso) {
+    if (!iso) return '—';
+    try {
+        return new Intl.DateTimeFormat('es-MX', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(iso));
+    } catch {
+        return '—';
+    }
+}
+
+function formatNum(n) {
+    return new Intl.NumberFormat('es-MX').format(Number(n) || 0);
+}
 
 function StatusBadge({ children }) {
     const v = String(children).toLowerCase();
@@ -193,35 +206,48 @@ const Icons = {
     )
 };
 
-const DEMO_DOCS_EMITIDOS = [
-    { tipo: 'Constancia de estudios', subTipo: 'Constancia', alumno: 'María Fernanda López Ruiz', matricula: 'A23010245', fecha: '20/05/2025', hora: '09:32 a. m.', estatus: 'Concluido', colorTipo: '#534AB7' },
-    { tipo: 'Historial académico', subTipo: 'Historial', alumno: 'José Andrés Martínez Díaz', matricula: 'A23009876', fecha: '20/05/2025', hora: '09:15 a. m.', estatus: 'En proceso', colorTipo: '#185FA5' },
-    { tipo: 'Boleta de calificaciones', subTipo: 'Boleta', alumno: 'Ana Paula García Torres', matricula: 'A23011488', fecha: '20/05/2025', hora: '08:47 a. m.', estatus: 'En revisión', colorTipo: '#0F6E56' },
-    { tipo: 'Kardex', subTipo: 'Kardex', alumno: 'Diego Alejandro Pérez Soto', matricula: 'A23010567', fecha: '20/05/2025', hora: '08:25 a. m.', estatus: 'Concluido', colorTipo: '#BA7517' },
-    { tipo: 'Constancia de baja temporal', subTipo: 'Constancia', alumno: 'Valeria Hernández Cruz', matricula: 'A23011123', fecha: '20/05/2025', hora: '06:03 a. m.', estatus: 'Rechazado', colorTipo: '#534AB7' },
-    { tipo: 'Constancia de inscripción', subTipo: 'Constancia', alumno: 'Carlos Eduardo Ruiz Vega', matricula: 'A23011705', fecha: '19/05/2025', hora: '04:12 p. m.', estatus: 'Concluido', colorTipo: '#185FA5' },
-    { tipo: 'Duplicado de boleta', subTipo: 'Boleta', alumno: 'Sofía Martínez Delgado', matricula: 'A23012033', fecha: '19/05/2025', hora: '02:30 p. m.', estatus: 'Cancelado', colorTipo: '#0F6E56' },
-];
-
-const DEMO_PLANTILLAS = [
-    { nombre: 'Constancia de estudios', versiones: '4 versiones' },
-    { nombre: 'Historial académico', versiones: '3 versiones' },
-    { nombre: 'Boleta de calificaciones', versiones: '2 versiones' },
-    { nombre: 'Kardex', versiones: '2 versiones' },
-    { nombre: 'Constancia de inscripción', versiones: '2 versiones' },
-];
-
-const DEMO_ACCESOS = [
-    { nombre: 'Configuración de plantillas', icon: Icons.gear },
-    { nombre: 'Firmas y sellos digitales', icon: Icons.penTool },
-    { nombre: 'Catálogo de documentos', icon: Icons.list },
-    { nombre: 'Permisos y visibilidad', icon: Icons.lock },
-];
-
 export function DocumentosCePage() {
-    const rows = (typeof CE_DEMO_DOCUMENTOS_EMITIDOS !== 'undefined' && CE_DEMO_DOCUMENTOS_EMITIDOS.length > 0) ? CE_DEMO_DOCUMENTOS_EMITIDOS : DEMO_DOCS_EMITIDOS;
-    const plantillas = DEMO_PLANTILLAS;
-    const accesos = DEMO_ACCESOS;
+    const [search, setSearch] = useState('');
+    const [page, setPage] = useState(1);
+    const [perPage] = useState(10);
+    const [payload, setPayload] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState('');
+
+    const cargar = useCallback(async () => {
+        setLoading(true);
+        setError('');
+        try {
+            const res = await controlEscolarApi.documentos({
+                search: search.trim() || undefined,
+                page,
+                per_page: perPage,
+            });
+            setPayload(res?.data ?? null);
+        } catch (err) {
+            setPayload(null);
+            setError(err?.message ?? 'No se pudo cargar los documentos.');
+        } finally {
+            setLoading(false);
+        }
+    }, [search, page, perPage]);
+
+    useEffect(() => {
+        const t = setTimeout(() => void cargar(), search.trim() ? 350 : 0);
+        return () => clearTimeout(t);
+    }, [cargar]);
+
+    useEffect(() => {
+        setPage(1);
+    }, [search]);
+
+    const metricas = payload?.metricas ?? {};
+    const rows = payload?.listado?.data ?? [];
+    const meta = payload?.listado?.meta ?? {};
+    const plantillas = payload?.plantillas_frecuentes ?? [];
+    const accesos = payload?.accesos_rapidos ?? [];
+
+    const ACCESO_ICONS = [Icons.gear, Icons.list, Icons.lock];
 
     const surface = {
         background: 'white',
@@ -267,7 +293,7 @@ export function DocumentosCePage() {
 
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 12 }}>
                     <p style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: '#94a3b8', margin: 0 }}>
-                        <span style={{ color: '#94a3b8' }}>{Icons.refreshCw}</span> Actualizado: 20/05/2025 09:45 a. m.
+                        <span style={{ color: '#94a3b8' }}>{Icons.refreshCw}</span> Actualizado: {loading && !payload ? '…' : formatActualizado(payload?.actualizado_en)}
                     </p>
                 </div>
             </div>
@@ -275,11 +301,11 @@ export function DocumentosCePage() {
             <div style={{ display: 'flex', gap: 12, marginBottom: 24, flexWrap: 'wrap', justifyContent: 'space-between' }}>
                 <div style={{ display: 'flex', gap: 12 }}>
                     {[
-                        { to: '#', label: 'Generar constancia', icon: Icons.fileText, color: '#534AB7' },
-                        { to: '#', label: 'Historial académico', icon: Icons.folder, color: '#185FA5' },
-                        { to: '#', label: 'Boleta', icon: Icons.file, color: '#0F6E56' },
-                        { to: '#', label: 'Kardex PDF', icon: Icons.checkDoc, color: '#BA7517' },
-                        { to: '#', label: 'Subir documento', icon: Icons.cloudUpload, color: '#185FA5' },
+                        { to: '/app/documentos/nuevo', label: 'Generar constancia', icon: Icons.fileText, color: '#534AB7' },
+                        { to: '/app/documentos/bandejas/por-rol', label: 'Historial académico', icon: Icons.folder, color: '#185FA5' },
+                        { to: '/app/importaciones', label: 'Boleta', icon: Icons.file, color: '#0F6E56' },
+                        { to: '/app/control-escolar/trayectoria', label: 'Kardex PDF', icon: Icons.checkDoc, color: '#BA7517' },
+                        { to: '/app/documentos/nuevo', label: 'Subir documento', icon: Icons.cloudUpload, color: '#185FA5' },
                     ].map(({ to, label, icon, color }) => (
                         <Link
                             key={label}
@@ -298,7 +324,7 @@ export function DocumentosCePage() {
                     ))}
                 </div>
                 <Link
-                    to="#"
+                    to="/app/documentos/bandejas/por-rol"
                     style={{
                         display: 'inline-flex', alignItems: 'center', gap: 8,
                         height: 38, padding: '0 16px', borderRadius: 8,
@@ -310,27 +336,42 @@ export function DocumentosCePage() {
                 </Link>
             </div>
 
+            {error ? (
+                <p style={{ marginBottom: 16, padding: '12px 16px', background: '#FEE2E2', color: '#991B1B', borderRadius: 8, fontSize: 13 }}>
+                    {error}
+                </p>
+            ) : null}
+
             <div style={{ display: 'flex', gap: 16, marginBottom: 24, flexWrap: 'wrap' }}>
-                <MetricCard 
-                    icon={Icons.fileText} iconBg="#EEEDFE" iconColor="#534AB7" 
-                    title="Documentos generados hoy" value="48" 
-                    trend="↑ 25% vs. día anterior" trendColor="#0F6E56" 
+                <MetricCard
+                    icon={Icons.fileText} iconBg="#EEEDFE" iconColor="#534AB7"
+                    title="Documentos generados hoy"
+                    value={loading && !payload ? '…' : formatNum(metricas.generados_hoy)}
+                    trend={metricas.generados_hoy_trend ?? 'Registros del día en tu alcance'}
+                    trendColor={metricas.generados_hoy_trend_color ?? '#0F6E56'}
                 />
-                <MetricCard 
-                    icon={Icons.checkDoc} iconBg="#FEF3C7" iconColor="#BA7517" 
-                    title="Pendientes de firma interna" value="16" 
-                    trend="↓ 11% vs. día anterior" trendColor="#0F6E56" 
+                <MetricCard
+                    icon={Icons.checkDoc} iconBg="#FEF3C7" iconColor="#BA7517"
+                    title="Pendientes de revisión"
+                    value={loading && !payload ? '…' : formatNum(metricas.pendientes_revision)}
+                    trend={metricas.pendientes_validacion_trend ?? 'En bandeja institucional'}
+                    trendColor={metricas.pendientes_validacion_trend_color ?? '#BA7517'}
                 />
-                <MetricCard 
-                    icon={Icons.cloudUpload} iconBg="#DBEAFE" iconColor="#185FA5" 
-                    title="Solicitudes de descarga" value="34" 
-                    trend="↑ 18% vs. día anterior" trendColor="#991B1B" 
+                <MetricCard
+                    icon={Icons.cloudUpload} iconBg="#DBEAFE" iconColor="#185FA5"
+                    title="Consultas públicas activas"
+                    value={loading && !payload ? '…' : formatNum(metricas.consultas_publicas)}
+                    trend="Con token de consulta"
+                    trendColor="#185FA5"
                 />
-                <MetricCard 
-                    icon={Icons.file} iconBg="#DCFCE7" iconColor="#0F6E56" 
-                    title="Plantillas disponibles" value="22" 
-                    trend="— Sin cambios" trendColor="#94a3b8" 
-                    topLinkText="Ver todas" topLinkUrl="/app/plantillas"
+                <MetricCard
+                    icon={Icons.file} iconBg="#DCFCE7" iconColor="#0F6E56"
+                    title="Plantillas disponibles"
+                    value={loading && !payload ? '…' : formatNum(metricas.plantillas_disponibles)}
+                    trend="Catálogo operativo"
+                    trendColor="#94a3b8"
+                    topLinkText="Ver bandejas"
+                    topLinkUrl="/app/documentos/bandejas/por-rol"
                 />
             </div>
 
@@ -342,9 +383,17 @@ export function DocumentosCePage() {
                             <span style={{ color: '#64748b' }}>{Icons.list}</span> Documentos emitidos
                         </h2>
                         
-                        <Link to="#" style={{ fontSize: 12, fontWeight: 500, color: '#185FA5', textDecoration: 'none' }}>
-                            Ver todos
-                        </Link>
+                        <input
+                            type="search"
+                            placeholder="Buscar documento o alumno…"
+                            value={search}
+                            onChange={(e) => setSearch(e.target.value)}
+                            style={{
+                                height: 32, width: 220, padding: '0 10px',
+                                border: '1px solid #e2e8f0', borderRadius: 8,
+                                fontSize: 12, color: '#0f172a', background: 'white',
+                            }}
+                        />
                     </div>
 
                     <div style={{ overflowX: 'auto' }}>
@@ -371,19 +420,33 @@ export function DocumentosCePage() {
                                 </tr>
                             </thead>
                             <tbody>
+                                {loading && rows.length === 0 ? (
+                                    <tr>
+                                        <td colSpan={6} style={{ padding: 24, textAlign: 'center', color: '#64748b', fontSize: 13 }}>
+                                            Cargando documentos…
+                                        </td>
+                                    </tr>
+                                ) : null}
+                                {!loading && rows.length === 0 ? (
+                                    <tr>
+                                        <td colSpan={6} style={{ padding: 24, textAlign: 'center', color: '#64748b', fontSize: 13 }}>
+                                            No hay documentos en tu alcance con los filtros actuales.
+                                        </td>
+                                    </tr>
+                                ) : null}
                                 {rows.map((r, i) => (
                                     <tr
-                                        key={i}
+                                        key={r.id ?? i}
                                         style={{ borderBottom: '1px solid #f1f5f9', transition: 'background 0.2s' }}
                                         onMouseEnter={(e) => e.currentTarget.style.background = '#f8fafc'}
                                         onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
                                     >
                                         <td style={{ padding: '14px 10px' }}>
                                             <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
-                                                <div style={{ marginTop: 2 }}>{getTipoIcon(r.colorTipo)}</div>
+                                                <div style={{ marginTop: 2 }}>{getTipoIcon(r.color_tipo ?? r.colorTipo)}</div>
                                                 <div>
                                                     <p style={{ fontSize: 12, fontWeight: 600, color: '#0f172a', margin: 0 }}>{r.tipo || r.nombre}</p>
-                                                    <p style={{ fontSize: 11, color: '#64748b', margin: '2px 0 0 0' }}>{r.subTipo || 'Documento'}</p>
+                                                    <p style={{ fontSize: 11, color: '#64748b', margin: '2px 0 0 0' }}>{r.sub_tipo ?? r.subTipo ?? 'Documento'}</p>
                                                 </div>
                                             </div>
                                         </td>
@@ -399,9 +462,13 @@ export function DocumentosCePage() {
                                             <StatusBadge>{r.estatus}</StatusBadge>
                                         </td>
                                         <td style={{ padding: '14px 10px', textAlign: 'center' }}>
-                                            <Link to="#" style={{ display: 'inline-flex', color: '#185FA5', textDecoration: 'none' }}>
-                                                {Icons.download}
-                                            </Link>
+                                            {(r.descarga_disponible || r.descargable) ? (
+                                                <Link to={r.detalle_url ?? '#'} style={{ display: 'inline-flex', color: '#185FA5', textDecoration: 'none' }}>
+                                                    {Icons.download}
+                                                </Link>
+                                            ) : (
+                                                <span style={{ color: '#cbd5e1' }}>{Icons.download}</span>
+                                            )}
                                         </td>
                                         <td style={{ padding: '14px 10px' }}>
                                             <div style={{ display: 'flex', gap: 8, alignItems: 'center', justifyContent: 'center' }}>
@@ -411,17 +478,18 @@ export function DocumentosCePage() {
                                                     { icon: Icons.send, color: '#185FA5', bg: 'white', border: '#e2e8f0' },
                                                     { icon: Icons.xIcon, color: '#991B1B', bg: '#FEE2E2', border: '#FEE2E2' }
                                                 ].map((btn, idx) => (
-                                                    <div 
-                                                        key={idx} 
-                                                        style={{ 
-                                                            width: 28, height: 28, borderRadius: 6, 
-                                                            background: btn.bg, border: `1px solid ${btn.border}`, 
-                                                            display: 'flex', alignItems: 'center', justifyContent: 'center', 
-                                                            color: btn.color, cursor: 'pointer'
+                                                    <Link
+                                                        key={idx}
+                                                        to={idx === 0 || idx === 1 ? (r.detalle_url ?? '#') : '#'}
+                                                        style={{
+                                                            width: 28, height: 28, borderRadius: 6,
+                                                            background: btn.bg, border: `1px solid ${btn.border}`,
+                                                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                            color: btn.color, cursor: 'pointer', textDecoration: 'none',
                                                         }}
                                                     >
                                                         {btn.icon}
-                                                    </div>
+                                                    </Link>
                                                 ))}
                                             </div>
                                         </td>
@@ -433,26 +501,43 @@ export function DocumentosCePage() {
 
                     {/* Pagination */}
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 16, paddingTop: 16, borderTop: '1px solid #f1f5f9', flexWrap: 'wrap', gap: 8 }}>
-                        <span style={{ fontSize: 12, color: '#64748b' }}>Mostrando 1 a 7 de 48 resultados</span>
+                        <span style={{ fontSize: 12, color: '#64748b' }}>
+                            {meta.from && meta.to
+                                ? `Mostrando ${meta.from} a ${meta.to} de ${formatNum(meta.total)} resultados`
+                                : `Total: ${formatNum(meta.total ?? 0)} resultados`}
+                        </span>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
                             <div style={{ display: 'flex', gap: 6 }}>
-                                {['<', '1', '2', '3', '...', '7', '>'].map((p, idx) => (
-                                    <button
-                                        key={idx}
-                                        style={{
-                                            minWidth: 32, height: 32, padding: '0 8px', borderRadius: 6,
-                                            border: p === '1' ? 'none' : '1px solid #e2e8f0',
-                                            background: p === '1' ? '#185FA5' : 'white',
-                                            color: p === '1' ? 'white' : '#475569',
-                                            fontSize: 13, cursor: 'pointer',
-                                        }}
-                                    >
-                                        {p}
-                                    </button>
-                                ))}
+                                <button
+                                    type="button"
+                                    disabled={page <= 1 || loading}
+                                    onClick={() => setPage((p) => Math.max(1, p - 1))}
+                                    style={{
+                                        minWidth: 32, height: 32, padding: '0 8px', borderRadius: 6,
+                                        border: '1px solid #e2e8f0', background: 'white', color: '#475569',
+                                        fontSize: 13, cursor: page <= 1 ? 'not-allowed' : 'pointer', opacity: page <= 1 ? 0.5 : 1,
+                                    }}
+                                >
+                                    &lt;
+                                </button>
+                                <span style={{ minWidth: 32, height: 32, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', borderRadius: 6, background: '#185FA5', color: 'white', fontSize: 13, padding: '0 8px' }}>
+                                    {meta.current_page ?? page}
+                                </span>
+                                <button
+                                    type="button"
+                                    disabled={loading || (meta.last_page ?? 1) <= page}
+                                    onClick={() => setPage((p) => p + 1)}
+                                    style={{
+                                        minWidth: 32, height: 32, padding: '0 8px', borderRadius: 6,
+                                        border: '1px solid #e2e8f0', background: 'white', color: '#475569',
+                                        fontSize: 13, cursor: (meta.last_page ?? 1) <= page ? 'not-allowed' : 'pointer', opacity: (meta.last_page ?? 1) <= page ? 0.5 : 1,
+                                    }}
+                                >
+                                    &gt;
+                                </button>
                             </div>
-                            <div style={{ fontSize: 12, color: '#64748b', display: 'flex', alignItems: 'center', gap: 4 }}>
-                                10 por página <span>v</span>
+                            <div style={{ fontSize: 12, color: '#64748b' }}>
+                                {perPage} por página
                             </div>
                         </div>
                     </div>
@@ -465,7 +550,7 @@ export function DocumentosCePage() {
                     <div style={surface}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
                             <p style={{ fontSize: 14, fontWeight: 600, color: '#0f172a', margin: 0 }}>Plantillas y accesos rápidos</p>
-                            <Link to="#" style={{ fontSize: 11, fontWeight: 500, color: '#185FA5', textDecoration: 'none' }}>Ver todas</Link>
+                            <Link to="/app/documentos/bandejas/por-rol" style={{ fontSize: 11, fontWeight: 500, color: '#185FA5', textDecoration: 'none' }}>Ver todas</Link>
                         </div>
                         
                         <p style={{ fontSize: 11, fontWeight: 600, color: '#64748b', marginBottom: 8, margin: 0 }}>Plantillas frecuentes</p>
@@ -486,9 +571,9 @@ export function DocumentosCePage() {
                         <p style={{ fontSize: 11, fontWeight: 600, color: '#64748b', marginBottom: 8, margin: 0 }}>Accesos rápidos</p>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 8 }}>
                             {accesos.map((a, i) => (
-                                <Link key={i} to="#" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', textDecoration: 'none', paddingBottom: 10, borderBottom: i < accesos.length - 1 ? '1px solid #f1f5f9' : 'none' }}>
+                                <Link key={i} to={a.ruta ?? '#'} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', textDecoration: 'none', paddingBottom: 10, borderBottom: i < accesos.length - 1 ? '1px solid #f1f5f9' : 'none' }}>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                        <span style={{ display: 'flex', color: '#185FA5' }}>{a.icon}</span>
+                                        <span style={{ display: 'flex', color: '#185FA5' }}>{ACCESO_ICONS[i % ACCESO_ICONS.length]}</span>
                                         <span style={{ fontSize: 12, fontWeight: 500, color: '#185FA5' }}>{a.nombre}</span>
                                     </div>
                                     <span style={{ color: '#94a3b8', fontSize: 14 }}>›</span>

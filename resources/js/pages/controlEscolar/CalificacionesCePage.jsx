@@ -1,6 +1,19 @@
-import React from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { CE_DEMO_CALIFICACIONES_TABLA, CE_DEMO_GRUPOS_CALIFICACION } from '../../data/controlEscolarDemoData';
+import { controlEscolarApi } from '../../api/controlEscolar';
+
+function formatActualizado(iso) {
+    if (!iso) return '—';
+    try {
+        return new Intl.DateTimeFormat('es-MX', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(iso));
+    } catch {
+        return '—';
+    }
+}
+
+function formatNum(n) {
+    return new Intl.NumberFormat('es-MX').format(Number(n) || 0);
+}
 
 
 function initials(nombre = '') {
@@ -29,7 +42,8 @@ function StatusBadge({ children }) {
     const styles = {
         'capturada': { background: '#EAF3DE', color: '#3B6D11' },      // Verde pastel
         'pendiente': { background: '#FAEEDA', color: '#854F0B' },      // Naranja pastel
-        'en corrección': { background: '#EEEDFE', color: '#534AB7' },  // Morado pastel
+        'en corrección': { background: '#EEEDFE', color: '#534AB7' },
+        'corrección solicitada': { background: '#EEEDFE', color: '#534AB7' },
     };
     const s = styles[v] ?? { background: '#F1EFE8', color: '#5F5E5A' };
     return (
@@ -171,21 +185,47 @@ const Icons = {
     ),
 };
 
-const DEMO_GRUPOS_CALIFICACION = [
-    { grupo: '301-A', sede: 'Plantel Centro', avancePct: 100, pendientes: 0 },
-    { grupo: '302-A', sede: 'Plantel Centro', avancePct: 45, pendientes: 12 },
-    { grupo: '301-B', sede: 'Plantel Norte', avancePct: 0, pendientes: 25 },
-];
-
-const DEMO_CALIFICACIONES_TABLA = [
-    { alumno: 'María Fernanda López Ruiz', matricula: 'A23010245', materia: 'Matemáticas Avanzadas', calif: '9.0', estatus: 'Capturada' },
-    { alumno: 'José Andrés Martínez Díaz', matricula: 'A23009876', materia: 'Matemáticas Avanzadas', calif: '-', estatus: 'Pendiente' },
-    { alumno: 'Ana Paula García Torres', matricula: 'A23011488', materia: 'Física Universitaria', calif: '6.5', estatus: 'En corrección' },
-];
-
 export function CalificacionesCePage() {
-    const grupos = (typeof CE_DEMO_GRUPOS_CALIFICACION !== 'undefined' && CE_DEMO_GRUPOS_CALIFICACION.length) ? CE_DEMO_GRUPOS_CALIFICACION : DEMO_GRUPOS_CALIFICACION;
-    const calificaciones = (typeof CE_DEMO_CALIFICACIONES_TABLA !== 'undefined' && CE_DEMO_CALIFICACIONES_TABLA.length) ? CE_DEMO_CALIFICACIONES_TABLA : DEMO_CALIFICACIONES_TABLA;
+    const [search, setSearch] = useState('');
+    const [page, setPage] = useState(1);
+    const [perPage] = useState(10);
+    const [payload, setPayload] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState('');
+
+    const cargar = useCallback(async () => {
+        setLoading(true);
+        setError('');
+        try {
+            const res = await controlEscolarApi.calificaciones({
+                search: search.trim() || undefined,
+                page,
+                per_page: perPage,
+            });
+            setPayload(res?.data ?? null);
+        } catch (err) {
+            setPayload(null);
+            setError(err?.message ?? 'No se pudo cargar las calificaciones.');
+        } finally {
+            setLoading(false);
+        }
+    }, [search, page, perPage]);
+
+    useEffect(() => {
+        const t = setTimeout(() => void cargar(), search.trim() ? 350 : 0);
+        return () => clearTimeout(t);
+    }, [cargar]);
+
+    useEffect(() => {
+        setPage(1);
+    }, [search]);
+
+    const metricas = payload?.metricas ?? {};
+    const grupos = payload?.grupos ?? [];
+    const calificaciones = payload?.listado?.data ?? [];
+    const meta = payload?.listado?.meta ?? {};
+    const avanceGlobal = payload?.avance_global?.porcentaje ?? metricas.avance_global_pct ?? 0;
+    const avanceDescripcion = payload?.avance_global?.descripcion ?? '';
 
     const surface = {
         background: 'white',
@@ -224,7 +264,7 @@ export function CalificacionesCePage() {
 
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 12 }}>
                     <p style={{ fontSize: 11, color: '#94a3b8', margin: 0 }}>
-                        🕐 Actualizado: 20/05/2025 09:45 a. m.
+                        Actualizado: {loading && !payload ? '…' : formatActualizado(payload?.actualizado_en)}
                     </p>
                 </div>
             </div>
@@ -266,11 +306,17 @@ export function CalificacionesCePage() {
                 </Link>
             </div>
 
+            {error ? (
+                <p style={{ marginBottom: 16, padding: '12px 16px', background: '#FEE2E2', color: '#991B1B', borderRadius: 8, fontSize: 13 }}>
+                    {error}
+                </p>
+            ) : null}
+
             <div style={{ display: 'flex', gap: 16, marginBottom: 24, flexWrap: 'wrap' }}>
-                <MetricCard icon={Icons.users} iconBg="#DBEAFE" iconColor="#185FA5" title="Grupos en captura" value="14" trend="Ciclo 2024-2025" trendColor="#185FA5" />
-                <MetricCard icon={Icons.trendingUp} iconBg="#DCFCE7" iconColor="#0F6E56" title="Avance global" value="76%" trend="↑ vs. semana anterior" trendColor="#0F6E56" />
-                <MetricCard icon={Icons.hourglass} iconBg="#FEF3C7" iconColor="#BA7517" title="Pendientes de captura" value="118" trend="Por cerrar periodo" trendColor="#BA7517" />
-                <MetricCard icon={Icons.messageSquare} iconBg="#EEEDFE" iconColor="#534AB7" title="Correcciones solicitadas" value="9" trend="En flujo con Dirección" trendColor="#534AB7" />
+                <MetricCard icon={Icons.users} iconBg="#DBEAFE" iconColor="#185FA5" title="Grupos en captura" value={loading && !payload ? '…' : formatNum(metricas.grupos_en_captura)} trend={metricas.ciclo_label ?? 'Ciclo activo'} trendColor="#185FA5" />
+                <MetricCard icon={Icons.trendingUp} iconBg="#DCFCE7" iconColor="#0F6E56" title="Avance global" value={loading && !payload ? '…' : `${avanceGlobal}%`} trend="Captura en alcance operativo" trendColor="#0F6E56" />
+                <MetricCard icon={Icons.hourglass} iconBg="#FEF3C7" iconColor="#BA7517" title="Pendientes de captura" value={loading && !payload ? '…' : formatNum(metricas.pendientes_captura)} trend="Por cerrar periodo" trendColor="#BA7517" />
+                <MetricCard icon={Icons.messageSquare} iconBg="#EEEDFE" iconColor="#534AB7" title="Correcciones solicitadas" value={loading && !payload ? '…' : formatNum(metricas.correcciones_solicitadas)} trend="En flujo con Dirección" trendColor="#534AB7" />
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: 16, alignItems: 'start', marginBottom: 16 }}>
@@ -280,13 +326,13 @@ export function CalificacionesCePage() {
                     <div style={{ marginTop: 16 }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
                             <span style={{ fontSize: 13, fontWeight: 600, color: '#0f172a' }}>Progreso global</span>
-                            <span style={{ fontSize: 13, fontWeight: 700, color: '#0F6E56' }}>76%</span>
+                            <span style={{ fontSize: 13, fontWeight: 700, color: '#0F6E56' }}>{avanceGlobal}%</span>
                         </div>
                         <div style={{ height: 8, width: '100%', background: '#e2e8f0', borderRadius: 4, overflow: 'hidden' }}>
-                            <div style={{ height: '100%', width: '76%', background: '#0F6E56', borderRadius: 4 }} />
+                            <div style={{ height: '100%', width: `${Math.min(100, Math.max(0, avanceGlobal))}%`, background: '#0F6E56', borderRadius: 4 }} />
                         </div>
                         <p style={{ fontSize: 12, color: '#64748b', marginTop: 12, lineHeight: 1.4 }}>
-                            76% de las calificaciones han sido capturadas y validadas en el ciclo activo.
+                            {avanceDescripcion || `${avanceGlobal}% de las calificaciones han sido capturadas en el alcance operativo.`}
                         </p>
                     </div>
                 </div>
@@ -294,15 +340,18 @@ export function CalificacionesCePage() {
                 <div style={surface}>
                     <p style={surfaceTitle}>Estado por Grupos / Materias</p>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 8 }}>
+                        {grupos.length === 0 && !loading ? (
+                            <p style={{ fontSize: 13, color: '#64748b', margin: 0 }}>Sin grupos con carga académica en tu alcance.</p>
+                        ) : null}
                         {grupos.map((g, index) => (
-                            <div key={g.grupo} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: index < grupos.length - 1 ? 12 : 0, borderBottom: index < grupos.length - 1 ? '1px solid #f1f5f9' : 'none' }}>
+                            <div key={`${g.grupo}-${index}`} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: index < grupos.length - 1 ? 12 : 0, borderBottom: index < grupos.length - 1 ? '1px solid #f1f5f9' : 'none' }}>
                                 <div>
                                     <p style={{ fontSize: 13, fontWeight: 600, color: '#0f172a', margin: 0 }}>{g.grupo}</p>
                                     <p style={{ fontSize: 11, color: '#64748b', margin: '2px 0 0 0' }}>{g.sede}</p>
                                 </div>
                                 <div style={{ textAlign: 'right' }}>
-                                    <p style={{ fontSize: 12, fontWeight: 700, color: g.avancePct === 100 ? '#0F6E56' : '#185FA5', margin: 0 }}>
-                                        {g.avancePct}% capturado
+                                    <p style={{ fontSize: 12, fontWeight: 700, color: (g.avance_pct ?? g.avancePct) === 100 ? '#0F6E56' : '#185FA5', margin: 0 }}>
+                                        {g.avance_pct ?? g.avancePct ?? 0}% capturado
                                     </p>
                                     <p style={{ fontSize: 11, color: g.pendientes > 0 ? '#BA7517' : '#64748b', margin: '2px 0 0 0' }}>
                                         {g.pendientes} pendientes
@@ -345,6 +394,8 @@ export function CalificacionesCePage() {
                                 <input
                                     type="search"
                                     placeholder="Buscar alumno..."
+                                    value={search}
+                                    onChange={(e) => setSearch(e.target.value)}
                                     style={{
                                         height: 36, width: 250,
                                         paddingLeft: 34, paddingRight: 12,
@@ -384,6 +435,20 @@ export function CalificacionesCePage() {
                                 </tr>
                             </thead>
                             <tbody>
+                                {loading && calificaciones.length === 0 ? (
+                                    <tr>
+                                        <td colSpan={6} style={{ padding: 24, textAlign: 'center', color: '#64748b', fontSize: 13 }}>
+                                            Cargando calificaciones…
+                                        </td>
+                                    </tr>
+                                ) : null}
+                                {!loading && calificaciones.length === 0 ? (
+                                    <tr>
+                                        <td colSpan={6} style={{ padding: 24, textAlign: 'center', color: '#64748b', fontSize: 13 }}>
+                                            No hay calificaciones en tu alcance con los filtros actuales.
+                                        </td>
+                                    </tr>
+                                ) : null}
                                 {calificaciones.map((r, i) => (
                                     <tr
                                         key={r.matricula + r.materia}
@@ -410,7 +475,7 @@ export function CalificacionesCePage() {
                                         </td>
                                         <td style={{ padding: '14px 10px', fontSize: 13, color: '#64748b', fontWeight: 500 }}>{r.matricula}</td>
                                         <td style={{ padding: '14px 10px', fontSize: 13, color: '#475569' }}>{r.materia}</td>
-                                        <td style={{ padding: '14px 10px', fontSize: 14, fontWeight: 700, color: r.calif === '-' ? '#94a3b8' : '#0f172a' }}>
+                                        <td style={{ padding: '14px 10px', fontSize: 14, fontWeight: 700, color: r.calif === '—' || r.calif === '-' ? '#94a3b8' : '#0f172a' }}>
                                             {r.calif}
                                         </td>
                                         <td style={{ padding: '14px 10px' }}>
@@ -433,22 +498,39 @@ export function CalificacionesCePage() {
                     </div>
 
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 16, paddingTop: 16, borderTop: '1px solid #f1f5f9', flexWrap: 'wrap', gap: 8 }}>
-                        <span style={{ fontSize: 12, color: '#64748b' }}>Mostrando 1 a 3 de 42 alumnos</span>
+                        <span style={{ fontSize: 12, color: '#64748b' }}>
+                            {meta.from && meta.to
+                                ? `Mostrando ${meta.from} a ${meta.to} de ${formatNum(meta.total)} registros`
+                                : `Total: ${formatNum(meta.total ?? 0)} registros`}
+                        </span>
                         <div style={{ display: 'flex', gap: 6 }}>
-                            {['<', '1', '2', '3', '>'].map((p, idx) => (
-                                <button
-                                    key={idx}
-                                    style={{
-                                        minWidth: 32, height: 32, padding: '0 8px', borderRadius: 6,
-                                        border: p === '1' ? 'none' : '1px solid #e2e8f0',
-                                        background: p === '1' ? '#185FA5' : 'white',
-                                        color: p === '1' ? 'white' : '#475569',
-                                        fontSize: 13, cursor: 'pointer',
-                                    }}
-                                >
-                                    {p}
-                                </button>
-                            ))}
+                            <button
+                                type="button"
+                                disabled={page <= 1 || loading}
+                                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                                style={{
+                                    minWidth: 32, height: 32, padding: '0 8px', borderRadius: 6,
+                                    border: '1px solid #e2e8f0', background: 'white', color: '#475569',
+                                    fontSize: 13, cursor: page <= 1 ? 'not-allowed' : 'pointer', opacity: page <= 1 ? 0.5 : 1,
+                                }}
+                            >
+                                &lt;
+                            </button>
+                            <span style={{ minWidth: 32, height: 32, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', borderRadius: 6, background: '#185FA5', color: 'white', fontSize: 13, padding: '0 8px' }}>
+                                {meta.current_page ?? page}
+                            </span>
+                            <button
+                                type="button"
+                                disabled={loading || (meta.last_page ?? 1) <= page}
+                                onClick={() => setPage((p) => p + 1)}
+                                style={{
+                                    minWidth: 32, height: 32, padding: '0 8px', borderRadius: 6,
+                                    border: '1px solid #e2e8f0', background: 'white', color: '#475569',
+                                    fontSize: 13, cursor: (meta.last_page ?? 1) <= page ? 'not-allowed' : 'pointer', opacity: (meta.last_page ?? 1) <= page ? 0.5 : 1,
+                                }}
+                            >
+                                &gt;
+                            </button>
                         </div>
                     </div>
                 </div>

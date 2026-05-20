@@ -1,6 +1,19 @@
-import React from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { CE_DEMO_COMENTARIOS_SOL, CE_DEMO_SOLICITUDES, CE_TIPOS_SOLICITUD } from '../../data/controlEscolarDemoData';
+import { controlEscolarApi } from '../../api/controlEscolar';
+
+function formatActualizado(iso) {
+    if (!iso) return '—';
+    try {
+        return new Intl.DateTimeFormat('es-MX', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(iso));
+    } catch {
+        return '—';
+    }
+}
+
+function formatNum(n) {
+    return new Intl.NumberFormat('es-MX').format(Number(n) || 0);
+}
 
 function initials(nombre = '') {
     return nombre
@@ -176,37 +189,47 @@ const Icons = {
     ),
 };
 
-const DEMO_SOLICITUDES = [
-    { folio: 'SOL-2025-0058', tipo: 'Constancia de estudios', alumno: 'María Fernanda López Ruiz', id: 'A23010245', prioridad: 'Media', fecha: '20/05/2025', hora: '09:32 a. m.', estatus: 'Pendiente' },
-    { folio: 'SOL-2025-0057', tipo: 'Baja temporal', alumno: 'José Andrés Martínez Díaz', id: 'A23009876', prioridad: 'Alta', fecha: '20/05/2025', hora: '09:15 a. m.', estatus: 'En revisión' },
-    { folio: 'SOL-2025-0056', tipo: 'Cambio de grupo', alumno: 'Ana Paula García Torres', id: 'A23011488', prioridad: 'Media', fecha: '20/05/2025', hora: '08:47 a. m.', estatus: 'En revisión' },
-    { folio: 'SOL-2025-0055', tipo: 'Constancia de estudios', alumno: 'Diego Alejandro Pérez Soto', id: 'A23010567', prioridad: 'Baja', fecha: '20/05/2025', hora: '08:25 a. m.', estatus: 'Pendiente' },
-    { folio: 'SOL-2025-0054', tipo: 'Reinscripción extemporánea', alumno: 'Valeria Hernández Cruz', id: 'A23011123', prioridad: 'Alta', fecha: '20/05/2025', hora: '08:03 a. m.', estatus: 'Pendiente' },
-    { folio: 'SOL-2025-0053', tipo: 'Cambio de turno', alumno: 'Emiliano Ruiz Salazar', id: 'A23011705', prioridad: 'Media', fecha: '19/05/2025', hora: '04:12 p. m.', estatus: 'En revisión' },
-    { folio: 'SOL-2025-0052', tipo: 'Reconocimiento de materias', alumno: 'Sofía Martínez Vega', id: 'A23011209', prioridad: 'Media', fecha: '19/05/2025', hora: '03:45 p. m.', estatus: 'Pendiente' },
-    { folio: 'SOL-2025-0051', tipo: 'Baja definitiva', alumno: 'Carlos Iván Ramírez León', id: 'A23010412', prioridad: 'Alta', fecha: '19/05/2025', hora: '02:37 p. m.', estatus: 'Resuelta' },
-];
-
-const DEMO_TIPOS = [
-    { tipo: 'Constancias', n: '18' },
-    { tipo: 'Bajas', n: '10' },
-    { tipo: 'Cambios', n: '9' },
-    { tipo: 'Reinscripciones', n: '8' },
-    { tipo: 'Documentos oficiales', n: '5' },
-    { tipo: 'Reconocimientos', n: '4' },
-    { tipo: 'Otros trámites', n: '4' },
-];
-
-const DEMO_COMENTARIOS = [
-    { autor: 'José Luis Martínez', rol: 'Control Escolar', tiempo: 'Hoy, 09:10 a. m.', texto: 'Se requiere el comprobante de pago actualizado.', folio: 'SOL-2025-0058' },
-    { autor: 'María Bautista', rol: 'Docente', tiempo: 'Hoy, 08:45 a. m.', texto: 'Recomiendo aprobar el cambio de grupo.', folio: 'SOL-2025-0056' },
-    { autor: 'Ana Rodríguez', rol: 'Control Escolar', tiempo: 'Ayer, 04:30 p. m.', texto: 'Documentación completa, listo para aprobar.', folio: 'SOL-2025-0053' },
-];
-
 export function SolicitudesCePage() {
-    const rows = (typeof CE_DEMO_SOLICITUDES !== 'undefined' && CE_DEMO_SOLICITUDES.length > 0) ? CE_DEMO_SOLICITUDES : DEMO_SOLICITUDES;
-    const tipos = (typeof CE_TIPOS_SOLICITUD !== 'undefined' && CE_TIPOS_SOLICITUD.length > 0) ? CE_TIPOS_SOLICITUD : DEMO_TIPOS;
-    const comentarios = (typeof CE_DEMO_COMENTARIOS_SOL !== 'undefined' && CE_DEMO_COMENTARIOS_SOL.length > 0) ? CE_DEMO_COMENTARIOS_SOL : DEMO_COMENTARIOS;
+    const [search, setSearch] = useState('');
+    const [page, setPage] = useState(1);
+    const [perPage] = useState(10);
+    const [payload, setPayload] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState('');
+
+    const cargar = useCallback(async () => {
+        setLoading(true);
+        setError('');
+        try {
+            const res = await controlEscolarApi.solicitudes({
+                search: search.trim() || undefined,
+                page,
+                per_page: perPage,
+            });
+            setPayload(res?.data ?? null);
+        } catch (err) {
+            setPayload(null);
+            setError(err?.message ?? 'No se pudieron cargar las solicitudes.');
+        } finally {
+            setLoading(false);
+        }
+    }, [search, page, perPage]);
+
+    useEffect(() => {
+        const t = setTimeout(() => void cargar(), search.trim() ? 350 : 0);
+        return () => clearTimeout(t);
+    }, [cargar]);
+
+    useEffect(() => {
+        setPage(1);
+    }, [search]);
+
+    const metricas = payload?.metricas ?? {};
+    const rows = payload?.listado?.data ?? [];
+    const meta = payload?.listado?.meta ?? {};
+    const tipos = payload?.tipos_solicitud ?? [];
+    const comentarios = payload?.comentarios_recientes ?? [];
+    const lastPage = Math.max(1, Number(meta.last_page) || 1);
 
     const surface = {
         background: 'white',
@@ -245,7 +268,7 @@ export function SolicitudesCePage() {
 
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 12 }}>
                     <p style={{ fontSize: 11, color: '#94a3b8', margin: 0 }}>
-                        🕐 Actualizado: 20/05/2025 09:45 a. m.
+                        Actualizado: {loading && !payload ? '…' : formatActualizado(payload?.actualizado_en)}
                     </p>
                 </div>
             </div>
@@ -253,11 +276,9 @@ export function SolicitudesCePage() {
             <div style={{ display: 'flex', gap: 12, marginBottom: 24, flexWrap: 'wrap', justifyContent: 'space-between' }}>
                 <div style={{ display: 'flex', gap: 12 }}>
                     {[
-                        { to: '/app/control-escolar/solicitudes', label: 'Nueva solicitud', icon: Icons.plus, color: '#185FA5' },
-                        { to: '/app/control-escolar/solicitudes', label: 'Revisar', icon: Icons.eye, color: '#185FA5' },
-                        { to: '/app/control-escolar/solicitudes', label: 'Aprobar', icon: Icons.check, color: '#0F6E56' },
-                        { to: '/app/control-escolar/solicitudes', label: 'Rechazar', icon: Icons.xIcon, color: '#991B1B' },
-                        { to: '/app/control-escolar/solicitudes', label: 'Asignar', icon: Icons.user, color: '#534AB7' },
+                        { to: '/app/solicitudes-matricula', label: 'Nueva solicitud', icon: Icons.plus, color: '#185FA5' },
+                        { to: '/app/control-escolar/documentos', label: 'Revisar', icon: Icons.eye, color: '#185FA5' },
+                        { to: '/app/solicitudes-matricula', label: 'Enviar', icon: Icons.check, color: '#0F6E56' },
                     ].map(({ to, label, icon, color }) => (
                         <Link
                             key={label}
@@ -288,26 +309,36 @@ export function SolicitudesCePage() {
                 </Link>
             </div>
 
+            {error ? (
+                <div style={{ padding: '12px 16px', background: '#FEE2E2', border: '1px solid #fecaca', borderRadius: 8, fontSize: 13, color: '#991B1B', marginBottom: 24 }}>
+                    {error}
+                </div>
+            ) : null}
+
             <div style={{ display: 'flex', gap: 16, marginBottom: 24, flexWrap: 'wrap' }}>
                 <MetricCard 
                     icon={Icons.fileText} iconBg="#DBEAFE" iconColor="#185FA5" 
-                    title="Pendientes" value="58" 
-                    trend="↓ 12% vs. ciclo anterior" trendColor="#0F6E56" 
+                    title="Pendientes" value={formatNum(metricas.pendientes)}
+                    trend={metricas.pendientes_trend ?? '—'}
+                    trendColor={metricas.pendientes_trend_color ?? '#64748b'}
                 />
                 <MetricCard 
                     icon={Icons.alertTriangle} iconBg="#FEE2E2" iconColor="#991B1B" 
-                    title="Urgentes" value="7" 
-                    trend="↑ 75% vs. ciclo anterior" trendColor="#991B1B" 
+                    title="Urgentes" value={formatNum(metricas.urgentes)}
+                    trend={metricas.urgentes_trend ?? '—'}
+                    trendColor={metricas.urgentes_trend_color ?? '#991B1B'}
                 />
                 <MetricCard 
                     icon={Icons.clock} iconBg="#FEF3C7" iconColor="#BA7517" 
-                    title="En revisión" value="16" 
-                    trend="↑ 14% vs. ciclo anterior" trendColor="#BA7517" 
+                    title="En revisión" value={formatNum(metricas.en_revision)}
+                    trend={metricas.en_revision_trend ?? '—'}
+                    trendColor={metricas.en_revision_trend_color ?? '#BA7517'}
                 />
                 <MetricCard 
                     icon={Icons.checkCircle} iconBg="#DCFCE7" iconColor="#0F6E56" 
-                    title="Resueltas" value="124" 
-                    trend="↓ 8% vs. ciclo anterior" trendColor="#0F6E56" 
+                    title="Resueltas" value={formatNum(metricas.resueltas)}
+                    trend={metricas.resueltas_trend ?? '—'}
+                    trendColor={metricas.resueltas_trend_color ?? '#0F6E56'}
                 />
             </div>
 
@@ -323,7 +354,11 @@ export function SolicitudesCePage() {
                             <h2 style={{ fontSize: 14, fontWeight: 600, color: '#0f172a', margin: '0 0 4px 0' }}>
                                 Todas las solicitudes <span style={{ color: '#94a3b8', fontSize: 12, fontWeight: 400 }}>ⓘ</span>
                             </h2>
-                            <p style={{ fontSize: 12, color: '#64748b', margin: 0 }}>Mostrando 1 a 10 de 58 solicitudes</p>
+                            <p style={{ fontSize: 12, color: '#64748b', margin: 0 }}>
+                                {meta.from && meta.to
+                                    ? `Mostrando ${meta.from} a ${meta.to} de ${formatNum(meta.total)} solicitudes`
+                                    : `Total: ${formatNum(meta.total ?? 0)} solicitudes`}
+                            </p>
                         </div>
                         
                         <div style={{ position: 'relative', display: 'inline-block' }}>
@@ -333,6 +368,8 @@ export function SolicitudesCePage() {
                             <input
                                 type="search"
                                 placeholder="Buscar en la tabla..."
+                                value={search}
+                                onChange={(e) => setSearch(e.target.value)}
                                 style={{
                                     height: 36, width: 250,
                                     paddingLeft: 34, paddingRight: 12,
@@ -371,9 +408,23 @@ export function SolicitudesCePage() {
                                 </tr>
                             </thead>
                             <tbody>
-                                {rows.map((r, i) => (
+                                {loading && rows.length === 0 ? (
+                                    <tr>
+                                        <td colSpan={8} style={{ padding: 24, textAlign: 'center', color: '#64748b', fontSize: 13 }}>
+                                            Cargando solicitudes…
+                                        </td>
+                                    </tr>
+                                ) : null}
+                                {!loading && rows.length === 0 ? (
+                                    <tr>
+                                        <td colSpan={8} style={{ padding: 24, textAlign: 'center', color: '#64748b', fontSize: 13 }}>
+                                            No hay solicitudes registradas en tu alcance.
+                                        </td>
+                                    </tr>
+                                ) : null}
+                                {rows.map((r) => (
                                     <tr
-                                        key={i}
+                                        key={r.clave ?? r.folio}
                                         style={{ borderBottom: '1px solid #f1f5f9', transition: 'background 0.2s' }}
                                         onMouseEnter={(e) => e.currentTarget.style.background = '#f8fafc'}
                                         onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
@@ -382,7 +433,7 @@ export function SolicitudesCePage() {
                                             <input type="checkbox" style={{ borderRadius: 4, border: '1px solid #cbd5e1' }} />
                                         </td>
                                         <td style={{ padding: '14px 10px', fontSize: 13, fontWeight: 600, color: '#185FA5' }}>
-                                            <Link to="#" style={{ color: '#185FA5', textDecoration: 'none' }}>{r.folio}</Link>
+                                            <Link to={r.detalle_url ?? '#'} style={{ color: '#185FA5', textDecoration: 'none' }}>{r.folio}</Link>
                                         </td>
                                         <td style={{ padding: '14px 10px', fontSize: 13, color: '#475569' }}>{r.tipo}</td>
                                         <td style={{ padding: '14px 10px' }}>
@@ -430,28 +481,39 @@ export function SolicitudesCePage() {
 
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 16, paddingTop: 16, borderTop: '1px solid #f1f5f9', flexWrap: 'wrap', gap: 8 }}>
                         <div style={{ display: 'flex', gap: 6 }}>
-                            {['<', '1', '2', '3', '4', '5', '6', '>'].map((p, idx) => (
-                                <button
-                                    key={idx}
-                                    style={{
-                                        minWidth: 32, height: 32, padding: '0 8px', borderRadius: 6,
-                                        border: p === '1' ? 'none' : '1px solid #e2e8f0',
-                                        background: p === '1' ? '#185FA5' : 'white',
-                                        color: p === '1' ? 'white' : '#475569',
-                                        fontSize: 13, cursor: 'pointer',
-                                    }}
-                                >
-                                    {p}
-                                </button>
-                            ))}
+                            <button
+                                type="button"
+                                disabled={page <= 1 || loading}
+                                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                                style={{
+                                    minWidth: 32, height: 32, padding: '0 8px', borderRadius: 6,
+                                    border: '1px solid #e2e8f0', background: 'white',
+                                    color: '#475569', fontSize: 13, cursor: page <= 1 ? 'not-allowed' : 'pointer',
+                                    opacity: page <= 1 ? 0.5 : 1,
+                                }}
+                            >
+                                &lt;
+                            </button>
+                            <span style={{ minWidth: 32, height: 32, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', borderRadius: 6, background: '#185FA5', color: 'white', fontSize: 13, padding: '0 8px' }}>
+                                {page}
+                            </span>
+                            <button
+                                type="button"
+                                disabled={page >= lastPage || loading}
+                                onClick={() => setPage((p) => Math.min(lastPage, p + 1))}
+                                style={{
+                                    minWidth: 32, height: 32, padding: '0 8px', borderRadius: 6,
+                                    border: '1px solid #e2e8f0', background: 'white',
+                                    color: '#475569', fontSize: 13, cursor: page >= lastPage ? 'not-allowed' : 'pointer',
+                                    opacity: page >= lastPage ? 0.5 : 1,
+                                }}
+                            >
+                                &gt;
+                            </button>
                         </div>
-                        <div style={{ fontSize: 12, color: '#64748b', display: 'flex', alignItems: 'center', gap: 6 }}>
-                            Filas por página: 
-                            <select style={{ height: 32, border: '1px solid #e2e8f0', borderRadius: 6, padding: '0 8px', background: 'white', outline: 'none', color: '#0f172a' }}>
-                                <option>10</option>
-                                <option>25</option>
-                            </select>
-                        </div>
+                        <span style={{ fontSize: 12, color: '#64748b' }}>
+                            Página {page} de {lastPage}
+                        </span>
                     </div>
                 </div>
 
@@ -460,6 +522,9 @@ export function SolicitudesCePage() {
                     <div style={surface}>
                         <p style={surfaceTitle}>Tipos de solicitud</p>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 8 }}>
+                            {tipos.length === 0 ? (
+                                <p style={{ fontSize: 12, color: '#94a3b8', margin: 0 }}>Sin datos por categoría.</p>
+                            ) : null}
                             {tipos.map((t, i) => (
                                 <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: 10, borderBottom: i < tipos.length - 1 ? '1px solid #f1f5f9' : 'none' }}>
                                     <span style={{ fontSize: 13, color: '#475569' }}>{t.tipo}</span>
@@ -475,6 +540,9 @@ export function SolicitudesCePage() {
                     <div style={surface}>
                         <p style={surfaceTitle}>Comentarios recientes</p>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 16, marginTop: 8 }}>
+                            {comentarios.length === 0 ? (
+                                <p style={{ fontSize: 12, color: '#94a3b8', margin: 0 }}>Sin comentarios recientes.</p>
+                            ) : null}
                             {comentarios.map((c, i) => (
                                 <div key={i} style={{ display: 'flex', gap: 12, alignItems: 'flex-start', paddingBottom: 12, borderBottom: i < comentarios.length - 1 ? '1px solid #f1f5f9' : 'none' }}>
                                     <div
@@ -497,7 +565,7 @@ export function SolicitudesCePage() {
                                         <p style={{ fontSize: 12, color: '#475569', margin: '4px 0', lineHeight: 1.4 }}>
                                             {c.texto}
                                         </p>
-                                        <Link to="#" style={{ fontSize: 11, fontWeight: 500, color: '#185FA5', textDecoration: 'none' }}>
+                                        <Link to={c.url ?? '#'} style={{ fontSize: 11, fontWeight: 500, color: '#185FA5', textDecoration: 'none' }}>
                                             Ver solicitud {c.folio}
                                         </Link>
                                     </div>

@@ -1,6 +1,32 @@
-import React from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { CE_DEMO_INSCRIPCIONES, CE_FECHAS_IMPORTANTES } from '../../data/controlEscolarDemoData';
+import { controlEscolarApi } from '../../api/controlEscolar';
+
+function formatActualizado(iso) {
+    if (!iso) return '—';
+    try {
+        return new Intl.DateTimeFormat('es-MX', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(iso));
+    } catch {
+        return '—';
+    }
+}
+
+function formatNum(n) {
+    return new Intl.NumberFormat('es-MX').format(Number(n) || 0);
+}
+
+function formatFecha(iso) {
+    if (!iso) return { date: '—', time: '' };
+    try {
+        const d = new Date(iso);
+        return {
+            date: new Intl.DateTimeFormat('es-MX', { dateStyle: 'short' }).format(d),
+            time: new Intl.DateTimeFormat('es-MX', { timeStyle: 'short' }).format(d),
+        };
+    } catch {
+        return { date: '—', time: '' };
+    }
+}
 
 function initials(nombre = '') {
     return nombre
@@ -84,9 +110,11 @@ function MetricCard({ icon, iconBg, iconColor, title, value, trend, trendColor }
             <div>
                 <p style={{ fontSize: 12, color: '#64748b', marginBottom: 4, fontWeight: 500 }}>{title}</p>
                 <p style={{ fontSize: 24, fontWeight: 700, color: '#0f172a', lineHeight: 1 }}>{value}</p>
-                <p style={{ fontSize: 11, marginTop: 6, color: trendColor, fontWeight: 500 }}>
-                    {trend}
-                </p>
+                {trend ? (
+                    <p style={{ fontSize: 11, marginTop: 6, color: trendColor, fontWeight: 500 }}>
+                        {trend}
+                    </p>
+                ) : null}
             </div>
         </div>
     );
@@ -200,25 +228,42 @@ const Icons = {
     )
 };
 
-const DEMO_INSCRIPCIONES = [
-    { folio: 'INS-2025-000258', alumno: 'María Fernanda López Ruiz', id: 'A23010245', programa: 'Bachillerato General', fecha: '20/05/2025 09:32 a. m.', estatus: 'Por validar' },
-    { folio: 'INS-2025-000257', alumno: 'José Andrés Martínez Díaz', id: 'A23009876', programa: 'Bachillerato General', fecha: '20/05/2025 09:15 a. m.', estatus: 'Por validar' },
-    { folio: 'INS-2025-000256', alumno: 'Ana Paula García Torres', id: 'A23011488', programa: 'Bachillerato Tecnológico', fecha: '20/05/2025 08:47 a. m.', estatus: 'Observada' },
-    { folio: 'INS-2025-000255', alumno: 'Diego Alejandro Pérez Soto', id: 'A23010567', programa: 'Bachillerato General', fecha: '20/05/2025 08:25 a. m.', estatus: 'Confirmada' },
-    { folio: 'INS-2025-000254', alumno: 'Valeria Hernández Cruz', id: 'A23011123', programa: 'Bachillerato Tecnológico', fecha: '20/05/2025 08:03 a. m.', estatus: 'Confirmada' },
-    { folio: 'INS-2025-000253', alumno: 'Sofía Camila Reyes Luna', id: 'A23011790', programa: 'Bachillerato General', fecha: '19/05/2025 04:58 p. m.', estatus: 'Por validar' },
-    { folio: 'INS-2025-000252', alumno: 'Emiliano Torres Vega', id: 'A23011002', programa: 'Bachillerato General', fecha: '19/05/2025 03:32 p. m.', estatus: 'Observada' },
-];
-
-const DEMO_FECHAS = [
-    { fecha: '22', mes: 'MAY', titulo: 'Cierre de validación de documentos', sub: '22/05/2025 11:59 p. m.', badge: 'Próximo' },
-    { fecha: '26', mes: 'MAY', titulo: 'Fecha límite para confirmar inscripciones', sub: '26/05/2025 11:59 p. m.', badge: 'Próximo' },
-    { fecha: '30', mes: 'MAY', titulo: 'Inicio de clases', sub: '30/05/2025', badge: 'Programado' },
-];
-
 export function InscripcionesCePage() {
-    const rows = (typeof CE_DEMO_INSCRIPCIONES !== 'undefined' && CE_DEMO_INSCRIPCIONES.length) ? CE_DEMO_INSCRIPCIONES : DEMO_INSCRIPCIONES;
-    const fechas = (typeof CE_FECHAS_IMPORTANTES !== 'undefined' && CE_FECHAS_IMPORTANTES.length) ? CE_FECHAS_IMPORTANTES : DEMO_FECHAS;
+    const [search, setSearch] = useState('');
+    const [page, setPage] = useState(1);
+    const [perPage, setPerPage] = useState(10);
+    const [payload, setPayload] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState('');
+
+    const cargar = useCallback(async () => {
+        setLoading(true);
+        setError('');
+        try {
+            const res = await controlEscolarApi.inscripciones({
+                search: search.trim() || undefined,
+                page,
+                per_page: perPage,
+            });
+            setPayload(res?.data ?? null);
+        } catch (err) {
+            setPayload(null);
+            setError(err?.message ?? 'No se pudo cargar el control de inscripciones.');
+        } finally {
+            setLoading(false);
+        }
+    }, [search, page, perPage]);
+
+    useEffect(() => {
+        const t = setTimeout(() => void cargar(), search.trim() ? 350 : 0);
+        return () => clearTimeout(t);
+    }, [cargar]);
+
+    const metricas = payload?.metricas ?? {};
+    const rows = payload?.listado?.data ?? [];
+    const meta = payload?.listado?.meta ?? {};
+    const fechas = payload?.fechas_importantes ?? [];
+    const reglaMatricula = payload?.regla_matricula ?? '';
 
     const surface = {
         background: 'white',
@@ -252,7 +297,7 @@ export function InscripcionesCePage() {
 
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 12 }}>
                     <p style={{ fontSize: 11, color: '#94a3b8', margin: 0 }}>
-                        🕐 Actualizado: 20/05/2025 09:45 a. m.
+                        Actualizado: {loading && !payload ? '…' : formatActualizado(payload?.actualizado_en)}
                     </p>
                 </div>
             </div>
@@ -295,11 +340,23 @@ export function InscripcionesCePage() {
                 </Link>
             </div>
 
+            {error ? (
+                <p style={{ marginBottom: 16, padding: '12px 16px', borderRadius: 8, background: '#FEE2E2', color: '#991B1B', fontSize: 13 }}>
+                    {error}
+                </p>
+            ) : null}
+
+            {reglaMatricula ? (
+                <p style={{ margin: '0 0 16px', fontSize: 12, color: '#64748b', lineHeight: 1.5 }}>
+                    {reglaMatricula}
+                </p>
+            ) : null}
+
             <div style={{ display: 'flex', gap: 16, marginBottom: 24, flexWrap: 'wrap' }}>
-                <MetricCard icon={Icons.fileNew} iconBg="#DBEAFE" iconColor="#185FA5" title="Inscripciones nuevas" value="58" trend="↓ 8% vs. ciclo anterior" trendColor="#0F6E56" />
-                <MetricCard icon={Icons.clock} iconBg="#FEF3C7" iconColor="#BA7517" title="Por validar" value="42" trend="↑ 15% vs. ciclo anterior" trendColor="#C2410C" />
-                <MetricCard icon={Icons.checkCircle} iconBg="#DCFCE7" iconColor="#0F6E56" title="Confirmadas" value="196" trend="↑ 12% vs. ciclo anterior" trendColor="#0F6E56" />
-                <MetricCard icon={Icons.eyeBig} iconBg="#EEEDFE" iconColor="#534AB7" title="Observadas" value="16" trend="↑ 6% vs. ciclo anterior" trendColor="#C2410C" />
+                <MetricCard icon={Icons.fileNew} iconBg="#DBEAFE" iconColor="#185FA5" title="Inscripciones nuevas" value={formatNum(metricas.nuevas)} trend={`${formatNum(metricas.total_alcance)} en tu alcance`} trendColor="#64748b" />
+                <MetricCard icon={Icons.clock} iconBg="#FEF3C7" iconColor="#BA7517" title="Por validar" value={formatNum(metricas.por_validar)} />
+                <MetricCard icon={Icons.checkCircle} iconBg="#DCFCE7" iconColor="#0F6E56" title="Confirmadas" value={formatNum(metricas.confirmadas)} />
+                <MetricCard icon={Icons.eyeBig} iconBg="#EEEDFE" iconColor="#534AB7" title="Observadas" value={formatNum(metricas.observadas)} />
             </div>
                         
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: 16, alignItems: 'start' }}>
@@ -317,7 +374,12 @@ export function InscripcionesCePage() {
                                 </span>
                                 <input
                                     type="search"
-                                    placeholder="Buscar en la tabla..."
+                                    value={search}
+                                    onChange={(e) => {
+                                        setSearch(e.target.value);
+                                        setPage(1);
+                                    }}
+                                    placeholder="Buscar por alumno, folio o programa..."
                                     style={{
                                         height: 36, width: 280,
                                         paddingLeft: 34, paddingRight: 12,
@@ -327,10 +389,17 @@ export function InscripcionesCePage() {
                                     }}
                                 />
                             </div>
-                            <select style={{ height: 36, border: '1px solid #e2e8f0', borderRadius: 8, padding: '0 10px', fontSize: 13, background: 'white', color: '#0f172a', outline: 'none' }}>
-                                <option>10</option>
-                                <option>25</option>
-                                <option>50</option>
+                            <select
+                                value={perPage}
+                                onChange={(e) => {
+                                    setPerPage(Number(e.target.value));
+                                    setPage(1);
+                                }}
+                                style={{ height: 36, border: '1px solid #e2e8f0', borderRadius: 8, padding: '0 10px', fontSize: 13, background: 'white', color: '#0f172a', outline: 'none' }}
+                            >
+                                <option value={10}>10</option>
+                                <option value={25}>25</option>
+                                <option value={50}>50</option>
                             </select>
                         </div>
                     </div>
@@ -359,9 +428,23 @@ export function InscripcionesCePage() {
                                 </tr>
                             </thead>
                             <tbody>
-                                {rows.map((r, i) => (
+                                {loading && rows.length === 0 ? (
+                                    <tr>
+                                        <td colSpan={6} style={{ padding: 24, textAlign: 'center', color: '#64748b', fontSize: 13 }}>
+                                            Cargando inscripciones…
+                                        </td>
+                                    </tr>
+                                ) : !loading && rows.length === 0 ? (
+                                    <tr>
+                                        <td colSpan={6} style={{ padding: 24, textAlign: 'center', color: '#64748b', fontSize: 13 }}>
+                                            No hay inscripciones en tu alcance con los filtros actuales.
+                                        </td>
+                                    </tr>
+                                ) : rows.map((r, i) => {
+                                    const expedienteUrl = r.expediente_url ?? `/app/alumnos/${r.alumno_id}/expediente`;
+                                    return (
                                     <tr
-                                        key={r.folio}
+                                        key={r.folio ?? r.inscripcion_id ?? i}
                                         style={{ borderBottom: '1px solid #f1f5f9', transition: 'background 0.2s' }}
                                         onMouseEnter={(e) => e.currentTarget.style.background = '#f8fafc'}
                                         onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
@@ -389,8 +472,8 @@ export function InscripcionesCePage() {
                                         </td>
                                         <td style={{ padding: '14px 10px', fontSize: 13, color: '#475569' }}>{r.programa}</td>
                                         <td style={{ padding: '14px 10px' }}>
-                                            <p style={{ fontSize: 13, color: '#475569', margin: 0 }}>{r.fecha.split(' ')[0]}</p>
-                                            <p style={{ fontSize: 11, color: '#94a3b8', margin: '2px 0 0 0' }}>{r.fecha.split(' ').slice(1).join(' ')}</p>
+                                            <p style={{ fontSize: 13, color: '#475569', margin: 0 }}>{formatFecha(r.fecha).date}</p>
+                                            <p style={{ fontSize: 11, color: '#94a3b8', margin: '2px 0 0 0' }}>{formatFecha(r.fecha).time}</p>
                                         </td>
                                         <td style={{ padding: '14px 10px' }}>
                                             <StatusBadge>{r.estatus}</StatusBadge>
@@ -419,28 +502,48 @@ export function InscripcionesCePage() {
                                             </div>
                                         </td>
                                     </tr>
-                                ))}
+                                    );
+                                })}
                             </tbody>
                         </table>
                     </div>
 
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 16, paddingTop: 16, borderTop: '1px solid #f1f5f9', flexWrap: 'wrap', gap: 8 }}>
-                        <span style={{ fontSize: 12, color: '#64748b' }}>Mostrando 1 a 10 de 312 resultados</span>
+                        <span style={{ fontSize: 12, color: '#64748b' }}>
+                            {meta.from && meta.to
+                                ? `Mostrando ${meta.from} a ${meta.to} de ${formatNum(meta.total)} resultados`
+                                : 'Sin resultados'}
+                        </span>
                         <div style={{ display: 'flex', gap: 6 }}>
-                            {['<', '1', '2', '3', '4', '5', '...', '32', '>'].map((p, idx) => (
-                                <button
-                                    key={idx}
-                                    style={{
-                                        minWidth: 32, height: 32, padding: '0 8px', borderRadius: 6,
-                                        border: p === '1' ? 'none' : '1px solid #e2e8f0',
-                                        background: p === '1' ? '#185FA5' : 'white',
-                                        color: p === '1' ? 'white' : '#475569',
-                                        fontSize: 13, cursor: 'pointer',
-                                    }}
-                                >
-                                    {p}
-                                </button>
-                            ))}
+                            <button
+                                type="button"
+                                disabled={page <= 1 || loading}
+                                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                                style={{
+                                    minWidth: 32, height: 32, padding: '0 8px', borderRadius: 6,
+                                    border: '1px solid #e2e8f0', background: 'white', color: '#475569',
+                                    fontSize: 13, cursor: page <= 1 || loading ? 'not-allowed' : 'pointer',
+                                    opacity: page <= 1 || loading ? 0.5 : 1,
+                                }}
+                            >
+                                «
+                            </button>
+                            <span style={{ alignSelf: 'center', fontSize: 13, color: '#475569', padding: '0 8px' }}>
+                                {meta.current_page ?? page} / {meta.last_page ?? 1}
+                            </span>
+                            <button
+                                type="button"
+                                disabled={page >= (meta.last_page ?? 1) || loading}
+                                onClick={() => setPage((p) => p + 1)}
+                                style={{
+                                    minWidth: 32, height: 32, padding: '0 8px', borderRadius: 6,
+                                    border: '1px solid #e2e8f0', background: 'white', color: '#475569',
+                                    fontSize: 13, cursor: page >= (meta.last_page ?? 1) || loading ? 'not-allowed' : 'pointer',
+                                    opacity: page >= (meta.last_page ?? 1) || loading ? 0.5 : 1,
+                                }}
+                            >
+                                »
+                            </button>
                         </div>
                     </div>
                 </div>

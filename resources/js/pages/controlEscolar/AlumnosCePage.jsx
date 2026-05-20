@@ -1,6 +1,19 @@
-import React from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { CE_DEMO_ALUMNOS, CE_DEMO_ALUMNOS_RECENTES } from '../../data/controlEscolarDemoData';
+import { controlEscolarApi } from '../../api/controlEscolar';
+
+function formatActualizado(iso) {
+    if (!iso) return '—';
+    try {
+        return new Intl.DateTimeFormat('es-MX', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(iso));
+    } catch {
+        return '—';
+    }
+}
+
+function formatNum(n) {
+    return new Intl.NumberFormat('es-MX').format(Number(n) || 0);
+}
 
 function initials(nombre = '') {
     return nombre
@@ -83,9 +96,11 @@ function MetricCard({ icon, iconBg, iconColor, title, value, trend, trendColor }
             <div>
                 <p style={{ fontSize: 12, color: '#64748b', marginBottom: 4, fontWeight: 500 }}>{title}</p>
                 <p style={{ fontSize: 24, fontWeight: 700, color: '#0f172a', lineHeight: 1 }}>{value}</p>
-                <p style={{ fontSize: 11, marginTop: 6, color: trendColor, fontWeight: 500 }}>
-                    {trend}
-                </p>
+                {trend ? (
+                    <p style={{ fontSize: 11, marginTop: 6, color: trendColor, fontWeight: 500 }}>
+                        {trend}
+                    </p>
+                ) : null}
             </div>
         </div>
     );
@@ -269,32 +284,42 @@ const Icons = {
     )
 };
 
-
-const DEMO_ALUMNOS = [
-    { matricula: 'A23010245', nombre: 'María Fernanda López Ruiz', programa: 'Ingeniería en Sistemas', periodo: '6°', estatus: 'Activo' },
-    { matricula: 'A23009876', nombre: 'José Andrés Martínez Díaz', programa: 'Ingeniería Industrial', periodo: '4°', estatus: 'Activo' },
-    { matricula: 'A23011488', nombre: 'Ana Paula García Torres', programa: 'Contaduría Pública', periodo: '6°', estatus: 'En revisión' },
-    { matricula: 'A23010567', nombre: 'Diego Alejandro Pérez Soto', programa: 'Ingeniería en Sistemas', periodo: '8°', estatus: 'Activo' },
-    { matricula: 'A23011123', nombre: 'Valeria Hernández Cruz', programa: 'Administración', periodo: '2°', estatus: 'Activo' },
-    { matricula: 'A23010789', nombre: 'Carlos Alberto Ramírez Vega', programa: 'Ingeniería Industrial', periodo: '6°', estatus: 'Baja temporal' },
-    { matricula: 'A23009901', nombre: 'Sofía Laura Méndez Rojas', programa: 'Contaduría Pública', periodo: '4°', estatus: 'Activo' },
-    { matricula: 'A23010356', nombre: 'Jorge Emilio Salazar León', programa: 'Ingeniería en Sistemas', periodo: '10°', estatus: 'Egresado' },
-    { matricula: 'A23011567', nombre: 'Diana Patricia Jiménez Solís', programa: 'Administración', periodo: '6°', estatus: 'Activo' },
-    { matricula: 'A23010112', nombre: 'Luis Fernando Ortega Nava', programa: 'Ingeniería Industrial', periodo: '2°', estatus: 'Activo' },
-];
-
-const DEMO_RECIENTES = [
-    { matricula: 'A23010245', nombre: 'María Fernanda López Ruiz', programa: 'Ingeniería en Sistemas', estatus: 'Activo' },
-    { matricula: 'A23009876', nombre: 'José Andrés Martínez Díaz', programa: 'Ingeniería Industrial', estatus: 'Activo' },
-    { matricula: 'A23011488', nombre: 'Ana Paula García Torres', programa: 'Contaduría Pública', estatus: 'Activo' },
-];
-
-
 export function AlumnosCePage() {
-    const rows = (typeof CE_DEMO_ALUMNOS !== 'undefined' ? CE_DEMO_ALUMNOS : DEMO_ALUMNOS);
-    const recientes = (typeof CE_DEMO_ALUMNOS_RECENTES !== 'undefined' ? CE_DEMO_ALUMNOS_RECENTES : DEMO_RECIENTES);
+    const [search, setSearch] = useState('');
+    const [page, setPage] = useState(1);
+    const [perPage, setPerPage] = useState(10);
+    const [payload, setPayload] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState('');
 
-        
+    const cargar = useCallback(async () => {
+        setLoading(true);
+        setError('');
+        try {
+            const res = await controlEscolarApi.alumnos({
+                search: search.trim() || undefined,
+                page,
+                per_page: perPage,
+            });
+            setPayload(res?.data ?? null);
+        } catch (err) {
+            setPayload(null);
+            setError(err?.message ?? 'No se pudo cargar la gestión de alumnos.');
+        } finally {
+            setLoading(false);
+        }
+    }, [search, page, perPage]);
+
+    useEffect(() => {
+        const t = setTimeout(() => void cargar(), search.trim() ? 350 : 0);
+        return () => clearTimeout(t);
+    }, [cargar]);
+
+    const metricas = payload?.metricas ?? {};
+    const recientes = payload?.recientes ?? [];
+    const rows = payload?.listado?.data ?? [];
+    const meta = payload?.listado?.meta ?? {};
+
     const surface = {
         background: 'white',
         border: '1px solid #e2e8f0',
@@ -331,7 +356,7 @@ export function AlumnosCePage() {
                     
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 12 }}>
                     <p style={{ fontSize: 11, color: '#94a3b8', margin: 0 }}>
-                        🕐 Actualizado: 20/05/2025 09:45 a. m.
+                        Actualizado: {loading && !payload ? '…' : formatActualizado(payload?.actualizado_en)}
                     </p>
                     <div style={{ display: 'flex', gap: 8 }}>
                         {[
@@ -360,12 +385,17 @@ export function AlumnosCePage() {
                 </div>
             </div>
 
-           
+            {error ? (
+                <p style={{ marginBottom: 16, padding: '12px 16px', borderRadius: 8, background: '#FEE2E2', color: '#991B1B', fontSize: 13 }}>
+                    {error}
+                </p>
+            ) : null}
+
             <div style={{ display: 'flex', gap: 16, marginBottom: 24, flexWrap: 'wrap' }}>
-                <MetricCard icon={Icons.users} iconBg="#DBEAFE" iconColor="#185FA5" title="Alumnos activos" value="2,124" trend="↓ 3% vs. ciclo anterior" trendColor="#0F6E56" />
-                <MetricCard icon={Icons.clock} iconBg="#FEF3C7" iconColor="#BA7517" title="Baja temporal" value="196" trend="↓ 5% vs. ciclo anterior" trendColor="#0F6E56" />
-                <MetricCard icon={Icons.school} iconBg="#F3E8FF" iconColor="#6B21A8" title="Egresados" value="312" trend="↑ 8% vs. ciclo anterior" trendColor="#B45309" />
-                <MetricCard icon={Icons.warn} iconBg="#FFEDD5" iconColor="#C2410C" title="Expedientes incompletos" value="32" trend="↓ 11% vs. ciclo anterior" trendColor="#0F6E56" />
+                <MetricCard icon={Icons.users} iconBg="#DBEAFE" iconColor="#185FA5" title="Alumnos activos" value={formatNum(metricas.alumnos_activos)} trend={`${formatNum(metricas.total_alcance)} en tu alcance`} trendColor="#64748b" />
+                <MetricCard icon={Icons.clock} iconBg="#FEF3C7" iconColor="#BA7517" title="Baja temporal" value={formatNum(metricas.baja_temporal)} trendColor="#64748b" />
+                <MetricCard icon={Icons.school} iconBg="#F3E8FF" iconColor="#6B21A8" title="Egresados" value={formatNum(metricas.egresados)} trendColor="#64748b" />
+                <MetricCard icon={Icons.warn} iconBg="#FFEDD5" iconColor="#C2410C" title="Expedientes incompletos" value={formatNum(metricas.expedientes_incompletos)} trendColor="#64748b" />
             </div>
 
             
@@ -397,7 +427,7 @@ export function AlumnosCePage() {
                         <div style={{ marginTop: 8 }}>
                             {recientes.map((a, i) => (
                                 <div
-                                    key={a.matricula}
+                                    key={a.alumno_id ?? a.matricula ?? i}
                                     style={{
                                         display: 'flex', alignItems: 'flex-start', gap: 12,
                                         padding: '12px 0',
@@ -441,6 +471,11 @@ export function AlumnosCePage() {
                             </span>
                             <input
                                 type="search"
+                                value={search}
+                                onChange={(e) => {
+                                    setSearch(e.target.value);
+                                    setPage(1);
+                                }}
                                 placeholder="Buscar por nombre, matrícula o programa..."
                                 style={{
                                     height: 36, width: 320,
@@ -453,10 +488,17 @@ export function AlumnosCePage() {
                         </div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: '#64748b' }}>
                             Mostrar
-                            <select style={{ height: 32, border: '1px solid #e2e8f0', borderRadius: 6, padding: '0 8px', fontSize: 13, background: 'white', color: '#0f172a', outline: 'none' }}>
-                                <option>10</option>
-                                <option>25</option>
-                                <option>50</option>
+                            <select
+                                value={perPage}
+                                onChange={(e) => {
+                                    setPerPage(Number(e.target.value));
+                                    setPage(1);
+                                }}
+                                style={{ height: 32, border: '1px solid #e2e8f0', borderRadius: 6, padding: '0 8px', fontSize: 13, background: 'white', color: '#0f172a', outline: 'none' }}
+                            >
+                                <option value={10}>10</option>
+                                <option value={25}>25</option>
+                                <option value={50}>50</option>
                             </select>
                             registros
                         </div>
@@ -487,15 +529,29 @@ export function AlumnosCePage() {
                                 </tr>
                             </thead>
                             <tbody>
-                                {rows.map((r, i) => (
+                                {loading && rows.length === 0 ? (
+                                    <tr>
+                                        <td colSpan={6} style={{ padding: 24, textAlign: 'center', color: '#64748b', fontSize: 13 }}>
+                                            Cargando alumnos…
+                                        </td>
+                                    </tr>
+                                ) : !loading && rows.length === 0 ? (
+                                    <tr>
+                                        <td colSpan={6} style={{ padding: 24, textAlign: 'center', color: '#64748b', fontSize: 13 }}>
+                                            No hay alumnos en tu alcance con los filtros actuales.
+                                        </td>
+                                    </tr>
+                                ) : rows.map((r, i) => {
+                                    const expedienteUrl = r.expediente_url ?? `/app/alumnos/${r.alumno_id}/expediente`;
+                                    return (
                                     <tr
-                                        key={r.matricula}
+                                        key={r.alumno_id ?? r.matricula ?? i}
                                         style={{ borderBottom: '1px solid #f1f5f9', transition: 'background 0.2s' }}
                                         onMouseEnter={(e) => e.currentTarget.style.background = '#f8fafc'}
                                         onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
                                     >
                                         <td style={{ padding: '12px 10px' }}>
-                                            <Link to="/app/expedientes" style={{ color: '#185FA5', fontWeight: 600, fontSize: 13, textDecoration: 'none' }}>
+                                            <Link to={expedienteUrl} style={{ color: '#185FA5', fontWeight: 600, fontSize: 13, textDecoration: 'none' }}>
                                                 {r.matricula}
                                             </Link>
                                         </td>
@@ -508,9 +564,9 @@ export function AlumnosCePage() {
                                         <td style={{ padding: '12px 10px' }}>
                                             <div style={{ display: 'flex', gap: 6, alignItems: 'center', justifyContent: 'center' }}>
                                                 {[
-                                                    { to: '/app/expedientes', icon: Icons.eye, bg: '#EFF6FF', title: 'Ver expediente' },
-                                                    { to: '/app/alumnos/crear', icon: Icons.pencil, bg: '#F8FAFC', title: 'Editar' },
-                                                    { to: '/app/control-escolar/trayectoria', icon: Icons.tray, bg: '#FFFBEB', title: 'Trayectoria' },
+                                                    { to: expedienteUrl, icon: Icons.eye, bg: '#EFF6FF', title: 'Ver expediente' },
+                                                    { to: `/app/alumnos/${r.alumno_id}/captura-guiado`, icon: Icons.pencil, bg: '#F8FAFC', title: 'Editar' },
+                                                    { to: `/app/alumnos/${r.alumno_id}/trayectoria`, icon: Icons.tray, bg: '#FFFBEB', title: 'Trayectoria' },
                                                     { to: '/app/control-escolar/reinscripciones', icon: Icons.refresh, bg: '#F0FDF4', title: 'Reinscripción' },
                                                     { to: '/app/control-escolar/documentos', icon: Icons.doc, bg: '#F5F3FF', title: 'Documentos' },
                                                 ].map(({ to, icon, bg, title }) => (
@@ -534,32 +590,48 @@ export function AlumnosCePage() {
                                             </div>
                                         </td>
                                     </tr>
-                                ))}
+                                );})}
                             </tbody>
                         </table>
                     </div>
 
                     
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 16, paddingTop: 16, borderTop: '1px solid #f1f5f9', flexWrap: 'wrap', gap: 8 }}>
-                        <span style={{ fontSize: 12, color: '#64748b' }}>Mostrando 1 a 10 de 2,124 registros</span>
+                        <span style={{ fontSize: 12, color: '#64748b' }}>
+                            {meta.from && meta.to
+                                ? `Mostrando ${meta.from} a ${meta.to} de ${formatNum(meta.total)} registros`
+                                : 'Sin registros'}
+                        </span>
                         <div style={{ display: 'flex', gap: 6 }}>
-                            {['«', '1', '2', '3', '…', '213', '»'].map((p, idx) => (
-                                <button
-                                    key={idx}
-                                    style={{
-                                        minWidth: 32, height: 32,
-                                        padding: '0 8px',
-                                        borderRadius: 6,
-                                        border: p === '1' ? 'none' : '1px solid #e2e8f0',
-                                        background: p === '1' ? '#185FA5' : 'white',
-                                        color: p === '1' ? 'white' : '#475569',
-                                        fontSize: 13,
-                                        cursor: 'pointer',
-                                    }}
-                                >
-                                    {p}
-                                </button>
-                            ))}
+                            <button
+                                type="button"
+                                disabled={page <= 1 || loading}
+                                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                                style={{
+                                    minWidth: 32, height: 32, padding: '0 8px', borderRadius: 6,
+                                    border: '1px solid #e2e8f0', background: 'white', color: '#475569',
+                                    fontSize: 13, cursor: page <= 1 || loading ? 'not-allowed' : 'pointer',
+                                    opacity: page <= 1 || loading ? 0.5 : 1,
+                                }}
+                            >
+                                «
+                            </button>
+                            <span style={{ alignSelf: 'center', fontSize: 13, color: '#475569', padding: '0 8px' }}>
+                                {meta.current_page ?? page} / {meta.last_page ?? 1}
+                            </span>
+                            <button
+                                type="button"
+                                disabled={page >= (meta.last_page ?? 1) || loading}
+                                onClick={() => setPage((p) => p + 1)}
+                                style={{
+                                    minWidth: 32, height: 32, padding: '0 8px', borderRadius: 6,
+                                    border: '1px solid #e2e8f0', background: 'white', color: '#475569',
+                                    fontSize: 13, cursor: page >= (meta.last_page ?? 1) || loading ? 'not-allowed' : 'pointer',
+                                    opacity: page >= (meta.last_page ?? 1) || loading ? 0.5 : 1,
+                                }}
+                            >
+                                »
+                            </button>
                         </div>
                     </div>
                 </div>

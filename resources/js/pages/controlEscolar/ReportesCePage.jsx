@@ -1,6 +1,19 @@
-import React from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { CE_DEMO_REPORTES_FRECUENTES } from '../../data/controlEscolarDemoData';
+import { controlEscolarApi } from '../../api/controlEscolar';
+
+function formatActualizado(iso) {
+    if (!iso) return '—';
+    try {
+        return new Intl.DateTimeFormat('es-MX', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(iso));
+    } catch {
+        return '—';
+    }
+}
+
+function formatNum(n) {
+    return new Intl.NumberFormat('es-MX').format(Number(n) || 0);
+}
 
 // --- UTILIDADES DE ESTILO ---
 function MetricCard({ icon, iconBg, iconColor, title, value, trend, trendUp, isNeutral }) {
@@ -33,9 +46,10 @@ function LineChart({ datasets, labels }) {
 
     const allValues = datasets.flatMap(d => d.data);
     const minVal = 0;
-    const maxVal = Math.ceil(Math.max(...allValues) / 100) * 100;
+    const peak = allValues.length ? Math.max(...allValues) : 0;
+    const maxVal = Math.max(100, Math.ceil(peak / 100) * 100);
 
-    const xPos = (i) => padL + (i / (labels.length - 1)) * chartW;
+    const xPos = (i) => padL + (labels.length > 1 ? (i / (labels.length - 1)) * chartW : chartW / 2);
     const yPos = (v) => padT + chartH - ((v - minVal) / (maxVal - minVal)) * chartH;
 
     const toSmooth = (data) => {
@@ -137,27 +151,58 @@ const Icons = {
     filter: (<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" /></svg>),
 };
 
-// --- DATOS DEMO ---
-const DEMO_REPORTES = [
-    { nombre: 'Reporte de matrícula',       descripcion: 'Resumen de la matrícula total por programa, grado y grupo.',      fecha: '20/05/2025 09:30 a. m.', iconColor: '#185FA5', bg: '#DBEAFE' },
-    { nombre: 'Reporte de reinscripciones', descripcion: 'Detalle de alumnos reinscritos por programa y periodo.',           fecha: '20/05/2025 09:15 a. m.', iconColor: '#0F6E56', bg: '#DCFCE7' },
-    { nombre: 'Reporte de pendientes',      descripcion: 'Listado de pendientes por atender (documentos, pagos, trámites).', fecha: '20/05/2025 08:45 a. m.', iconColor: '#BA7517', bg: '#FEF3C7' },
-    { nombre: 'Reporte de expedientes',     descripcion: 'Estatus de los expedientes por programa y estatus.',               fecha: '20/05/2025 08:30 a. m.', iconColor: '#534AB7', bg: '#EEEDFE' },
-    { nombre: 'Reporte de trámites',        descripcion: 'Histórico de trámites realizados en el ciclo escolar.',            fecha: '20/05/2025 08:10 a. m.', iconColor: '#C2410C', bg: '#FFEDD5' },
-];
-
-const MESES = ['Ago','Sep','Oct','Nov','Dic','Ene','Feb','Mar','Abr','May','Jun','Jul'];
-
-const TRAMITES_DATASETS = [
-    { label: 'Inscripciones',   color: '#185FA5', strokeWidth: 2.5, data: [320, 280, 190, 120, 80,  60,  90,  140, 210, 290, 250, 310] },
-    { label: 'Reinscripciones', color: '#0F6E56', strokeWidth: 2.5, dash: '6,3', data: [180, 520, 480, 350, 200, 150, 180, 240, 310, 480, 420, 490] },
-    { label: 'Bajas y cambios', color: '#991B1B', strokeWidth: 2,   dash: '2,4', data: [30,  55,  70,  60,  40,  35,  45,  55,  65,  80,  70,  60]  },
-];
+const ICON_BY_KEY = {
+    users: 'users',
+    refreshCw: 'refreshCw',
+    alertTriangle: 'alertTriangle',
+    folder: 'folder',
+    fileText: 'fileText',
+    table: 'table',
+};
 
 export function ReportesCePage() {
-    const reportes = (typeof CE_DEMO_REPORTES_FRECUENTES !== 'undefined' && CE_DEMO_REPORTES_FRECUENTES.length > 0)
-        ? CE_DEMO_REPORTES_FRECUENTES
-        : DEMO_REPORTES;
+    const [payload, setPayload] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState('');
+
+    const cargar = useCallback(async () => {
+        setLoading(true);
+        setError('');
+        try {
+            const res = await controlEscolarApi.reportes();
+            setPayload(res?.data ?? null);
+        } catch (err) {
+            setPayload(null);
+            setError(err?.message ?? 'No se pudieron cargar los reportes.');
+        } finally {
+            setLoading(false);
+        }
+    }, []);
+
+    useEffect(() => {
+        void cargar();
+    }, [cargar]);
+
+    const metricas = payload?.metricas ?? {};
+    const matriculaPrograma = payload?.matricula_por_programa ?? { total: 0, items: [], conic_gradient: 'conic-gradient(#e2e8f0 0deg 360deg)' };
+    const expedientesEstatus = payload?.expedientes_por_estatus ?? { total: 0, items: [], conic_gradient: 'conic-gradient(#e2e8f0 0deg 360deg)' };
+    const tramites = payload?.tramites_por_mes ?? { labels: [], datasets: [] };
+    const indicadores = payload?.indicadores_clave ?? [];
+    const reportes = payload?.reportes_frecuentes ?? [];
+    const acciones = payload?.acciones_rapidas ?? [];
+
+    const tramitesDatasets = (tramites.datasets ?? []).map((ds) => ({
+        label: ds.label,
+        color: ds.color,
+        strokeWidth: ds.stroke_width ?? 2,
+        dash: ds.dash ?? undefined,
+        data: ds.data ?? [],
+    }));
+
+    const resolveIcon = (key) => {
+        const k = ICON_BY_KEY[key] ?? key;
+        return Icons[k] ?? Icons.fileText;
+    };
 
     const surface = {
         background: 'white',
@@ -185,21 +230,27 @@ export function ReportesCePage() {
                     {Icons.shieldCheck}
                 </div>
                 <p style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: '#94a3b8', margin: 0 }}>
-                    <span style={{ color: '#94a3b8' }}>{Icons.clock}</span> Actualizado: 20/05/2025 09:45 a. m.
+                    <span style={{ color: '#94a3b8' }}>{Icons.clock}</span>
+                    Actualizado: {loading && !payload ? '…' : formatActualizado(payload?.actualizado_en)}
+                    {payload?.ciclo_label ? ` · Ciclo ${payload.ciclo_label}` : ''}
                 </p>
             </div>
 
+            {error ? (
+                <div style={{ padding: '12px 16px', background: '#FEE2E2', border: '1px solid #fecaca', borderRadius: 8, fontSize: 13, color: '#991B1B', marginBottom: 24 }}>
+                    {error}
+                </div>
+            ) : null}
+
             <div style={{ display: 'flex', gap: 12, marginBottom: 24, flexWrap: 'wrap', justifyContent: 'space-between' }}>
                 <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-                    {[
-                        { to: '#', label: 'Reporte de matrícula',       icon: Icons.users,         color: '#185FA5' },
-                        { to: '#', label: 'Reporte de reinscripciones', icon: Icons.refreshCw,     color: '#0F6E56' },
-                        { to: '#', label: 'Pendientes',                 icon: Icons.alertTriangle, color: '#BA7517' },
-                        { to: '#', label: 'Exportar PDF',               icon: Icons.fileText,      color: '#991B1B' },
-                        { to: '#', label: 'Exportar Excel',             icon: Icons.table,         color: '#0F6E56' },
-                    ].map(({ to, label, icon, color }) => (
+                    {(acciones.length ? acciones : [
+                        { to: '/app/control-escolar/alumnos', label: 'Reporte de matrícula', icon: 'users', color: '#185FA5' },
+                        { to: '/app/control-escolar/reinscripciones', label: 'Reporte de reinscripciones', icon: 'refreshCw', color: '#0F6E56' },
+                        { to: '/app/control-escolar/solicitudes', label: 'Pendientes', icon: 'alertTriangle', color: '#BA7517' },
+                    ]).map(({ to, label, icon, color }) => (
                         <Link key={label} to={to} style={{ display: 'inline-flex', alignItems: 'center', gap: 8, height: 38, padding: '0 16px', borderRadius: 8, background: 'white', border: '1px solid #e2e8f0', fontSize: 13, fontWeight: 500, textDecoration: 'none', color: '#0f172a' }}>
-                            <span style={{ color, display: 'flex', alignItems: 'center' }}>{icon}</span>
+                            <span style={{ color, display: 'flex', alignItems: 'center' }}>{resolveIcon(icon)}</span>
                             <span>{label}</span>
                         </Link>
                     ))}
@@ -210,12 +261,12 @@ export function ReportesCePage() {
             </div>
 
             <div style={{ display: 'flex', gap: 16, marginBottom: 24, overflowX: 'auto', paddingBottom: 8 }}>
-                <MetricCard icon={Icons.users}         iconBg="#DBEAFE" iconColor="#185FA5" title="Matrícula total"            value="2,845" trend="7.4% vs. ciclo anterior"  trendUp={true}  />
-                <MetricCard icon={Icons.refreshCw}     iconBg="#DCFCE7" iconColor="#0F6E56" title="Reinscripciones"            value="1,962" trend="6.2% vs. ciclo anterior"  trendUp={true}  />
-                <MetricCard icon={Icons.userPlus}      iconBg="#FEF3C7" iconColor="#BA7517" title="Nuevas inscripciones"       value="883"   trend="12.8% vs. ciclo anterior" trendUp={true}  />
-                <MetricCard icon={Icons.folder}        iconBg="#F3E8FF" iconColor="#534AB7" title="Expedientes completos"      value="2,112" trend="8.1% vs. ciclo anterior"  trendUp={true}  />
-                <MetricCard icon={Icons.lock}          iconBg="#FEE2E2" iconColor="#991B1B" title="Reinscripciones bloqueadas" value="189"   trend="19.6% vs. ciclo anterior" trendUp={false} />
-                <MetricCard icon={Icons.alertTriangle} iconBg="#FFEDD5" iconColor="#C2410C" title="Pendientes por atender"     value="158"   trend="14.7% vs. ciclo anterior" trendUp={false} />
+                <MetricCard icon={Icons.users} iconBg="#DBEAFE" iconColor="#185FA5" title="Matrícula total" value={formatNum(metricas.matricula_total)} trend={metricas.matricula_total_trend ?? '—'} trendUp={metricas.matricula_total_trend_up !== false} isNeutral />
+                <MetricCard icon={Icons.refreshCw} iconBg="#DCFCE7" iconColor="#0F6E56" title="Reinscripciones" value={formatNum(metricas.reinscripciones)} trend={metricas.reinscripciones_trend ?? '—'} trendUp={metricas.reinscripciones_trend_up !== false} isNeutral />
+                <MetricCard icon={Icons.userPlus} iconBg="#FEF3C7" iconColor="#BA7517" title="Nuevas inscripciones" value={formatNum(metricas.nuevas_inscripciones)} trend={metricas.nuevas_inscripciones_trend ?? '—'} trendUp={metricas.nuevas_inscripciones_trend_up !== false} isNeutral />
+                <MetricCard icon={Icons.folder} iconBg="#F3E8FF" iconColor="#534AB7" title="Expedientes completos" value={formatNum(metricas.expedientes_completos)} trend={metricas.expedientes_completos_trend ?? '—'} trendUp={metricas.expedientes_completos_trend_up !== false} isNeutral />
+                <MetricCard icon={Icons.lock} iconBg="#FEE2E2" iconColor="#991B1B" title="Reinscripciones bloqueadas" value={formatNum(metricas.reinscripciones_bloqueadas)} trend={metricas.reinscripciones_bloqueadas_trend ?? '—'} trendUp={metricas.reinscripciones_bloqueadas_trend_up === true} isNeutral />
+                <MetricCard icon={Icons.alertTriangle} iconBg="#FFEDD5" iconColor="#C2410C" title="Pendientes por atender" value={formatNum(metricas.pendientes)} trend={metricas.pendientes_trend ?? '—'} trendUp={metricas.pendientes_trend_up === true} isNeutral />
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 24 }}>
@@ -223,20 +274,14 @@ export function ReportesCePage() {
                 <div style={surface}>
                     <p style={surfaceTitle}>Matrícula por programa</p>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 1, gap: 24 }}>
-                        <div style={{ position: 'relative', width: 110, height: 110, borderRadius: '50%', background: 'conic-gradient(#185FA5 0deg 113.4deg, #0F6E56 113.4deg 207.4deg, #BA7517 207.4deg 285.8deg, #534AB7 285.8deg 334.8deg, #e2e8f0 334.8deg 360deg)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                        <div style={{ position: 'relative', width: 110, height: 110, borderRadius: '50%', background: matriculaPrograma.conic_gradient, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                             <div style={{ width: 84, height: 84, borderRadius: '50%', background: 'white', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-                                <span style={{ fontSize: 18, fontWeight: 700, color: '#0f172a' }}>2,845</span>
+                                <span style={{ fontSize: 18, fontWeight: 700, color: '#0f172a' }}>{formatNum(matriculaPrograma.total)}</span>
                                 <span style={{ fontSize: 10, color: '#64748b' }}>Total</span>
                             </div>
                         </div>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                            {[
-                                { label: 'Administración', val: '896', pct: '31.5%', color: '#185FA5' },
-                                { label: 'Contabilidad',   val: '742', pct: '26.1%', color: '#0F6E56' },
-                                { label: 'Informática',    val: '621', pct: '21.8%', color: '#BA7517' },
-                                { label: 'Mercadotecnia',  val: '386', pct: '13.6%', color: '#534AB7' },
-                                { label: 'Otros',          val: '200', pct: '7.0%',  color: '#e2e8f0' },
-                            ].map((item, idx) => (
+                            {(matriculaPrograma.items ?? []).map((item, idx) => (
                                 <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11 }}>
                                     <div style={{ width: 8, height: 8, borderRadius: '50%', background: item.color, flexShrink: 0 }} />
                                     <span style={{ color: '#475569', minWidth: 80 }}>{item.label}</span>
@@ -246,25 +291,20 @@ export function ReportesCePage() {
                             ))}
                         </div>
                     </div>
-                    <Link to="#" style={{ display: 'block', textAlign: 'center', fontSize: 12, fontWeight: 500, color: '#185FA5', textDecoration: 'none', marginTop: 16 }}>Ver detalle ›</Link>
+                    <Link to="/app/control-escolar/alumnos" style={{ display: 'block', textAlign: 'center', fontSize: 12, fontWeight: 500, color: '#185FA5', textDecoration: 'none', marginTop: 16 }}>Ver detalle ›</Link>
                 </div>
-                            
+
                 <div style={surface}>
                     <p style={surfaceTitle}>Expedientes por estatus</p>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 1, gap: 24 }}>
-                        <div style={{ position: 'relative', width: 110, height: 110, borderRadius: '50%', background: 'conic-gradient(#0F6E56 0deg 267.1deg, #BA7517 267.1deg 333.3deg, #991B1B 333.3deg 353.4deg, #534AB7 353.4deg 360deg)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                        <div style={{ position: 'relative', width: 110, height: 110, borderRadius: '50%', background: expedientesEstatus.conic_gradient, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                             <div style={{ width: 84, height: 84, borderRadius: '50%', background: 'white', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-                                <span style={{ fontSize: 18, fontWeight: 700, color: '#0f172a' }}>2,845</span>
+                                <span style={{ fontSize: 18, fontWeight: 700, color: '#0f172a' }}>{formatNum(expedientesEstatus.total)}</span>
                                 <span style={{ fontSize: 10, color: '#64748b' }}>Total</span>
                             </div>
                         </div>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                            {[
-                                { label: 'Completos',   val: '2,112', pct: '74.2%', color: '#0F6E56' },
-                                { label: 'En revisión', val: '523',   pct: '18.4%', color: '#BA7517' },
-                                { label: 'Incompletos', val: '158',   pct: '5.6%',  color: '#991B1B' },
-                                { label: 'Observados',  val: '52',    pct: '1.8%',  color: '#534AB7' },
-                            ].map((item, idx) => (
+                            {(expedientesEstatus.items ?? []).map((item, idx) => (
                                 <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11 }}>
                                     <div style={{ width: 8, height: 8, borderRadius: '50%', background: item.color, flexShrink: 0 }} />
                                     <span style={{ color: '#475569', minWidth: 65 }}>{item.label}</span>
@@ -274,27 +314,47 @@ export function ReportesCePage() {
                             ))}
                         </div>
                     </div>
-                    <Link to="#" style={{ display: 'block', textAlign: 'center', fontSize: 12, fontWeight: 500, color: '#185FA5', textDecoration: 'none', marginTop: 16 }}>Ver detalle ›</Link>
+                    <Link to="/app/control-escolar/expedientes" style={{ display: 'block', textAlign: 'center', fontSize: 12, fontWeight: 500, color: '#185FA5', textDecoration: 'none', marginTop: 16 }}>Ver detalle ›</Link>
                 </div>
 
-                
                 <div style={surface}>
                     <p style={surfaceTitle}>Trámites por mes</p>
 
                     <div style={{ display: 'flex', gap: 12, marginBottom: 10, flexWrap: 'wrap' }}>
-                        {TRAMITES_DATASETS.map(({ label, color, dash }) => (
-                            <span key={label} style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 10, color: '#64748b' }}>
-                                <svg width="18" height="8" style={{ flexShrink: 0 }}>
-                                    <line x1="0" y1="4" x2="18" y2="4" stroke={color} strokeWidth="2.5" strokeDasharray={dash || 'none'} strokeLinecap="round" />
-                                </svg>
-                                {label}
-                            </span>
-                        ))}
-                    </div>
+    {tramitesDatasets.map(({ label, color, dash }) => (
+        <span
+            key={label}
+            style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 5,
+                fontSize: 10,
+                color: '#64748b'
+            }}
+        >
+            <svg width="18" height="8" style={{ flexShrink: 0 }}>
+                <line
+                    x1="0"
+                    y1="4"
+                    x2="18"
+                    y2="4"
+                    stroke={color}
+                    strokeWidth="2.5"
+                    strokeDasharray={dash || 'none'}
+                    strokeLinecap="round"
+                />
+            </svg>
+            {label}
+        </span>
+    ))}
+</div>
 
-                    <div style={{ flex: 1, minHeight: 130 }}>
-                        <LineChart datasets={TRAMITES_DATASETS} labels={MESES} />
-                    </div>
+<div style={{ flex: 1, minHeight: 130 }}>
+    <LineChart
+        datasets={tramitesDatasets}
+        labels={tramites.labels ?? []}
+    />
+</div>
 
                     <Link to="#" style={{ display: 'block', textAlign: 'center', fontSize: 12, fontWeight: 500, color: '#185FA5', textDecoration: 'none', marginTop: 12 }}>
                         Ver análisis ›
@@ -304,12 +364,7 @@ export function ReportesCePage() {
                 <div style={surface}>
                     <p style={surfaceTitle}>Indicadores clave</p>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 16, flex: 1, justifyContent: 'center' }}>
-                        {[
-                            { label: 'Tasa de reinscripción',     value: '68.9%', width: '68.9%', barColor: '#534AB7', delta: '↑ 4.3 pp',  deltaUp: true  },
-                            { label: 'Expedientes completos',      value: '74.2%', width: '74.2%', barColor: '#0F6E56', delta: '↑ 3.8 pp',  deltaUp: true  },
-                            { label: 'Pendientes por atender',     value: '158',   width: '40%',   barColor: '#BA7517', delta: '↓ 14.7%',   deltaUp: false },
-                            { label: 'Reinscripciones bloqueadas', value: '189',   width: '45%',   barColor: '#991B1B', delta: '↓ 19.6%',   deltaUp: false },
-                        ].map(({ label, value, width, barColor, delta, deltaUp }) => (
+                        {indicadores.map(({ label, value, width, bar_color, delta, delta_up }) => (
                             <div key={label}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
                                     <span style={{ fontSize: 11, fontWeight: 600, color: '#475569' }}>{label}</span>
@@ -317,9 +372,9 @@ export function ReportesCePage() {
                                 </div>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                                     <div style={{ height: 6, flex: 1, background: '#e2e8f0', borderRadius: 4, overflow: 'hidden' }}>
-                                        <div style={{ height: '100%', width, background: barColor, borderRadius: 4 }} />
+                                        <div style={{ height: '100%', width, background: bar_color, borderRadius: 4 }} />
                                     </div>
-                                    <span style={{ fontSize: 10, fontWeight: 600, color: deltaUp ? '#0F6E56' : '#991B1B', width: 40, textAlign: 'right' }}>
+                                    <span style={{ fontSize: 10, fontWeight: 600, color: delta_up ? '#0F6E56' : '#991B1B', width: 72, textAlign: 'right' }}>
                                         {delta}
                                     </span>
                                 </div>
@@ -347,15 +402,29 @@ export function ReportesCePage() {
                             </tr>
                         </thead>
                         <tbody>
+                            {loading && reportes.length === 0 ? (
+                                <tr>
+                                    <td colSpan={5} style={{ padding: 24, textAlign: 'center', fontSize: 13, color: '#64748b' }}>
+                                        Cargando reportes…
+                                    </td>
+                                </tr>
+                            ) : null}
+                            {!loading && reportes.length === 0 ? (
+                                <tr>
+                                    <td colSpan={5} style={{ padding: 24, textAlign: 'center', fontSize: 13, color: '#64748b' }}>
+                                        No hay reportes configurados en tu alcance.
+                                    </td>
+                                </tr>
+                            ) : null}
                             {reportes.map((r, i) => (
-                                <tr key={i} style={{ borderBottom: '1px solid #f1f5f9', transition: 'background 0.2s' }}
+                                <tr key={r.nombre ?? i} style={{ borderBottom: '1px solid #f1f5f9', transition: 'background 0.2s' }}
                                     onMouseEnter={(e) => e.currentTarget.style.background = '#f8fafc'}
                                     onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
                                 >
                                     <td style={{ padding: '14px 10px' }}>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                                            <div style={{ width: 32, height: 32, borderRadius: 6, background: r.bg, color: r.iconColor, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                                                {i === 0 ? Icons.users : i === 1 ? Icons.refreshCw : i === 2 ? Icons.alertTriangle : i === 3 ? Icons.folder : Icons.fileText}
+                                            <div style={{ width: 32, height: 32, borderRadius: 6, background: r.bg, color: r.icon_color, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                                {resolveIcon(r.icon)}
                                             </div>
                                             <p style={{ fontSize: 13, fontWeight: 600, color: '#0f172a', margin: 0, whiteSpace: 'nowrap' }}>{r.nombre}</p>
                                         </div>
@@ -370,8 +439,8 @@ export function ReportesCePage() {
                                     </td>
                                     <td style={{ padding: '14px 10px', textAlign: 'right' }}>
                                         <div style={{ display: 'flex', gap: 16, alignItems: 'center', justifyContent: 'flex-end' }}>
-                                            <Link to="#" style={{ fontSize: 12, fontWeight: 500, color: '#185FA5', textDecoration: 'none' }}>Generar</Link>
-                                            <Link to="#" style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, fontWeight: 500, color: '#185FA5', textDecoration: 'none' }}>
+                                            <Link to={r.ruta ?? '/app/control-escolar/reportes'} style={{ fontSize: 12, fontWeight: 500, color: '#185FA5', textDecoration: 'none' }}>Generar</Link>
+                                            <Link to={r.ruta ?? '/app/control-escolar/reportes'} style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, fontWeight: 500, color: '#185FA5', textDecoration: 'none' }}>
                                                 <span style={{ display: 'flex' }}>{Icons.download}</span> Descargar
                                             </Link>
                                             <Link to="#" style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, fontWeight: 500, color: '#185FA5', textDecoration: 'none' }}>

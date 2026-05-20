@@ -1,6 +1,19 @@
-import React from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { CE_DEMO_OBSERVACIONES } from '../../data/controlEscolarDemoData';
+import { controlEscolarApi } from '../../api/controlEscolar';
+
+function formatActualizado(iso) {
+    if (!iso) return '—';
+    try {
+        return new Intl.DateTimeFormat('es-MX', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(iso));
+    } catch {
+        return '—';
+    }
+}
+
+function formatNum(n) {
+    return new Intl.NumberFormat('es-MX').format(Number(n) || 0);
+}
 
 // --- UTILIDADES DE ESTILO (PALETA UNIFICADA BASE) ---
 function initials(nombre = '') {
@@ -177,16 +190,49 @@ const Icons = {
     ),
 };
 
-// --- DATOS DEMO (Fallbacks por si no existen en el archivo de data) ---
-const DEMO_OBSERVACIONES = [
-    { folio: 'OBS-2025-0145', alumno: 'María Fernanda López Ruiz', modulo: 'Inscripciones', texto: 'Falta acta de nacimiento original en expediente físico.', prioridad: 'Alta', estado: 'Pendiente', fecha: '20/05/2025' },
-    { folio: 'OBS-2025-0144', alumno: 'José Andrés Martínez Díaz', modulo: 'Calificaciones', texto: 'Calificación de Matemáticas no coincide con acta.', prioridad: 'Media', estado: 'En revisión', fecha: '19/05/2025' },
-    { folio: 'OBS-2025-0143', alumno: 'Ana Paula García Torres', modulo: 'Documentos', texto: 'Fotografía no cumple con las especificaciones.', prioridad: 'Baja', estado: 'Atendida', fecha: '18/05/2025' },
-];
-
 export function ObservacionesCePage() {
-    const rows = (typeof CE_DEMO_OBSERVACIONES !== 'undefined' && CE_DEMO_OBSERVACIONES.length > 0) ? CE_DEMO_OBSERVACIONES : DEMO_OBSERVACIONES;
-    const detalle = rows[0] || {};
+    const [search, setSearch] = useState('');
+    const [page, setPage] = useState(1);
+    const [perPage] = useState(10);
+    const [selectedId, setSelectedId] = useState(null);
+    const [payload, setPayload] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState('');
+
+    const cargar = useCallback(async () => {
+        setLoading(true);
+        setError('');
+        try {
+            const res = await controlEscolarApi.observaciones({
+                search: search.trim() || undefined,
+                page,
+                per_page: perPage,
+                observacion_id: selectedId ?? undefined,
+            });
+            setPayload(res?.data ?? null);
+        } catch (err) {
+            setPayload(null);
+            setError(err?.message ?? 'No se pudieron cargar las observaciones.');
+        } finally {
+            setLoading(false);
+        }
+    }, [search, page, perPage, selectedId]);
+
+    useEffect(() => {
+        const t = setTimeout(() => void cargar(), search.trim() ? 350 : 0);
+        return () => clearTimeout(t);
+    }, [cargar]);
+
+    useEffect(() => {
+        setPage(1);
+    }, [search]);
+
+    const metricas = payload?.metricas ?? {};
+    const rows = payload?.listado?.data ?? [];
+    const meta = payload?.listado?.meta ?? {};
+    const detalle = payload?.detalle ?? null;
+    const historial = payload?.historial ?? [];
+    const lastPage = Math.max(1, Number(meta.last_page) || 1);
 
     /* Estilos compartidos de tarjeta (surface) */
     const surface = {
@@ -227,7 +273,7 @@ export function ObservacionesCePage() {
 
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 12 }}>
                     <p style={{ fontSize: 11, color: '#94a3b8', margin: 0 }}>
-                        🕐 Actualizado: 20/05/2025 09:45 a. m.
+                        Actualizado: {loading && !payload ? '…' : formatActualizado(payload?.actualizado_en)}
                     </p>
                 </div>
             </div>
@@ -239,7 +285,7 @@ export function ObservacionesCePage() {
                         { to: '/app/observaciones', label: 'Responder', icon: Icons.messageCircle, color: '#185FA5' },
                         { to: '/app/observaciones', label: 'Adjuntar evidencia', icon: Icons.paperclip, color: '#0F6E56' },
                         { to: '/app/observaciones', label: 'Marcar atendida', icon: Icons.check, color: '#BA7517' },
-                        { to: '/app/expedientes', label: 'Abrir expediente', icon: Icons.folderOpen, color: '#534AB7' },
+                        { to: detalle?.expediente_url ?? '/app/control-escolar/expedientes', label: 'Abrir expediente', icon: Icons.folderOpen, color: '#534AB7' },
                         { to: '/app/observaciones', label: 'Ver historial', icon: Icons.scrollText, color: '#64748b' },
                     ].map(({ to, label, icon, color }) => (
                         <Link
@@ -260,27 +306,33 @@ export function ObservacionesCePage() {
                 </div>
             </div>
 
+            {error ? (
+                <div style={{ padding: '12px 16px', background: '#FEE2E2', border: '1px solid #fecaca', borderRadius: 8, fontSize: 13, color: '#991B1B', marginBottom: 24 }}>
+                    {error}
+                </div>
+            ) : null}
+
             {/* ── Metrics Grid (Tonos Pastel Unificados) ── */}
             <div style={{ display: 'flex', gap: 16, marginBottom: 24, flexWrap: 'wrap' }}>
                 <MetricCard 
                     icon={Icons.messageCircleBig} iconBg="#DBEAFE" iconColor="#185FA5" 
-                    title="Observaciones pendientes" value="33" 
-                    trend="Por atender" trendColor="#185FA5" 
+                    title="Observaciones pendientes" value={formatNum(metricas.pendientes)}
+                    trend={metricas.pendientes_trend ?? 'Por atender'} trendColor={metricas.pendientes_trend_color ?? '#185FA5'} 
                 />
                 <MetricCard 
                     icon={Icons.checkCircle} iconBg="#DCFCE7" iconColor="#0F6E56" 
-                    title="Atendidas" value="128" 
-                    trend="Últimos 60 días" trendColor="#0F6E56" 
+                    title="Atendidas" value={formatNum(metricas.atendidas)}
+                    trend={metricas.atendidas_trend ?? 'Últimos 60 días'} trendColor={metricas.atendidas_trend_color ?? '#0F6E56'} 
                 />
                 <MetricCard 
                     icon={Icons.refreshCw} iconBg="#FEF3C7" iconColor="#BA7517" 
-                    title="Devueltas" value="14" 
-                    trend="Requieren nueva acción" trendColor="#BA7517" 
+                    title="Devueltas" value={formatNum(metricas.devueltas)}
+                    trend={metricas.devueltas_trend ?? 'Requieren nueva acción'} trendColor={metricas.devueltas_trend_color ?? '#BA7517'} 
                 />
                 <MetricCard 
                     icon={Icons.alertTriangle} iconBg="#FEE2E2" iconColor="#991B1B" 
-                    title="Vencidas" value="3" 
-                    trend="Prioridad alta" trendColor="#991B1B" 
+                    title="Vencidas" value={formatNum(metricas.vencidas)}
+                    trend={metricas.vencidas_trend ?? 'Prioridad alta'} trendColor={metricas.vencidas_trend_color ?? '#991B1B'} 
                 />
             </div>
 
@@ -303,6 +355,8 @@ export function ObservacionesCePage() {
                                 <input
                                     type="search"
                                     placeholder="Buscar por folio o alumno..."
+                                    value={search}
+                                    onChange={(e) => setSearch(e.target.value)}
                                     style={{
                                         height: 36, width: 250,
                                         paddingLeft: 34, paddingRight: 12,
@@ -343,15 +397,35 @@ export function ObservacionesCePage() {
                                 </tr>
                             </thead>
                             <tbody>
-                                {rows.map((r, i) => (
+                                {loading && rows.length === 0 ? (
+                                    <tr>
+                                        <td colSpan={8} style={{ padding: 24, textAlign: 'center', fontSize: 13, color: '#64748b' }}>
+                                            Cargando observaciones…
+                                        </td>
+                                    </tr>
+                                ) : null}
+                                {!loading && rows.length === 0 ? (
+                                    <tr>
+                                        <td colSpan={8} style={{ padding: 24, textAlign: 'center', fontSize: 13, color: '#64748b' }}>
+                                            No hay observaciones registradas en tu alcance.
+                                        </td>
+                                    </tr>
+                                ) : null}
+                                {rows.map((r) => (
                                     <tr
-                                        key={r.folio}
-                                        style={{ borderBottom: '1px solid #f1f5f9', transition: 'background 0.2s' }}
-                                        onMouseEnter={(e) => e.currentTarget.style.background = '#f8fafc'}
-                                        onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                                        key={r.id ?? r.folio}
+                                        style={{
+                                            borderBottom: '1px solid #f1f5f9',
+                                            transition: 'background 0.2s',
+                                            background: selectedId === r.id ? '#EFF6FF' : 'transparent',
+                                            cursor: 'pointer',
+                                        }}
+                                        onClick={() => setSelectedId(r.id)}
+                                        onMouseEnter={(e) => { if (selectedId !== r.id) e.currentTarget.style.background = '#f8fafc'; }}
+                                        onMouseLeave={(e) => { if (selectedId !== r.id) e.currentTarget.style.background = 'transparent'; }}
                                     >
                                         <td style={{ padding: '14px 10px', fontSize: 13, fontWeight: 600, color: '#185FA5' }}>
-                                            <Link to="#" style={{ color: '#185FA5', textDecoration: 'none' }}>{r.folio}</Link>
+                                            <span style={{ color: '#185FA5' }}>{r.folio}</span>
                                         </td>
                                         <td style={{ padding: '14px 10px', fontSize: 13, fontWeight: 500, color: '#0f172a' }}>{r.alumno}</td>
                                         <td style={{ padding: '14px 10px', fontSize: 13, color: '#475569' }}>{r.modulo}</td>
@@ -367,23 +441,36 @@ export function ObservacionesCePage() {
                                         <td style={{ padding: '14px 10px', fontSize: 12, color: '#64748b' }}>{r.fecha}</td>
                                         <td style={{ padding: '14px 10px' }}>
                                             <div style={{ display: 'flex', gap: 6, alignItems: 'center', justifyContent: 'center' }}>
-                                                {[
-                                                    { icon: Icons.eye, color: '#185FA5', bg: 'white', border: '#e2e8f0', title: 'Ver' },
-                                                    { icon: Icons.check, color: '#0F6E56', bg: 'white', border: '#e2e8f0', title: 'Atender' }
-                                                ].map((btn, idx) => (
-                                                    <div 
-                                                        key={idx} 
-                                                        title={btn.title}
-                                                        style={{ 
-                                                            width: 26, height: 26, borderRadius: 6, 
-                                                            background: btn.bg, border: `1px solid ${btn.border}`, 
-                                                            display: 'flex', alignItems: 'center', justifyContent: 'center', 
-                                                            color: btn.color, cursor: 'pointer', flexShrink: 0
+                                                {r.detalle_url ? (
+                                                    <Link
+                                                        to={r.detalle_url}
+                                                        title="Ver"
+                                                        onClick={(e) => e.stopPropagation()}
+                                                        style={{
+                                                            width: 26, height: 26, borderRadius: 6,
+                                                            background: 'white', border: '1px solid #e2e8f0',
+                                                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                            color: '#185FA5', flexShrink: 0,
                                                         }}
                                                     >
-                                                        {btn.icon}
-                                                    </div>
-                                                ))}
+                                                        {Icons.eye}
+                                                    </Link>
+                                                ) : null}
+                                                {r.detalle_url ? (
+                                                    <Link
+                                                        to={r.detalle_url}
+                                                        title="Atender"
+                                                        onClick={(e) => e.stopPropagation()}
+                                                        style={{
+                                                            width: 26, height: 26, borderRadius: 6,
+                                                            background: 'white', border: '1px solid #e2e8f0',
+                                                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                            color: '#0F6E56', flexShrink: 0,
+                                                        }}
+                                                    >
+                                                        {Icons.check}
+                                                    </Link>
+                                                ) : null}
                                             </div>
                                         </td>
                                     </tr>
@@ -394,22 +481,39 @@ export function ObservacionesCePage() {
 
                     {/* Pagination */}
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 16, paddingTop: 16, borderTop: '1px solid #f1f5f9', flexWrap: 'wrap', gap: 8 }}>
-                        <span style={{ fontSize: 12, color: '#64748b' }}>Mostrando 1 a 3 de 33 observaciones</span>
+                        <span style={{ fontSize: 12, color: '#64748b' }}>
+                            {meta.total
+                                ? `Mostrando ${meta.from ?? 0} a ${meta.to ?? 0} de ${formatNum(meta.total)} observaciones`
+                                : 'Sin observaciones'}
+                        </span>
                         <div style={{ display: 'flex', gap: 6 }}>
-                            {['<', '1', '2', '3', '4', '>'].map((p, idx) => (
-                                <button
-                                    key={idx}
-                                    style={{
-                                        minWidth: 32, height: 32, padding: '0 8px', borderRadius: 6,
-                                        border: p === '1' ? 'none' : '1px solid #e2e8f0',
-                                        background: p === '1' ? '#185FA5' : 'white',
-                                        color: p === '1' ? 'white' : '#475569',
-                                        fontSize: 13, cursor: 'pointer',
-                                    }}
-                                >
-                                    {p}
-                                </button>
-                            ))}
+                            <button
+                                type="button"
+                                disabled={page <= 1 || loading}
+                                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                                style={{
+                                    minWidth: 32, height: 32, padding: '0 8px', borderRadius: 6,
+                                    border: '1px solid #e2e8f0', background: 'white', color: '#475569',
+                                    fontSize: 13, cursor: page <= 1 ? 'not-allowed' : 'pointer', opacity: page <= 1 ? 0.5 : 1,
+                                }}
+                            >
+                                &lt;
+                            </button>
+                            <span style={{ minWidth: 32, height: 32, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', borderRadius: 6, background: '#185FA5', color: 'white', fontSize: 13, padding: '0 8px' }}>
+                                {page}
+                            </span>
+                            <button
+                                type="button"
+                                disabled={page >= lastPage || loading}
+                                onClick={() => setPage((p) => Math.min(lastPage, p + 1))}
+                                style={{
+                                    minWidth: 32, height: 32, padding: '0 8px', borderRadius: 6,
+                                    border: '1px solid #e2e8f0', background: 'white', color: '#475569',
+                                    fontSize: 13, cursor: page >= lastPage ? 'not-allowed' : 'pointer', opacity: page >= lastPage ? 0.5 : 1,
+                                }}
+                            >
+                                &gt;
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -420,9 +524,16 @@ export function ObservacionesCePage() {
                     {/* Detalle de observación */}
                     <div style={surface}>
                         <p style={surfaceTitle}>Detalle de observación</p>
-                        <p style={{ fontSize: 13, fontWeight: 600, color: '#0f172a', margin: '0 0 8px 0' }}>{detalle.folio}</p>
-                        <p style={{ fontSize: 13, color: '#475569', margin: '0 0 12px 0', lineHeight: 1.5 }}>{detalle.texto}</p>
-                        <p style={{ fontSize: 11, color: '#64748b', margin: 0 }}>Alumno: <strong style={{ color: '#0f172a', fontWeight: 500 }}>{detalle.alumno}</strong></p>
+                        {detalle ? (
+                            <>
+                                <p style={{ fontSize: 13, fontWeight: 600, color: '#0f172a', margin: '0 0 8px 0' }}>{detalle.folio}</p>
+                                <p style={{ fontSize: 13, color: '#475569', margin: '0 0 12px 0', lineHeight: 1.5 }}>{detalle.texto}</p>
+                                <p style={{ fontSize: 11, color: '#64748b', margin: '0 0 4px 0' }}>Alumno: <strong style={{ color: '#0f172a', fontWeight: 500 }}>{detalle.alumno}</strong></p>
+                                <p style={{ fontSize: 11, color: '#64748b', margin: 0 }}>Módulo: <strong style={{ color: '#0f172a', fontWeight: 500 }}>{detalle.modulo}</strong></p>
+                            </>
+                        ) : (
+                            <p style={{ fontSize: 13, color: '#64748b', margin: 0 }}>Selecciona una observación de la bandeja.</p>
+                        )}
                     </div>
 
                     {/* Evidencia */}
@@ -450,16 +561,15 @@ export function ObservacionesCePage() {
                     <div style={surface}>
                         <p style={surfaceTitle}>Historial</p>
                         <div style={{ position: 'relative', paddingLeft: 12, borderLeft: '2px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: 16 }}>
-                            <div style={{ position: 'relative' }}>
-                                <div style={{ position: 'absolute', left: -17, top: 4, width: 8, height: 8, borderRadius: '50%', background: '#185FA5' }} />
-                                <p style={{ fontSize: 12, fontWeight: 500, color: '#0f172a', margin: 0 }}>Comentario de seguimiento</p>
-                                <p style={{ fontSize: 11, color: '#64748b', margin: '2px 0 0 0' }}>Hace 2 días</p>
-                            </div>
-                            <div style={{ position: 'relative' }}>
-                                <div style={{ position: 'absolute', left: -17, top: 4, width: 8, height: 8, borderRadius: '50%', background: '#cbd5e1' }} />
-                                <p style={{ fontSize: 12, fontWeight: 500, color: '#475569', margin: 0 }}>Creación de observación</p>
-                                <p style={{ fontSize: 11, color: '#64748b', margin: '2px 0 0 0' }}>Control Escolar</p>
-                            </div>
+                            {historial.length === 0 ? (
+                                <p style={{ fontSize: 12, color: '#64748b', margin: 0 }}>Sin historial disponible.</p>
+                            ) : historial.map((ev, idx) => (
+                                <div key={idx} style={{ position: 'relative' }}>
+                                    <div style={{ position: 'absolute', left: -17, top: 4, width: 8, height: 8, borderRadius: '50%', background: ev.activo ? '#185FA5' : '#cbd5e1' }} />
+                                    <p style={{ fontSize: 12, fontWeight: 500, color: ev.activo ? '#0f172a' : '#475569', margin: 0 }}>{ev.titulo}</p>
+                                    <p style={{ fontSize: 11, color: '#64748b', margin: '2px 0 0 0' }}>{ev.subtitulo}</p>
+                                </div>
+                            ))}
                         </div>
                     </div>
 

@@ -11,6 +11,7 @@ use App\Models\SolicitudMatricula;
 use App\Models\User;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
@@ -333,7 +334,7 @@ final class SolicitudMatriculaService
     }
 
     /**
-     * @return \Illuminate\Support\Collection<int, SolicitudMatricula>
+     * @return Collection<int, SolicitudMatricula>
      */
     public function listarParaUsuario(User $user, ?string $estado = null)
     {
@@ -385,11 +386,24 @@ final class SolicitudMatriculaService
         $base = SolicitudMatricula::query();
         $this->aplicarAlcanceSolicitudes($base, $user);
 
+        $borrador = SolicitudMatricula::ESTADO_BORRADOR;
+        $enviada = SolicitudMatricula::ESTADO_ENVIADA;
+        $observaciones = SolicitudMatricula::ESTADO_CON_OBSERVACIONES;
+        $asignada = SolicitudMatricula::ESTADO_MATRICULA_ASIGNADA;
+
+        $row = (clone $base)->selectRaw(
+            'SUM(CASE WHEN estado = ? THEN 1 ELSE 0 END) as solicitudes_matricula_borrador, '
+            .'SUM(CASE WHEN estado = ? THEN 1 ELSE 0 END) as solicitudes_matricula_enviadas, '
+            .'SUM(CASE WHEN estado = ? THEN 1 ELSE 0 END) as solicitudes_matricula_con_observaciones, '
+            .'SUM(CASE WHEN estado = ? THEN 1 ELSE 0 END) as solicitudes_matricula_matricula_asignada',
+            [$borrador, $enviada, $observaciones, $asignada],
+        )->first();
+
         return [
-            'solicitudes_matricula_borrador' => (clone $base)->where('estado', SolicitudMatricula::ESTADO_BORRADOR)->count(),
-            'solicitudes_matricula_enviadas' => (clone $base)->where('estado', SolicitudMatricula::ESTADO_ENVIADA)->count(),
-            'solicitudes_matricula_con_observaciones' => (clone $base)->where('estado', SolicitudMatricula::ESTADO_CON_OBSERVACIONES)->count(),
-            'solicitudes_matricula_matricula_asignada' => (clone $base)->where('estado', SolicitudMatricula::ESTADO_MATRICULA_ASIGNADA)->count(),
+            'solicitudes_matricula_borrador' => (int) ($row?->solicitudes_matricula_borrador ?? 0),
+            'solicitudes_matricula_enviadas' => (int) ($row?->solicitudes_matricula_enviadas ?? 0),
+            'solicitudes_matricula_con_observaciones' => (int) ($row?->solicitudes_matricula_con_observaciones ?? 0),
+            'solicitudes_matricula_matricula_asignada' => (int) ($row?->solicitudes_matricula_matricula_asignada ?? 0),
         ];
     }
 

@@ -1,15 +1,31 @@
-import React from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { CE_DEMO_ERRORES_IMPORT, CE_DEMO_IMPORTACIONES } from '../../data/controlEscolarDemoData';
+import { controlEscolarApi } from '../../api/controlEscolar';
+
+function formatActualizado(iso) {
+    if (!iso) return '—';
+    try {
+        return new Intl.DateTimeFormat('es-MX', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(iso));
+    } catch {
+        return '—';
+    }
+}
+
+function formatNum(n) {
+    return new Intl.NumberFormat('es-MX').format(Number(n) || 0);
+}
 
 // --- UTILIDADES DE ESTILO (PALETA UNIFICADA BASE) ---
 function StatusBadge({ children }) {
     const v = String(children).toLowerCase();
     const styles = {
-        'prevalidada': { background: '#EAF3DE', color: '#3B6D11' },    // Verde pastel
-        'completada': { background: '#EAF3DE', color: '#3B6D11' },     // Verde pastel
-        'con errores': { background: '#FEE2E2', color: '#991B1B' },    // Rojo pastel
-        'pendiente': { background: '#FEF3C7', color: '#BA7517' },      // Naranja pastel
+        'prevalidada': { background: '#EAF3DE', color: '#3B6D11' },
+        'completada': { background: '#EAF3DE', color: '#3B6D11' },
+        'confirmada': { background: '#EAF3DE', color: '#3B6D11' },
+        'con errores': { background: '#FEE2E2', color: '#991B1B' },
+        'pendiente': { background: '#FEF3C7', color: '#BA7517' },
+        'pendiente de conciliación': { background: '#FEF3C7', color: '#BA7517' },
+        'cancelada': { background: '#F1EFE8', color: '#5F5E5A' },
     };
     const s = styles[v] ?? { background: '#F1EFE8', color: '#5F5E5A' };
     return (
@@ -168,24 +184,50 @@ const Icons = {
     ),
 };
 
-const DEMO_ERRORES_IMPORT = [
-    { label: 'Formato de fecha inválido', n: '18' },
-    { label: 'CURP no coincide', n: '12' },
-    { label: 'Falta calificación', n: '8' },
-    { label: 'Materia no inscrita', n: '5' },
-];
-
-const DEMO_IMPORTACIONES = [
-    { folio: 'IMP-2025-0012', archivo: 'calificaciones_301A.csv', alumno: 'Varios (Grupo 301-A)', registros: 45, errores: 0, estado: 'Prevalidada' },
-    { folio: 'IMP-2025-0011', archivo: 'bajas_abril.xlsx', alumno: 'Varios', registros: 12, errores: 3, estado: 'Con errores' },
-    { folio: 'IMP-2025-0010', archivo: 'kardex_historico.csv', alumno: 'José Andrés Martínez', registros: 48, errores: 0, estado: 'Completada' },
-    { folio: 'IMP-2025-0009', archivo: 'altas_extemporaneas.xlsx', alumno: 'Varios', registros: 5, errores: 1, estado: 'Pendiente' },
-];
-
 export function ImportacionesCePage() {
-    const errores = (typeof CE_DEMO_ERRORES_IMPORT !== 'undefined' && CE_DEMO_ERRORES_IMPORT.length > 0) ? CE_DEMO_ERRORES_IMPORT : DEMO_ERRORES_IMPORT;
-    const rows = (typeof CE_DEMO_IMPORTACIONES !== 'undefined' && CE_DEMO_IMPORTACIONES.length > 0) ? CE_DEMO_IMPORTACIONES : DEMO_IMPORTACIONES;
-        
+    const [search, setSearch] = useState('');
+    const [page, setPage] = useState(1);
+    const perPage = 10;
+    const [payload, setPayload] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState('');
+
+    const cargar = useCallback(async () => {
+        setLoading(true);
+        setError('');
+        try {
+            const res = await controlEscolarApi.importaciones({
+                search: search.trim() || undefined,
+                page,
+                per_page: perPage,
+            });
+            setPayload(res?.data ?? null);
+        } catch (err) {
+            setPayload(null);
+            setError(err?.message ?? 'No se pudieron cargar las importaciones.');
+        } finally {
+            setLoading(false);
+        }
+    }, [search, page]);
+
+    useEffect(() => {
+        const t = setTimeout(() => void cargar(), search.trim() ? 350 : 0);
+        return () => clearTimeout(t);
+    }, [cargar]);
+
+    useEffect(() => {
+        setPage(1);
+    }, [search]);
+
+    const metricas = payload?.metricas ?? {};
+    const rows = payload?.listado?.data ?? [];
+    const meta = payload?.listado?.meta ?? {};
+    const errores = payload?.errores_frecuentes ?? [];
+    const total = Number(meta.total) || 0;
+    const lastPage = Math.max(1, Number(meta.last_page) || 1);
+    const from = meta.from ?? (total === 0 ? 0 : 1);
+    const to = meta.to ?? rows.length;
+
     const surface = {
         background: 'white',
         border: '1px solid #e2e8f0',
@@ -223,7 +265,7 @@ export function ImportacionesCePage() {
 
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 12 }}>
                     <p style={{ fontSize: 11, color: '#94a3b8', margin: 0 }}>
-                        🕐 Actualizado: 20/05/2025 09:45 a. m.
+                        Actualizado: {loading && !payload ? '…' : formatActualizado(payload?.actualizado_en)}
                     </p>
                 </div>
             </div>
@@ -267,31 +309,37 @@ export function ImportacionesCePage() {
                             <line x1="12" y1="9" x2="12" y2="13" />
                             <line x1="12" y1="17" x2="12.01" y2="17" />
                         </svg>
-                    </span> 
+                    </span>
                     Ver errores
                 </Link>
             </div>
 
+            {error ? (
+                <div style={{ padding: '12px 16px', background: '#FEE2E2', border: '1px solid #fecaca', borderRadius: 8, fontSize: 13, color: '#991B1B', marginBottom: 24 }}>
+                    {error}
+                </div>
+            ) : null}
+
             <div style={{ display: 'flex', gap: 16, marginBottom: 24, flexWrap: 'wrap' }}>
-                <MetricCard 
-                    icon={Icons.folder} iconBg="#DBEAFE" iconColor="#185FA5" 
-                    title="Importaciones recientes" value="24" 
-                    trend="Últimos 30 días" trendColor="#185FA5" 
+                <MetricCard
+                    icon={Icons.folder} iconBg="#DBEAFE" iconColor="#185FA5"
+                    title="Importaciones recientes" value={formatNum(metricas.recientes)}
+                    trend={metricas.recientes_trend ?? 'Últimos 30 días'} trendColor={metricas.recientes_trend_color ?? '#185FA5'}
                 />
-                <MetricCard 
-                    icon={Icons.checkCircle} iconBg="#DCFCE7" iconColor="#0F6E56" 
-                    title="Prevalidadas" value="11" 
-                    trend="Listas para conciliar" trendColor="#0F6E56" 
+                <MetricCard
+                    icon={Icons.checkCircle} iconBg="#DCFCE7" iconColor="#0F6E56"
+                    title="Prevalidadas" value={formatNum(metricas.prevalidadas)}
+                    trend={metricas.prevalidadas_trend ?? 'Listas para conciliar'} trendColor={metricas.prevalidadas_trend_color ?? '#0F6E56'}
                 />
-                <MetricCard 
-                    icon={Icons.alertTriangle} iconBg="#FEE2E2" iconColor="#991B1B" 
-                    title="Con errores" value="5" 
-                    trend="Requieren corrección" trendColor="#991B1B" 
+                <MetricCard
+                    icon={Icons.alertTriangle} iconBg="#FEE2E2" iconColor="#991B1B"
+                    title="Con errores" value={formatNum(metricas.con_errores)}
+                    trend={metricas.con_errores_trend ?? 'Requieren corrección'} trendColor={metricas.con_errores_trend_color ?? '#991B1B'}
                 />
-                <MetricCard 
-                    icon={Icons.clock} iconBg="#FEF3C7" iconColor="#BA7517" 
-                    title="Pendientes" value="7" 
-                    trend="En cola operativa" trendColor="#BA7517" 
+                <MetricCard
+                    icon={Icons.clock} iconBg="#FEF3C7" iconColor="#BA7517"
+                    title="Pendientes" value={formatNum(metricas.pendientes)}
+                    trend={metricas.pendientes_trend ?? 'En cola operativa'} trendColor={metricas.pendientes_trend_color ?? '#BA7517'}
                 />
             </div>
 
@@ -308,12 +356,12 @@ export function ImportacionesCePage() {
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: 16, alignItems: 'start' }}>
 
-                <div style={surface}>   
+                <div style={surface}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, gap: 8, flexWrap: 'wrap' }}>
                         <h2 style={{ fontSize: 14, fontWeight: 600, color: '#0f172a', margin: 0 }}>
                             Historial de importaciones <span style={{ color: '#94a3b8', fontSize: 12, fontWeight: 400 }}>ⓘ</span>
                         </h2>
-                        
+
                         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                             <div style={{ position: 'relative', display: 'inline-block' }}>
                                 <span style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', display: 'flex', alignItems: 'center' }}>
@@ -322,6 +370,8 @@ export function ImportacionesCePage() {
                                 <input
                                     type="search"
                                     placeholder="Buscar archivo o folio..."
+                                    value={search}
+                                    onChange={(e) => setSearch(e.target.value)}
                                     style={{
                                         height: 36, width: 250,
                                         paddingLeft: 34, paddingRight: 12,
@@ -331,7 +381,7 @@ export function ImportacionesCePage() {
                                     }}
                                 />
                             </div>
-                            <button style={{ height: 36, display: 'inline-flex', alignItems: 'center', gap: 6, padding: '0 10px', border: '1px solid #e2e8f0', borderRadius: 8, background: 'white', fontSize: 13, fontWeight: 500, color: '#64748b', cursor: 'pointer' }}>
+                            <button type="button" style={{ height: 36, display: 'inline-flex', alignItems: 'center', gap: 6, padding: '0 10px', border: '1px solid #e2e8f0', borderRadius: 8, background: 'white', fontSize: 13, fontWeight: 500, color: '#64748b', cursor: 'pointer' }}>
                                 <span style={{ display: 'flex', alignItems: 'center', color: '#185FA5' }}>{Icons.filter}</span> Filtros
                             </button>
                         </div>
@@ -361,45 +411,53 @@ export function ImportacionesCePage() {
                                 </tr>
                             </thead>
                             <tbody>
-                                {rows.map((r, i) => (
+                                {loading && rows.length === 0 ? (
+                                    <tr>
+                                        <td colSpan={7} style={{ padding: 24, textAlign: 'center', color: '#64748b', fontSize: 13 }}>
+                                            Cargando importaciones…
+                                        </td>
+                                    </tr>
+                                ) : null}
+                                {!loading && rows.length === 0 ? (
+                                    <tr>
+                                        <td colSpan={7} style={{ padding: 24, textAlign: 'center', color: '#64748b', fontSize: 13 }}>
+                                            No hay importaciones para mostrar.
+                                        </td>
+                                    </tr>
+                                ) : null}
+                                {rows.map((r) => (
                                     <tr
-                                        key={i}
+                                        key={r.id}
                                         style={{ borderBottom: '1px solid #f1f5f9', transition: 'background 0.2s' }}
-                                        onMouseEnter={(e) => e.currentTarget.style.background = '#f8fafc'}
-                                        onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                                        onMouseEnter={(e) => { e.currentTarget.style.background = '#f8fafc'; }}
+                                        onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
                                     >
                                         <td style={{ padding: '14px 10px', fontSize: 13, fontWeight: 600, color: '#185FA5' }}>
-                                            <Link to="#" style={{ color: '#185FA5', textDecoration: 'none' }}>{r.folio}</Link>
+                                            <Link to={r.detalle_url ?? '/app/importaciones'} style={{ color: '#185FA5', textDecoration: 'none' }}>{r.folio}</Link>
                                         </td>
                                         <td style={{ padding: '14px 10px', fontSize: 13, fontWeight: 500, color: '#0f172a' }}>{r.archivo}</td>
                                         <td style={{ padding: '14px 10px', fontSize: 13, color: '#475569' }}>{r.alumno}</td>
-                                        <td style={{ padding: '14px 10px', fontSize: 13, color: '#475569' }}>{r.registros}</td>
+                                        <td style={{ padding: '14px 10px', fontSize: 13, color: '#475569' }}>{formatNum(r.registros)}</td>
                                         <td style={{ padding: '14px 10px', fontSize: 13, fontWeight: r.errores > 0 ? 700 : 500, color: r.errores > 0 ? '#991B1B' : '#64748b' }}>
-                                            {r.errores}
+                                            {formatNum(r.errores)}
                                         </td>
                                         <td style={{ padding: '14px 10px' }}>
                                             <StatusBadge>{r.estado}</StatusBadge>
                                         </td>
                                         <td style={{ padding: '14px 10px' }}>
                                             <div style={{ display: 'flex', gap: 6, alignItems: 'center', justifyContent: 'center' }}>
-                                                {[
-                                                    { icon: Icons.eye, color: '#185FA5', bg: 'white', border: '#e2e8f0', title: 'Ver detalle' },
-                                                    { icon: Icons.download, color: '#0F6E56', bg: 'white', border: '#e2e8f0', title: 'Descargar log' },
-                                                    { icon: Icons.xIcon, color: '#991B1B', bg: '#FEE2E2', border: '#FEE2E2', title: 'Eliminar' }
-                                                ].map((btn, idx) => (
-                                                    <div 
-                                                        key={idx} 
-                                                        title={btn.title}
-                                                        style={{ 
-                                                            width: 26, height: 26, borderRadius: 6, 
-                                                            background: btn.bg, border: `1px solid ${btn.border}`, 
-                                                            display: 'flex', alignItems: 'center', justifyContent: 'center', 
-                                                            color: btn.color, cursor: 'pointer', flexShrink: 0
-                                                        }}
-                                                    >
-                                                        {btn.icon}
-                                                    </div>
-                                                ))}
+                                                <Link
+                                                    to={r.detalle_url ?? '/app/importaciones'}
+                                                    title="Ver detalle"
+                                                    style={{
+                                                        width: 26, height: 26, borderRadius: 6,
+                                                        background: 'white', border: '1px solid #e2e8f0',
+                                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                        color: '#185FA5', flexShrink: 0,
+                                                    }}
+                                                >
+                                                    {Icons.eye}
+                                                </Link>
                                             </div>
                                         </td>
                                     </tr>
@@ -409,39 +467,50 @@ export function ImportacionesCePage() {
                     </div>
 
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 16, paddingTop: 16, borderTop: '1px solid #f1f5f9', flexWrap: 'wrap', gap: 8 }}>
-                        <span style={{ fontSize: 12, color: '#64748b' }}>Mostrando 1 a 4 de 24 importaciones</span>
+                        <span style={{ fontSize: 12, color: '#64748b' }}>
+                            {total === 0 ? 'Sin importaciones' : `Mostrando ${from} a ${to} de ${formatNum(total)} importaciones`}
+                        </span>
                         <div style={{ display: 'flex', gap: 6 }}>
-                            {['<', '1', '2', '3', '>'].map((p, idx) => (
-                                <button
-                                    key={idx}
-                                    style={{
-                                        minWidth: 32, height: 32, padding: '0 8px', borderRadius: 6,
-                                        border: p === '1' ? 'none' : '1px solid #e2e8f0',
-                                        background: p === '1' ? '#185FA5' : 'white',
-                                        color: p === '1' ? 'white' : '#475569',
-                                        fontSize: 13, cursor: 'pointer',
-                                    }}
-                                >
-                                    {p}
-                                </button>
-                            ))}
+                            <button
+                                type="button"
+                                disabled={page <= 1}
+                                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                                style={{ minWidth: 32, height: 32, padding: '0 8px', borderRadius: 6, border: '1px solid #e2e8f0', background: 'white', fontSize: 13, cursor: page <= 1 ? 'not-allowed' : 'pointer', opacity: page <= 1 ? 0.5 : 1 }}
+                            >
+                                &lt;
+                            </button>
+                            <span style={{ minWidth: 32, height: 32, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', borderRadius: 6, background: '#185FA5', color: 'white', fontSize: 13, fontWeight: 600 }}>
+                                {page}
+                            </span>
+                            <button
+                                type="button"
+                                disabled={page >= lastPage}
+                                onClick={() => setPage((p) => Math.min(lastPage, p + 1))}
+                                style={{ minWidth: 32, height: 32, padding: '0 8px', borderRadius: 6, border: '1px solid #e2e8f0', background: 'white', fontSize: 13, cursor: page >= lastPage ? 'not-allowed' : 'pointer', opacity: page >= lastPage ? 0.5 : 1 }}
+                            >
+                                &gt;
+                            </button>
                         </div>
                     </div>
                 </div>
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                    
+
                     <div style={surface}>
                         <p style={surfaceTitle}>Errores frecuentes</p>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 8 }}>
-                            {errores.map((e, i) => (
-                                <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: 10, borderBottom: i < errores.length - 1 ? '1px solid #f1f5f9' : 'none' }}>
-                                    <span style={{ fontSize: 13, color: '#475569' }}>{e.label}</span>
-                                    <span style={{ fontSize: 12, fontWeight: 700, color: '#991B1B', background: '#FEE2E2', padding: '2px 8px', borderRadius: 6 }}>{e.n}</span>
-                                </div>
-                            ))}
+                            {errores.length === 0 ? (
+                                <p style={{ fontSize: 13, color: '#64748b', margin: 0 }}>Sin errores registrados en el alcance.</p>
+                            ) : (
+                                errores.map((e) => (
+                                    <div key={e.label} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: 10, borderBottom: '1px solid #f1f5f9' }}>
+                                        <span style={{ fontSize: 13, color: '#475569' }}>{e.label}</span>
+                                        <span style={{ fontSize: 12, fontWeight: 700, color: '#991B1B', background: '#FEE2E2', padding: '2px 8px', borderRadius: 6 }}>{formatNum(e.n)}</span>
+                                    </div>
+                                ))
+                            )}
                         </div>
-                        <Link to="#" style={{ display: 'inline-block', marginTop: 16, fontSize: 12, fontWeight: 500, color: '#185FA5', textDecoration: 'none', textAlign: 'center', width: '100%' }}>
+                        <Link to="/app/importaciones" style={{ display: 'inline-block', marginTop: 16, fontSize: 12, fontWeight: 500, color: '#185FA5', textDecoration: 'none', textAlign: 'center', width: '100%' }}>
                             Ver todos los errores ›
                         </Link>
                     </div>

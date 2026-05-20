@@ -1,8 +1,21 @@
-import React, { useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { controlEscolarApi } from '../../api/controlEscolar';
 import { getUser } from '../../authStore';
 import { DireccionNotificacionesPage } from '../direccion/DireccionNotificacionesPage';
-import { CE_DEMO_NOTIFICACIONES } from '../../data/controlEscolarDemoData';
+
+function formatActualizado(iso) {
+    if (!iso) return '—';
+    try {
+        return new Intl.DateTimeFormat('es-MX', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(iso));
+    } catch {
+        return '—';
+    }
+}
+
+function formatNum(n) {
+    return new Intl.NumberFormat('es-MX').format(Number(n) || 0);
+}
 
 // --- UTILIDADES DE ESTILO (PALETA UNIFICADA BASE) ---
 function PriorityBadge({ children }) {
@@ -210,45 +223,98 @@ const Icons = {
             <polyline points="1 20 1 14 7 14" />
             <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
         </svg>
-    )
+    ),
+    folder: (
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
+        </svg>
+    ),
 };
 
-// --- DATOS DEMO FALLBACKS ---
-const CATEGORIAS = [
-    { label: 'Todas las notificaciones', n: 56, icon: Icons.fileText, active: true },
-    { label: 'Académicas', n: 15, icon: Icons.fileText, active: false },
-    { label: 'Administrativas', n: 12, icon: Icons.calendar, active: false },
-    { label: 'Documentos', n: 9, icon: Icons.folder, active: false },
-    { label: 'Sistema', n: 16, icon: Icons.zap, active: false },
-    { label: 'Inscripciones', n: 4, icon: Icons.checkCircle, active: false },
-    { label: 'Reinscripciones', n: 4, icon: Icons.refreshCwSmall, active: false },
-    { label: 'Solicitudes', n: 7, icon: Icons.alertTriangle, active: false },
-];
+const TIPO_ICON_COLORS = {
+    alert_triangle: '#991B1B',
+    file_text: '#534AB7',
+    clock: '#BA7517',
+    info: '#185FA5',
+    settings: '#64748b',
+    check_circle: '#0F6E56',
+};
 
-const DEMO_NOTIFICACIONES = [
-    { tipoIcon: Icons.alertTriangle, color: '#991B1B', msgTitle: 'Documento rechazado', msgSub: 'El comprobante de domicilio fue rechazado.', usrName: 'María Fernanda López Ruiz', usrId: 'A23010245', fecha: '20/05/2025', hora: '09:32 a. m.', prioridad: 'Alta', leida: false },
-    { tipoIcon: Icons.fileText, color: '#534AB7', msgTitle: 'Nueva inscripción registrada', msgSub: 'Se completó la inscripción correctamente.', usrName: 'José Andrés Martínez Díaz', usrId: 'A23009876', fecha: '20/05/2025', hora: '09:15 a. m.', prioridad: 'Media', leida: false },
-    { tipoIcon: Icons.clock, color: '#BA7517', msgTitle: 'Recordatorio: reinscripción pendiente', msgSub: 'El alumno aún no ha completado su reinscripción.', usrName: 'Ana Paula García Torres', usrId: 'A23011488', fecha: '20/05/2025', hora: '08:47 a. m.', prioridad: 'Media', leida: false },
-    { tipoIcon: Icons.info, color: '#185FA5', msgTitle: 'Constancia generada', msgSub: 'La constancia de estudios fue generada.', usrName: 'Diego Alejandro Pérez Soto', usrId: 'A23010567', fecha: '20/05/2025', hora: '08:25 a. m.', prioridad: 'Baja', leida: true },
-    { tipoIcon: Icons.fileText, color: '#534AB7', msgTitle: 'Documento cargado', msgSub: 'Se ha cargado un nuevo documento al expediente.', usrName: 'Valeria Hernández Cruz', usrId: 'A23011123', fecha: '20/05/2025', hora: '08:03 a. m.', prioridad: 'Baja', leida: true },
-    { tipoIcon: Icons.settings, color: '#64748b', msgTitle: 'Actualización del sistema', msgSub: 'Nueva versión del sistema disponible.', usrName: 'Sistema', usrId: '', fecha: '19/05/2025', hora: '07:45 p. m.', prioridad: 'Baja', leida: true },
-    { tipoIcon: Icons.checkCircle, color: '#0F6E56', msgTitle: 'Solicitud concluida', msgSub: 'Tu solicitud ha sido concluida exitosamente.', usrName: 'Carlos Alberto Mejía Ruiz', usrId: 'A23010789', fecha: '19/05/2025', hora: '04:30 p. m.', prioridad: 'Baja', leida: true },
-    { tipoIcon: Icons.clock, color: '#BA7517', msgTitle: 'Recordatorio: documentos pendientes', msgSub: 'Tienes documentos pendientes por cargar.', usrName: 'Sofía Daniela Rojas Vega', usrId: 'A23011234', fecha: '19/05/2025', hora: '11:20 a. m.', prioridad: 'Media', leida: true },
-];
+function iconoPorTipo(tipo) {
+    const map = {
+        alert_triangle: Icons.alertTriangle,
+        file_text: Icons.fileText,
+        clock: Icons.clock,
+        info: Icons.info,
+        settings: Icons.settings,
+        check_circle: Icons.checkCircle,
+    };
+    return map[tipo] ?? Icons.info;
+}
+
+function iconoCategoria(label) {
+    const l = String(label).toLowerCase();
+    if (l.includes('document')) return Icons.fileText;
+    if (l.includes('inscrip')) return Icons.calendar;
+    if (l.includes('reinscrip')) return Icons.refreshCwSmall;
+    if (l.includes('solicitud')) return Icons.alertTriangle;
+    if (l.includes('sistema')) return Icons.zap;
+    return Icons.fileText;
+}
 
 export function NotificacionesCePage() {
     const roles = getUser()?.roles ?? [];
-    
-    // Check if the user is a director, redirect or render specific view
+    const [payload, setPayload] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState('');
+    const [search, setSearch] = useState('');
+    const [page, setPage] = useState(1);
+    const [categoria, setCategoria] = useState('todas');
+    const [selectedId, setSelectedId] = useState(null);
+    const perPage = 8;
+
+    const cargar = useCallback(async () => {
+        setLoading(true);
+        setError('');
+        try {
+            const res = await controlEscolarApi.notificaciones({
+                search: search.trim() || undefined,
+                categoria: categoria !== 'todas' ? categoria : undefined,
+                page,
+                per_page: perPage,
+                notificacion_id: selectedId ?? undefined,
+            });
+            setPayload(res?.data ?? null);
+        } catch (err) {
+            setPayload(null);
+            setError(err?.message ?? 'No se pudieron cargar las notificaciones.');
+        } finally {
+            setLoading(false);
+        }
+    }, [search, page, categoria, selectedId]);
+
+    useEffect(() => {
+        const t = setTimeout(() => void cargar(), search.trim() ? 350 : 0);
+        return () => clearTimeout(t);
+    }, [cargar]);
+
+    useEffect(() => {
+        setPage(1);
+    }, [search, categoria]);
+
     if (!roles.includes('control_escolar_escuela') && roles.includes('director_escuela')) {
         return <DireccionNotificacionesPage />;
     }
 
-    // Determine specific subtitle based on role
-    const esEducacionSuperior = roles.includes('educacion_superior');
-    const headerSubtitle = esEducacionSuperior
-        ? 'Centro de avisos para Educación Superior: lectura, archivo, respuesta y apertura del trámite relacionado. Preferencias personales únicamente; sin reglas globales del sistema.'
-        : 'Centro de avisos operativos. No incluye administración de categorías globales ni alertas técnicas del sistema.';
+    const metricas = payload?.metricas ?? {};
+    const categorias = payload?.categorias ?? [];
+    const rows = payload?.listado?.data ?? [];
+    const meta = payload?.listado?.meta ?? {};
+    const detalle = payload?.detalle ?? null;
+    const total = Number(meta.total) || 0;
+    const lastPage = Math.max(1, Number(meta.last_page) || 1);
+    const from = meta.from ?? (total === 0 ? 0 : 1);
+    const to = meta.to ?? rows.length;
 
     /* Estilos compartidos de tarjeta (surface) */
     const surface = {
@@ -288,8 +354,16 @@ export function NotificacionesCePage() {
 
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 12 }}>
                     <p style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: '#94a3b8', margin: 0 }}>
-                        <span style={{ color: '#94a3b8' }}>{Icons.clock}</span> Actualizado: 20/05/2025 09:45 a. m.
-                        <span style={{ marginLeft: 8, cursor: 'pointer' }}>{Icons.refreshCwSmall}</span>
+                        <span style={{ color: '#94a3b8' }}>{Icons.clock}</span>
+                        Actualizado: {loading && !payload ? '…' : formatActualizado(payload?.actualizado_en)}
+                        <button
+                            type="button"
+                            onClick={() => void cargar()}
+                            style={{ marginLeft: 8, cursor: 'pointer', border: 'none', background: 'transparent', padding: 0, display: 'flex' }}
+                            aria-label="Actualizar"
+                        >
+                            {Icons.refreshCwSmall}
+                        </button>
                     </p>
                 </div>
             </div>
@@ -300,7 +374,7 @@ export function NotificacionesCePage() {
                     {[
                         { to: '#', label: 'Marcar todas leídas', icon: Icons.check, color: '#0f172a' },
                         { to: '#', label: 'Filtrar', icon: Icons.filter, color: '#0f172a' },
-                        { to: '#', label: 'Configurar alertas', icon: Icons.settings, color: '#0f172a' },
+                        { to: '#', label: 'Preferencias de notificación', icon: Icons.settings, color: '#0f172a' },
                     ].map(({ to, label, icon, color }) => (
                         <Link
                             key={label}
@@ -335,25 +409,31 @@ export function NotificacionesCePage() {
             <div style={{ display: 'flex', gap: 16, marginBottom: 24, flexWrap: 'wrap' }}>
                 <MetricCard 
                     icon={Icons.bell} iconBg="#185FA5" iconColor="white" 
-                    title="No leídas" value="18" 
-                    trend="de 56 notificaciones" 
+                    title="No leídas" value={formatNum(metricas.no_leidas)}
+                    trend={metricas.no_leidas_trend ?? '—'} 
                 />
                 <MetricCard 
                     icon={Icons.alertTriangle} iconBg="#FEE2E2" iconColor="#991B1B" 
-                    title="Críticas" value="4" 
-                    trend="requieren atención" 
+                    title="Críticas" value={formatNum(metricas.criticas)}
+                    trend={metricas.criticas_trend ?? 'requieren atención'} 
                 />
                 <MetricCard 
                     icon={Icons.clock} iconBg="#FEF3C7" iconColor="#BA7517" 
-                    title="Recordatorios" value="12" 
-                    trend="próximos 7 días" 
+                    title="Recordatorios" value={formatNum(metricas.recordatorios)}
+                    trend={metricas.recordatorios_trend ?? 'pendientes de seguimiento'} 
                 />
                 <MetricCard 
                     icon={Icons.zap} iconBg="#534AB7" iconColor="white" 
-                    title="Automáticas" value="22" 
-                    trend="generadas por el sistema" 
+                    title="Automáticas" value={formatNum(metricas.automaticas)}
+                    trend={metricas.automaticas_trend ?? 'generadas por el sistema'} 
                 />
             </div>
+
+            {error ? (
+                <div style={{ padding: '12px 16px', background: '#FEE2E2', border: '1px solid #fecaca', borderRadius: 8, fontSize: 13, color: '#991B1B', marginBottom: 24 }}>
+                    {error}
+                </div>
+            ) : null}
 
             {/* ── Main grid (Izquierda Categorías, Centro Tabla, Derecha Detalle) ── */}
             <div style={{ display: 'grid', gridTemplateColumns: '240px 1fr 320px', gap: 16, alignItems: 'start' }}>
@@ -366,39 +446,58 @@ export function NotificacionesCePage() {
                     </div>
                     
                     <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
-                        {CATEGORIAS.map((cat, idx) => (
-                            <li key={idx} style={{ padding: '4px 12px' }}>
-                                <Link to="#" style={{ 
-                                    display: 'flex', alignItems: 'center', justifyContent: 'space-between', 
-                                    padding: '10px 12px', borderRadius: 8, textDecoration: 'none',
-                                    background: cat.active ? '#EFF6FF' : 'transparent',
-                                    color: cat.active ? '#185FA5' : '#475569',
-                                    fontWeight: cat.active ? 600 : 500,
-                                    transition: 'background 0.2s'
-                                }}>
+                        {categorias.map((cat) => {
+                            const active = categoria === (cat.key ?? 'todas');
+                            const icon = iconoCategoria(cat.label);
+                            return (
+                            <li key={cat.key ?? cat.label} style={{ padding: '4px 12px' }}>
+                                <button
+                                    type="button"
+                                    onClick={() => setCategoria(cat.key ?? 'todas')}
+                                    style={{
+                                        width: '100%',
+                                        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                                        padding: '10px 12px', borderRadius: 8,
+                                        background: active ? '#EFF6FF' : 'transparent',
+                                        color: active ? '#185FA5' : '#475569',
+                                        fontWeight: active ? 600 : 500,
+                                        border: 'none', cursor: 'pointer', textAlign: 'left',
+                                    }}
+                                >
                                     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                                        <span style={{ color: cat.active ? '#185FA5' : '#94a3b8' }}>{cat.icon}</span>
+                                        <span style={{ color: active ? '#185FA5' : '#94a3b8' }}>{icon}</span>
                                         <span style={{ fontSize: 13 }}>{cat.label}</span>
                                     </div>
-                                    <span style={{ fontSize: 12, fontWeight: 700, color: cat.active ? '#185FA5' : '#64748b' }}>{cat.n}</span>
-                                </Link>
+                                    <span style={{ fontSize: 12, fontWeight: 700, color: active ? '#185FA5' : '#64748b' }}>{formatNum(cat.n)}</span>
+                                </button>
                             </li>
-                        ))}
+                            );
+                        })}
                     </ul>
 
-                    <div style={{ padding: '16px 24px 0 24px', borderTop: '1px solid #f1f5f9', marginTop: 8 }}>
-                        <Link to="#" style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 600, color: '#185FA5', textDecoration: 'none' }}>
-                            {Icons.settings} Administrar categorías
-                        </Link>
-                    </div>
                 </div>
 
                 {/* Center Area: Tabla de Notificaciones */}
                 <div style={{ ...surface, padding: 0, overflow: 'hidden' }}>
-                    <div style={{ padding: '20px 20px 12px 20px' }}>
+                    <div style={{ padding: '20px 20px 12px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
                         <h2 style={{ fontSize: 16, fontWeight: 600, color: '#0f172a', margin: 0 }}>
-                            Notificaciones (56)
+                            Notificaciones ({formatNum(total)})
                         </h2>
+                        <div style={{ position: 'relative' }}>
+                            <span style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', display: 'flex' }}>
+                                {Icons.search}
+                            </span>
+                            <input
+                                type="search"
+                                placeholder="Buscar notificación..."
+                                value={search}
+                                onChange={(e) => setSearch(e.target.value)}
+                                style={{
+                                    height: 36, width: 220, paddingLeft: 34, paddingRight: 12,
+                                    border: '1px solid #e2e8f0', borderRadius: 8, fontSize: 13,
+                                }}
+                            />
+                        </div>
                     </div>
 
                     <div style={{ overflowX: 'auto' }}>
@@ -425,26 +524,28 @@ export function NotificacionesCePage() {
                                 </tr>
                             </thead>
                             <tbody>
-                                {DEMO_NOTIFICACIONES.map((n, i) => (
+                                {rows.map((n) => {
+                                    const selected = selectedId === n.id || (!selectedId && detalle?.id === n.id);
+                                    const color = TIPO_ICON_COLORS[n.tipo] ?? '#185FA5';
+                                    return (
                                     <tr
-                                        key={i}
-                                        style={{ borderBottom: '1px solid #f1f5f9', transition: 'background 0.2s', cursor: 'pointer', background: i === 0 ? '#f8fafc' : 'white' }}
-                                        onMouseEnter={(e) => { if(i !== 0) e.currentTarget.style.background = '#f8fafc' }}
-                                        onMouseLeave={(e) => { if(i !== 0) e.currentTarget.style.background = 'transparent' }}
+                                        key={n.id}
+                                        style={{ borderBottom: '1px solid #f1f5f9', transition: 'background 0.2s', cursor: 'pointer', background: selected ? '#f8fafc' : 'white' }}
+                                        onClick={() => setSelectedId(n.id)}
                                     >
                                         <td style={{ padding: '16px', width: 40, textAlign: 'center' }}>
                                             <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                                                 {!n.leida ? <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#185FA5', flexShrink: 0 }} /> : <div style={{ width: 8, height: 8, flexShrink: 0 }} />}
-                                                <span style={{ color: n.color }}>{n.tipoIcon}</span>
+                                                <span style={{ color }}>{iconoPorTipo(n.tipo)}</span>
                                             </div>
                                         </td>
                                         <td style={{ padding: '16px' }}>
-                                            <p style={{ fontSize: 13, fontWeight: 600, color: '#0f172a', margin: 0 }}>{n.msgTitle}</p>
-                                            <p style={{ fontSize: 11, color: '#64748b', margin: '4px 0 0 0', maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{n.msgSub}</p>
+                                            <p style={{ fontSize: 13, fontWeight: 600, color: '#0f172a', margin: 0 }}>{n.titulo}</p>
+                                            <p style={{ fontSize: 11, color: '#64748b', margin: '4px 0 0 0', maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{n.subtitulo}</p>
                                         </td>
                                         <td style={{ padding: '16px' }}>
-                                            <p style={{ fontSize: 13, fontWeight: 500, color: '#0f172a', margin: 0 }}>{n.usrName}</p>
-                                            <p style={{ fontSize: 11, color: '#64748b', margin: '2px 0 0 0' }}>{n.usrId}</p>
+                                            <p style={{ fontSize: 13, fontWeight: 500, color: '#0f172a', margin: 0 }}>{n.alumno}</p>
+                                            <p style={{ fontSize: 11, color: '#64748b', margin: '2px 0 0 0' }}>{n.matricula || '—'}</p>
                                         </td>
                                         <td style={{ padding: '16px' }}>
                                             <p style={{ fontSize: 12, color: '#475569', margin: 0 }}>{n.fecha}</p>
@@ -462,34 +563,40 @@ export function NotificacionesCePage() {
                                             <span style={{ color: '#94a3b8' }}>{Icons.moreVertical}</span>
                                         </td>
                                     </tr>
-                                ))}
+                                    );
+                                })}
                             </tbody>
                         </table>
                     </div>
 
                     {/* Pagination */}
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', borderTop: '1px solid #f1f5f9', flexWrap: 'wrap', gap: 8 }}>
-                        <span style={{ fontSize: 12, color: '#64748b' }}>Mostrando 1 a 8 de 56 notificaciones</span>
+                        <span style={{ fontSize: 12, color: '#64748b' }}>
+                            {total === 0 ? 'Sin notificaciones' : `Mostrando ${from} a ${to} de ${formatNum(total)} notificaciones`}
+                        </span>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
                             <div style={{ display: 'flex', gap: 6 }}>
-                                {['<', '1', '2', '3', '...', '7', '>'].map((p, idx) => (
-                                    <button
-                                        key={idx}
-                                        style={{
-                                            minWidth: 32, height: 32, padding: '0 8px', borderRadius: 6,
-                                            border: p === '1' ? 'none' : '1px solid #e2e8f0',
-                                            background: p === '1' ? '#185FA5' : 'white',
-                                            color: p === '1' ? 'white' : '#475569',
-                                            fontSize: 13, cursor: 'pointer',
-                                        }}
-                                    >
-                                        {p}
-                                    </button>
-                                ))}
+                                <button
+                                    type="button"
+                                    disabled={page <= 1}
+                                    onClick={() => setPage((p) => Math.max(1, p - 1))}
+                                    style={{ minWidth: 32, height: 32, padding: '0 8px', borderRadius: 6, border: '1px solid #e2e8f0', background: 'white', fontSize: 13, cursor: page <= 1 ? 'not-allowed' : 'pointer', opacity: page <= 1 ? 0.5 : 1 }}
+                                >
+                                    &lt;
+                                </button>
+                                <span style={{ minWidth: 32, height: 32, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', borderRadius: 6, background: '#185FA5', color: 'white', fontSize: 13, fontWeight: 600 }}>
+                                    {page}
+                                </span>
+                                <button
+                                    type="button"
+                                    disabled={page >= lastPage}
+                                    onClick={() => setPage((p) => Math.min(lastPage, p + 1))}
+                                    style={{ minWidth: 32, height: 32, padding: '0 8px', borderRadius: 6, border: '1px solid #e2e8f0', background: 'white', fontSize: 13, cursor: page >= lastPage ? 'not-allowed' : 'pointer', opacity: page >= lastPage ? 0.5 : 1 }}
+                                >
+                                    &gt;
+                                </button>
                             </div>
-                            <div style={{ fontSize: 12, color: '#64748b', display: 'flex', alignItems: 'center', gap: 4 }}>
-                                8 por página <span>v</span>
-                            </div>
+                            <div style={{ fontSize: 12, color: '#64748b' }}>{perPage} por página</div>
                         </div>
                     </div>
                 </div>
@@ -501,89 +608,78 @@ export function NotificacionesCePage() {
                         <span style={{ color: '#64748b', cursor: 'pointer' }}>{Icons.xIcon}</span>
                     </div>
 
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', background: '#FEE2E2', border: '1px solid #FECACA', borderRadius: 6, color: '#991B1B', marginBottom: 16 }}>
-                        <span>{Icons.alertTriangle}</span>
-                        <span style={{ fontSize: 12, fontWeight: 600 }}>Alta prioridad</span>
-                    </div>
-
-                    <div>
-                        <h3 style={{ fontSize: 16, fontWeight: 700, color: '#0f172a', margin: '0 0 4px 0' }}>Documento rechazado</h3>
-                        <p style={{ fontSize: 13, fontWeight: 600, color: '#475569', margin: '0 0 12px 0' }}>Comprobante de domicilio</p>
-                        
-                        <p style={{ fontSize: 13, color: '#475569', lineHeight: 1.5, marginBottom: 20 }}>
-                            El documento cargado para el alumno <strong>María Fernanda López Ruiz</strong> ha sido rechazado por no cumplir con los lineamientos establecidos.
-                        </p>
+                    {!detalle ? (
+                        <p style={{ fontSize: 13, color: '#64748b' }}>Selecciona una notificación para ver el detalle.</p>
+                    ) : (
+                        <>
+                            {detalle.prioridad === 'Alta' ? (
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', background: '#FEE2E2', border: '1px solid #FECACA', borderRadius: 6, color: '#991B1B', marginBottom: 16 }}>
+                                    <span>{Icons.alertTriangle}</span>
+                                    <span style={{ fontSize: 12, fontWeight: 600 }}>Alta prioridad</span>
+                                </div>
+                            ) : null}
+                        <h3 style={{ fontSize: 16, fontWeight: 700, color: '#0f172a', margin: '0 0 4px 0' }}>{detalle.titulo}</h3>
+                        <p style={{ fontSize: 13, fontWeight: 600, color: '#475569', margin: '0 0 12px 0' }}>{detalle.subtitulo}</p>
 
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 16, marginBottom: 24 }}>
                             <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
                                 <span style={{ color: '#64748b', marginTop: 2 }}>{Icons.user}</span>
                                 <div>
                                     <p style={{ fontSize: 11, color: '#64748b', margin: '0 0 2px 0' }}>Alumno relacionado</p>
-                                    <p style={{ fontSize: 12, fontWeight: 500, color: '#0f172a', margin: 0 }}>María Fernanda López Ruiz (A23010245)</p>
+                                    <p style={{ fontSize: 12, fontWeight: 500, color: '#0f172a', margin: 0 }}>{detalle.alumno}{detalle.matricula ? ` (${detalle.matricula})` : ''}</p>
                                 </div>
                             </div>
                             <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
                                 <span style={{ color: '#64748b', marginTop: 2 }}>{Icons.folder}</span>
                                 <div>
                                     <p style={{ fontSize: 11, color: '#64748b', margin: '0 0 2px 0' }}>Categoría</p>
-                                    <p style={{ fontSize: 12, fontWeight: 500, color: '#0f172a', margin: 0 }}>Documentos</p>
+                                    <p style={{ fontSize: 12, fontWeight: 500, color: '#0f172a', margin: 0 }}>{detalle.categoria}</p>
                                 </div>
                             </div>
                             <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
                                 <span style={{ color: '#64748b', marginTop: 2 }}>{Icons.calendar}</span>
                                 <div>
                                     <p style={{ fontSize: 11, color: '#64748b', margin: '0 0 2px 0' }}>Fecha y hora</p>
-                                    <p style={{ fontSize: 12, fontWeight: 500, color: '#0f172a', margin: 0 }}>20/05/2025 09:32 a. m.</p>
+                                    <p style={{ fontSize: 12, fontWeight: 500, color: '#0f172a', margin: 0 }}>{detalle.fecha}</p>
                                 </div>
                             </div>
                             <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
                                 <span style={{ color: '#64748b', marginTop: 2 }}>{Icons.info}</span>
                                 <div>
                                     <p style={{ fontSize: 11, color: '#64748b', margin: '0 0 2px 0' }}>Fuente</p>
-                                    <p style={{ fontSize: 12, fontWeight: 500, color: '#0f172a', margin: 0 }}>Usuario: Ana Torres (Control Escolar)</p>
+                                    <p style={{ fontSize: 12, fontWeight: 500, color: '#0f172a', margin: 0 }}>{detalle.fuente}</p>
                                 </div>
                             </div>
                         </div>
 
                         <div style={{ marginBottom: 20 }}>
-                            <p style={{ fontSize: 12, fontWeight: 600, color: '#0f172a', margin: '0 0 6px 0' }}>Motivo del rechazo</p>
+                            <p style={{ fontSize: 12, fontWeight: 600, color: '#0f172a', margin: '0 0 6px 0' }}>Detalle</p>
                             <p style={{ fontSize: 12, color: '#475569', lineHeight: 1.4, margin: 0, padding: '10px 12px', background: '#f8fafc', borderRadius: 8, border: '1px solid #e2e8f0' }}>
-                                El comprobante de domicilio es ilegible. Por favor, carga un documento legible y vigente (máximo 3 meses de antigüedad).
+                                {detalle.motivo || detalle.subtitulo}
                             </p>
                         </div>
 
                         <div style={{ marginBottom: 24 }}>
                             <p style={{ fontSize: 12, fontWeight: 600, color: '#0f172a', margin: '0 0 6px 0' }}>Acciones recomendadas</p>
                             <ul style={{ fontSize: 12, color: '#475569', margin: 0, paddingLeft: 16, lineHeight: 1.4 }}>
-                                <li>Carga un nuevo documento desde el expediente del alumno.</li>
+                                {(detalle.acciones ?? []).map((a) => <li key={a}>{a}</li>)}
                             </ul>
                         </div>
 
-                        <button 
-                            style={{ 
-                                width: '100%', height: 40, borderRadius: 8, background: '#185FA5', 
-                                color: 'white', fontSize: 13, fontWeight: 600, border: 'none', 
-                                cursor: 'pointer', marginBottom: 24 
-                            }}
-                        >
-                            Ir al expediente del alumno
-                        </button>
-
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #f1f5f9', paddingTop: 16 }}>
-                            <Link to="#" style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, fontWeight: 600, color: '#64748b', textDecoration: 'none' }}>
-                                {Icons.eye} Ver detalle
-                            </Link>
-                            <Link to="#" style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, fontWeight: 600, color: '#64748b', textDecoration: 'none' }}>
-                                {Icons.check} Marcar leída
-                            </Link>
-                            <Link to="#" style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, fontWeight: 600, color: '#64748b', textDecoration: 'none' }}>
-                                {Icons.archive} Archivar
-                            </Link>
-                            <Link to="#" style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, fontWeight: 600, color: '#185FA5', textDecoration: 'none' }}>
-                                {Icons.cornerUpLeft} Responder
-                            </Link>
-                        </div>
-                    </div>
+                            {detalle.expediente_url ? (
+                                <Link
+                                    to={detalle.expediente_url}
+                                    style={{
+                                        display: 'block', width: '100%', height: 40, lineHeight: '40px', borderRadius: 8,
+                                        background: '#185FA5', color: 'white', fontSize: 13, fontWeight: 600,
+                                        textAlign: 'center', textDecoration: 'none', marginBottom: 24,
+                                    }}
+                                >
+                                    Ir al expediente del alumno
+                                </Link>
+                            ) : null}
+                        </>
+                    )}
                 </div>
 
             </div>

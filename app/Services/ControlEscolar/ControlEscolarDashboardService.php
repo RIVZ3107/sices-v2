@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\ControlEscolar;
 
 use App\Models\Alumno;
+use App\Models\CicloEscolar;
 use App\Models\DocumentoAcademico;
 use App\Models\ImportacionHistoricaMaterias;
 use App\Models\InscripcionPeriodo;
@@ -13,12 +14,43 @@ use App\Models\OfertaAcademica;
 use App\Models\TrayectoriaAcademica;
 use App\Models\User;
 use App\Services\Certificacion\CertificacionAlcanceService;
-use App\Services\Certificacion\CertificacionImportacionLegacyNormativaGate;
 use App\Services\Certificacion\SolicitudMatriculaService;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Collection;
 
 class ControlEscolarDashboardService
 {
+    /** Etiquetas y colores para escenarios del seeder demo (metadata.scenario). */
+    private const ESCENARIO_DEMO_VISUAL = [
+        'listo_certificar' => ['label' => 'Listo para certificar', 'color' => '#16a34a'],
+        'sin_matricula' => ['label' => 'Sin matrícula activa', 'color' => '#dc2626'],
+        'matricula_sin_inscripcion' => ['label' => 'Sin inscripción', 'color' => '#ea580c'],
+        'inscrito_sin_carga' => ['label' => 'Sin carga académica', 'color' => '#ca8a04'],
+        'carga_sin_calificaciones' => ['label' => 'Calificaciones pendientes', 'color' => '#2563eb'],
+        'importacion_errores' => ['label' => 'Importación con errores', 'color' => '#991b1b'],
+        'documento_observaciones' => ['label' => 'Documento observado', 'color' => '#7c3aed'],
+        'solicitud_revision' => ['label' => 'Solicitud en revisión', 'color' => '#534AB7'],
+        'legacy_fuera_plan' => ['label' => 'Legacy fuera de plan', 'color' => '#64748b'],
+    ];
+
+    private const ESTATUS_VISUAL = [
+        'activo' => ['label' => 'Activos', 'color' => '#16a34a'],
+        'aspirante' => ['label' => 'Aspirantes', 'color' => '#2563eb'],
+        'baja_temporal' => ['label' => 'Baja temporal', 'color' => '#ca8a04'],
+        'baja_definitiva' => ['label' => 'Baja definitiva', 'color' => '#dc2626'],
+        'egresado' => ['label' => 'Egresados', 'color' => '#7c3aed'],
+        'inactivo' => ['label' => 'Inactivos', 'color' => '#64748b'],
+    ];
+
+    private const ESTADOS_MATRICULA_ACTIVA = ['activa', 'vigente'];
+
+    private const ESTATUS_INSCRIPCION_ACTIVA = ['activa', 'inscrita'];
+
+    /** @var list<int>|null */
+    private ?array $ofertasIdsCache = null;
+
+    private ?int $scopeUserId = null;
+
     public function __construct(
         protected CertificacionAlcanceService $alcance,
         protected SolicitudMatriculaService $solicitudesMatricula,
@@ -26,64 +58,231 @@ class ControlEscolarDashboardService
 
     public function resumen(User $user): array
     {
-        $alumnosActivos = $this->alumnosBaseQuery($user)->where('estatus', 'activo')->count();
-        $aspirantesPendientes = $this->alumnosBaseQuery($user)->where('estatus', 'aspirante')->count();
-        $matriculasIncompletas = $this->alumnosSinMatriculaActiva($user)->count();
-        $inscripcionesPendientes = $this->matriculasSinInscripcionActiva($user)->count();
-        $cargasPendientes = $this->inscripcionesSinCarga($user)->count();
-        $calificacionesPendientes = $this->inscripcionesConCalificacionesPendientes($user)->count();
-        $importacionesConErrores = $this->importacionesConErrores($user)->count();
-        $trayectoriasListas = $this->trayectoriasListas($user)->count();
-        $documentosConObservaciones = $this->documentosConObservaciones($user)->count();
-        $solicitudesRevision = $this->solicitudesEnRevision($user)->count();
+        return $this->conAlcanceUsuario($user, function () use ($user): array {
+            $conteosEstatus = $this->conteosAlumnosPorEstatus($user);
+            $distribucion = $this->alumnosDistribucion($user, $conteosEstatus);
+            $muestras = $this->cargarMuestrasOperativas($user);
 
-        $solicitudesMetricas = $user->can('ver_solicitud_matricula')
-            ? $this->solicitudesMatricula->metricasControlEscolar($user)
-            : [
-                'solicitudes_matricula_borrador' => 0,
-                'solicitudes_matricula_enviadas' => 0,
-                'solicitudes_matricula_con_observaciones' => 0,
-                'solicitudes_matricula_matricula_asignada' => 0,
+            $solicitudesMetricas = $user->can('ver_solicitud_matricula')
+                ? $this->solicitudesMatricula->metricasControlEscolar($user)
+                : [
+                    'solicitudes_matricula_borrador' => 0,
+                    'solicitudes_matricula_enviadas' => 0,
+                    'solicitudes_matricula_con_observaciones' => 0,
+                    'solicitudes_matricula_matricula_asignada' => 0,
+                ];
+
+            $metricas = array_merge($this->metricasOperativas($user, $conteosEstatus), $solicitudesMetricas);
+            $pendientes = $this->armarPendientesPrioritarios($muestras);
+            $procesos = $this->armarProcesosRecientes($muestras, $pendientes);
+
+            return [
+                'contexto' => $this->contextoOperativo($user, (int) $distribucion['total']),
+                'metricas' => $metricas,
+                'alumnos_distribucion' => $distribucion,
+                'cards' => [
+                    ['key' => 'alumnos_activos', 'title' => 'Alumnos activos', 'value' => $metricas['alumnos_activos'], 'href' => '/app/expedientes'],
+                    ['key' => 'solicitudes_matricula', 'title' => 'Solicitudes de matrícula', 'value' => ($metricas['solicitudes_matricula_borrador'] ?? 0) + ($metricas['solicitudes_matricula_enviadas'] ?? 0) + ($metricas['solicitudes_matricula_con_observaciones'] ?? 0), 'href' => '/app/expedientes'],
+                    ['key' => 'inscripciones_pendientes', 'title' => 'Inscripciones pendientes', 'value' => $metricas['inscripciones_pendientes'], 'href' => '/app/expedientes'],
+                    ['key' => 'calificaciones_pendientes', 'title' => 'Calificaciones pendientes', 'value' => $metricas['calificaciones_pendientes'], 'href' => '/app/expedientes'],
+                    ['key' => 'documentos_obs', 'title' => 'Documentos con observaciones', 'value' => $metricas['documentos_con_observaciones'], 'href' => '/app/expedientes'],
+                ],
+                'pendientes_prioritarios' => $pendientes,
+                'documentos_en_proceso' => [],
+                'importaciones_recientes' => [],
+                'procesos_recientes' => $procesos,
             ];
+        });
+    }
 
-        $metricas = array_merge([
-            'alumnos_activos' => $alumnosActivos,
-            'aspirantes_pendientes' => $aspirantesPendientes,
-            'matriculas_incompletas' => $matriculasIncompletas,
-            'inscripciones_pendientes' => $inscripcionesPendientes,
-            'cargas_academicas_pendientes' => $cargasPendientes,
-            'calificaciones_pendientes' => $calificacionesPendientes,
-            'importaciones_con_errores' => $importacionesConErrores,
-            'trayectorias_listas_para_certificar' => $trayectoriasListas,
-            'documentos_con_observaciones' => $documentosConObservaciones,
-            'solicitudes_en_revision' => $solicitudesRevision,
-        ], $solicitudesMetricas);
+    /**
+     * Ejecuta lógica con alcance territorial cacheado (ofertas IDs) para el usuario.
+     *
+     * @template T
+     *
+     * @param  callable(): T  $callback
+     * @return T
+     */
+    public function conAlcanceUsuario(User $user, callable $callback): mixed
+    {
+        $this->iniciarAlcance($user);
+
+        try {
+            return $callback();
+        } finally {
+            $this->limpiarAlcance();
+        }
+    }
+
+    /**
+     * Métricas para la página de gestión de alumnos (sin cargar el tablero completo).
+     * Debe invocarse dentro de {@see conAlcanceUsuario}.
+     *
+     * @return array{
+     *   alumnos_activos: int,
+     *   baja_temporal: int,
+     *   egresados: int,
+     *   expedientes_incompletos: int,
+     *   total_alcance: int
+     * }
+     */
+    public function metricasGestionAlumnos(User $user): array
+    {
+        $conteos = $this->conteosAlumnosPorEstatus($user);
 
         return [
-            'contexto' => [
-                'subsistema' => $user->instituciones()->with('subsistema')->first()?->subsistema?->nombre ?? 'Subsistema no asignado',
-                'institucion' => $user->instituciones()->first()?->nombre ?? 'Institucion no asignada',
-                'sede' => $user->sedes()->first()?->nombre ?? 'Sede no asignada',
-                'ciclo_escolar' => now()->format('Y').'-'.(string) ((int) now()->format('Y') + 1),
-            ],
-            'metricas' => $metricas,
-            'cards' => [
-                ['key' => 'alumnos_activos', 'title' => 'Alumnos activos', 'value' => $metricas['alumnos_activos'], 'href' => '/app/expedientes'],
-                ['key' => 'solicitudes_matricula', 'title' => 'Solicitudes de matrícula', 'value' => ($metricas['solicitudes_matricula_borrador'] ?? 0) + ($metricas['solicitudes_matricula_enviadas'] ?? 0) + ($metricas['solicitudes_matricula_con_observaciones'] ?? 0), 'href' => '/app/expedientes'],
-                ['key' => 'inscripciones_pendientes', 'title' => 'Inscripciones pendientes', 'value' => $metricas['inscripciones_pendientes'], 'href' => '/app/expedientes'],
-                ['key' => 'calificaciones_pendientes', 'title' => 'Calificaciones pendientes', 'value' => $metricas['calificaciones_pendientes'], 'href' => '/app/expedientes'],
-                ['key' => 'documentos_obs', 'title' => 'Documentos con observaciones', 'value' => $metricas['documentos_con_observaciones'], 'href' => '/app/expedientes'],
-            ],
-            'pendientes_prioritarios' => $this->pendientesPrioritarios($user),
-            'documentos_en_proceso' => $this->documentosEnProceso($user),
-            'importaciones_recientes' => $this->importacionesRecientes($user),
+            'alumnos_activos' => (int) ($conteos['activo'] ?? 0),
+            'baja_temporal' => (int) ($conteos['baja_temporal'] ?? 0),
+            'egresados' => (int) ($conteos['egresado'] ?? 0),
+            'expedientes_incompletos' => $this->alumnosSinMatriculaActiva($user)->count(),
+            'total_alcance' => array_sum($conteos),
         ];
     }
 
-    protected function pendientesPrioritarios(User $user): array
+    /**
+     * Query de alumnos en alcance. Debe invocarse dentro de {@see conAlcanceUsuario}.
+     *
+     * @return Builder<Alumno>
+     */
+    public function queryAlumnosEnAlcance(User $user): Builder
+    {
+        return $this->alumnosBaseQuery($user);
+    }
+
+    private function iniciarAlcance(User $user): void
+    {
+        $this->scopeUserId = $user->id;
+        $this->ofertasIdsCache = null;
+        $this->ofertasIds($user);
+    }
+
+    private function limpiarAlcance(): void
+    {
+        $this->scopeUserId = null;
+        $this->ofertasIdsCache = null;
+    }
+
+    /**
+     * @return list<int>
+     */
+    private function ofertasIds(User $user): array
+    {
+        if ($this->ofertasIdsCache !== null && $this->scopeUserId === $user->id) {
+            return $this->ofertasIdsCache;
+        }
+
+        if ($this->alcance->exentaRestriccionTerritorial($user)) {
+            return $this->ofertasIdsCache = OfertaAcademica::query()->pluck('id')->all();
+        }
+
+        $ofertas = OfertaAcademica::query();
+        $this->alcance->aplicarAlcanceOfertasAcademicas($ofertas, $user);
+
+        return $this->ofertasIdsCache = $ofertas->pluck('id')->all();
+    }
+
+    /**
+     * @return array<string, int>
+     */
+    private function conteosAlumnosPorEstatus(User $user): array
+    {
+        $rows = $this->alumnosBaseQuery($user)
+            ->selectRaw('estatus, COUNT(*) as total')
+            ->groupBy('estatus')
+            ->pluck('total', 'estatus');
+
+        $conteos = [];
+        foreach ($rows as $estatus => $total) {
+            $conteos[(string) $estatus] = (int) $total;
+        }
+
+        return $conteos;
+    }
+
+    /**
+     * @param  array<string, int>  $conteosEstatus
+     * @return array<string, int>
+     */
+    private function metricasOperativas(User $user, array $conteosEstatus): array
+    {
+        $ids = $this->ofertasIds($user);
+
+        return [
+            'alumnos_activos' => (int) ($conteosEstatus['activo'] ?? 0),
+            'aspirantes_pendientes' => (int) ($conteosEstatus['aspirante'] ?? 0),
+            'matriculas_incompletas' => $this->alumnosSinMatriculaActiva($user)->count(),
+            'inscripciones_pendientes' => $ids === []
+                ? 0
+                : Matricula::query()
+                    ->whereIn('oferta_academica_id', $ids)
+                    ->whereIn('estado', self::ESTADOS_MATRICULA_ACTIVA)
+                    ->whereDoesntHave('inscripcionesPeriodo', fn (Builder $q) => $q->whereIn('estatus', self::ESTATUS_INSCRIPCION_ACTIVA))
+                    ->count(),
+            'cargas_academicas_pendientes' => $ids === []
+                ? 0
+                : InscripcionPeriodo::query()
+                    ->whereIn('estatus', self::ESTATUS_INSCRIPCION_ACTIVA)
+                    ->whereDoesntHave('cargasAcademicas')
+                    ->whereHas('matricula', fn (Builder $m) => $m->whereIn('oferta_academica_id', $ids)->whereIn('estado', self::ESTADOS_MATRICULA_ACTIVA))
+                    ->count(),
+            'calificaciones_pendientes' => $this->inscripcionesConCalificacionesPendientes($user)->count(),
+            'importaciones_con_errores' => $this->importacionesConErrores($user)->count(),
+            'trayectorias_listas_para_certificar' => $this->trayectoriasListas($user)->count(),
+            'documentos_con_observaciones' => $this->documentosConObservaciones($user)->count(),
+            'solicitudes_en_revision' => $this->solicitudesEnRevision($user)->count(),
+        ];
+    }
+
+    /**
+     * @return array{
+     *   sin_matricula: Collection<int, Alumno>,
+     *   sin_inscripcion: Collection<int, Matricula>,
+     *   sin_carga: Collection<int, InscripcionPeriodo>,
+     *   docs_observaciones: Collection<int, DocumentoAcademico>,
+     *   docs_revision: Collection<int, DocumentoAcademico>,
+     *   importaciones_error: Collection<int, ImportacionHistoricaMaterias>,
+     *   trayectorias_listas: Collection<int, TrayectoriaAcademica>
+     * }
+     */
+    private function cargarMuestrasOperativas(User $user): array
+    {
+        return [
+            'sin_matricula' => $this->alumnosSinMatriculaActiva($user)->limit(3)->get(),
+            'sin_inscripcion' => $this->matriculasSinInscripcionActiva($user)->limit(3)->get(),
+            'sin_carga' => $this->inscripcionesSinCarga($user)->limit(3)->get(),
+            'docs_observaciones' => $this->documentosConObservaciones($user)->limit(3)->get(),
+            'docs_revision' => $this->solicitudesEnRevision($user)
+                ->with(['alumno:id,nombre,primer_apellido,segundo_apellido,curp', 'matricula:id,matricula'])
+                ->limit(3)
+                ->get(),
+            'importaciones_error' => $this->importacionesConErrores($user)
+                ->with(['matricula.alumno:id,nombre,primer_apellido,segundo_apellido,curp'])
+                ->limit(2)
+                ->get(),
+            'trayectorias_listas' => $this->trayectoriasListas($user)
+                ->with(['matricula.alumno:id,nombre,primer_apellido,segundo_apellido,curp'])
+                ->limit(2)
+                ->get(),
+        ];
+    }
+
+    /**
+     * @param  array<string, Collection>  $muestras
+     * @return list<array<string, mixed>>
+     */
+    private function armarPendientesPrioritarios(array $muestras): array
     {
         $pendientes = [];
-        $push = static function (array &$items, string $alumno, string $curp, string $matricula, string $problema, string $prioridad, string $accion, ?int $alumnoId): void {
+        $push = static function (
+            array &$items,
+            string $alumno,
+            string $curp,
+            string $matricula,
+            string $problema,
+            string $prioridad,
+            string $accion,
+            ?int $alumnoId,
+        ): void {
             if (count($items) >= 12) {
                 return;
             }
@@ -98,62 +297,155 @@ class ControlEscolarDashboardService
             ];
         };
 
-        foreach ($this->alumnosSinMatriculaActiva($user)->limit(3)->get() as $alumno) {
+        foreach ($muestras['sin_matricula'] as $alumno) {
             $push($pendientes, $this->nombreAlumno($alumno), (string) $alumno->curp, 'Sin matricula', 'Expediente incompleto: falta matricula activa', 'Alta', 'Solicitar matricula a Educacion Superior', (int) $alumno->id);
         }
-        foreach ($this->matriculasSinInscripcionActiva($user)->limit(3)->get() as $matricula) {
+        foreach ($muestras['sin_inscripcion'] as $matricula) {
             $push($pendientes, $this->nombreAlumno($matricula->alumno), (string) $matricula->alumno?->curp, (string) $matricula->matricula, 'Inscripcion pendiente', 'Alta', 'Registrar inscripcion de periodo', (int) $matricula->alumno_id);
         }
-        foreach ($this->inscripcionesSinCarga($user)->limit(3)->get() as $inscripcion) {
+        foreach ($muestras['sin_carga'] as $inscripcion) {
             $push($pendientes, $this->nombreAlumno($inscripcion->matricula?->alumno), (string) $inscripcion->matricula?->alumno?->curp, (string) $inscripcion->matricula?->matricula, 'Carga academica pendiente', 'Media', 'Generar carga academica', (int) $inscripcion->matricula?->alumno_id);
         }
-        foreach ($this->documentosConObservaciones($user)->limit(3)->get() as $doc) {
+        foreach ($muestras['docs_observaciones'] as $doc) {
             $push($pendientes, $this->nombreAlumno($doc->alumno), (string) $doc->alumno?->curp, (string) $doc->matricula?->matricula, 'Documento con observaciones', 'Alta', 'Atender observacion', (int) $doc->alumno_id);
         }
 
         return $pendientes;
     }
 
-    protected function documentosEnProceso(User $user): array
+    /**
+     * @param  array<string, Collection>  $muestras
+     * @param  list<array<string, mixed>>  $pendientes
+     * @return list<array{alumno: string, matricula: string, tramite: string, estatus: string, expediente_url: string}>
+     */
+    private function armarProcesosRecientes(array $muestras, array $pendientes): array
     {
-        return $this->documentosBaseQuery($user)
-            ->whereIn('estado_workflow', ['borrador', 'en_revision', 'pendiente_revision'])
-            ->with(['alumno:id,nombre,primer_apellido,segundo_apellido,curp', 'matricula:id,matricula'])
-            ->latest('id')
-            ->limit(10)
-            ->get()
-            ->map(fn (DocumentoAcademico $doc) => [
-                'alumno' => $this->nombreAlumno($doc->alumno),
-                'curp' => $doc->alumno?->curp,
-                'matricula' => $doc->matricula?->matricula,
-                'estado' => $this->estadoHumano($doc->estado_workflow),
-                'accion' => 'Ver seguimiento',
-                'expediente_url' => '/app/expedientes?alumno='.$doc->alumno_id.'&tab=certificacion',
-            ])
-            ->values()
-            ->all();
-    }
+        $items = [];
+        $push = function (
+            string $alumno,
+            string $matricula,
+            string $tramite,
+            string $estatus,
+            ?string $curp = null,
+        ) use (&$items): void {
+            if (count($items) >= 8) {
+                return;
+            }
+            $url = '/app/control-escolar/expedientes';
+            if ($curp !== null && $curp !== '') {
+                $url .= '?search='.urlencode($curp);
+            }
+            $items[] = [
+                'alumno' => $alumno,
+                'matricula' => $matricula,
+                'tramite' => $tramite,
+                'estatus' => $estatus,
+                'expediente_url' => $url,
+            ];
+        };
 
-    protected function importacionesRecientes(User $user): array
-    {
-        return $this->importacionesBaseQuery($user)
-            ->latest('id')
-            ->limit(10)
-            ->get()
-            ->map(fn (ImportacionHistoricaMaterias $imp) => [
-                'matricula' => $imp->matricula?->matricula ?? 'Sin matricula',
-                'alumno' => $this->nombreAlumno($imp->matricula?->alumno),
-                'estado' => $this->estadoImportacionHumano($imp),
-                'resultado' => data_get($imp->validacion_payload, 'tiene_bloqueos') ? 'Con errores' : 'Sin errores',
-            ])
-            ->values()
-            ->all();
+        foreach ($muestras['docs_observaciones'] as $doc) {
+            $push(
+                $this->nombreAlumno($doc->alumno),
+                (string) ($doc->matricula?->matricula ?? '—'),
+                'Certificado · observaciones pendientes',
+                'Observado',
+                (string) $doc->alumno?->curp,
+            );
+        }
+
+        foreach ($muestras['docs_revision'] as $doc) {
+            $push(
+                $this->nombreAlumno($doc->alumno),
+                (string) ($doc->matricula?->matricula ?? '—'),
+                'Solicitud de certificación',
+                'En revisión',
+                (string) $doc->alumno?->curp,
+            );
+        }
+
+        foreach ($muestras['sin_matricula']->take(2) as $alumno) {
+            $push(
+                $this->nombreAlumno($alumno),
+                'Sin matrícula',
+                'Expediente incompleto',
+                'Pendiente',
+                (string) $alumno->curp,
+            );
+        }
+
+        foreach ($muestras['sin_inscripcion']->take(2) as $matricula) {
+            $push(
+                $this->nombreAlumno($matricula->alumno),
+                (string) $matricula->matricula,
+                'Inscripción de periodo',
+                'Pendiente',
+                (string) $matricula->alumno?->curp,
+            );
+        }
+
+        foreach ($muestras['sin_carga']->take(2) as $inscripcion) {
+            $push(
+                $this->nombreAlumno($inscripcion->matricula?->alumno),
+                (string) ($inscripcion->matricula?->matricula ?? '—'),
+                'Carga académica',
+                'En proceso',
+                (string) $inscripcion->matricula?->alumno?->curp,
+            );
+        }
+
+        foreach ($muestras['importaciones_error'] as $imp) {
+            $push(
+                $this->nombreAlumno($imp->matricula?->alumno),
+                (string) ($imp->matricula?->matricula ?? '—'),
+                'Importación histórica',
+                'Error',
+                (string) $imp->matricula?->alumno?->curp,
+            );
+        }
+
+        foreach ($muestras['trayectorias_listas'] as $tray) {
+            $alumno = $tray->alumno ?? $tray->matricula?->alumno;
+            $push(
+                $this->nombreAlumno($alumno),
+                (string) ($tray->matricula?->matricula ?? '—'),
+                'Listo para certificar',
+                'Completado',
+                (string) $alumno?->curp,
+            );
+        }
+
+        if ($items === []) {
+            foreach ($pendientes as $p) {
+                $push(
+                    (string) $p['alumno'],
+                    (string) $p['matricula'],
+                    (string) $p['problema'],
+                    (string) $p['prioridad'],
+                    isset($p['curp']) ? (string) $p['curp'] : null,
+                );
+            }
+        }
+
+        return $items;
     }
 
     protected function alumnosBaseQuery(User $user): Builder
     {
         $query = Alumno::query();
-        $this->alcance->aplicarAlcanceAlumnos($query, $user);
+
+        if ($this->alcance->exentaRestriccionTerritorial($user)) {
+            return $query;
+        }
+
+        $ids = $this->ofertasIds($user);
+        if ($ids === []) {
+            $query->whereRaw('1 = 0');
+
+            return $query;
+        }
+
+        $query->whereHas('matriculas', fn (Builder $m) => $m->whereIn('oferta_academica_id', $ids));
 
         return $query;
     }
@@ -161,53 +453,48 @@ class ControlEscolarDashboardService
     protected function alumnosSinMatriculaActiva(User $user): Builder
     {
         return $this->alumnosBaseQuery($user)->whereDoesntHave('matriculas', function (Builder $q): void {
-            $q->whereIn('estado', ['activa', 'vigente']);
+            $q->whereIn('estado', self::ESTADOS_MATRICULA_ACTIVA);
         });
     }
 
     protected function matriculasSinInscripcionActiva(User $user): Builder
     {
-        $ofertas = OfertaAcademica::query();
-        $this->alcance->aplicarAlcanceOfertasAcademicas($ofertas, $user);
-        $query = Matricula::query()->with('alumno');
-        $query->whereIn('estado', ['activa', 'vigente']);
-        $query->whereIn('oferta_academica_id', $ofertas->pluck('id'));
-        $query->whereDoesntHave('inscripcionesPeriodo', function (Builder $q): void {
-            $q->whereIn('estatus', ['activa', 'inscrita']);
-        });
+        $ids = $this->ofertasIds($user);
 
-        return $query;
+        return Matricula::query()
+            ->with('alumno')
+            ->whereIn('estado', self::ESTADOS_MATRICULA_ACTIVA)
+            ->whereIn('oferta_academica_id', $ids)
+            ->whereDoesntHave('inscripcionesPeriodo', function (Builder $q): void {
+                $q->whereIn('estatus', self::ESTATUS_INSCRIPCION_ACTIVA);
+            });
     }
 
     protected function inscripcionesSinCarga(User $user): Builder
     {
-        $ofertas = OfertaAcademica::query();
-        $this->alcance->aplicarAlcanceOfertasAcademicas($ofertas, $user);
-        $ofertasIds = $ofertas->pluck('id');
-        $query = InscripcionPeriodo::query()->with('matricula.alumno');
-        $query->whereIn('estatus', ['activa', 'inscrita']);
-        $query->whereDoesntHave('cargasAcademicas');
-        $query->whereHas('matricula', function (Builder $mat): void {
-            $mat->whereIn('estado', ['activa', 'vigente']);
-        });
-        $query->whereHas('matricula', fn (Builder $mat) => $mat->whereIn('oferta_academica_id', $ofertasIds));
+        $ids = $this->ofertasIds($user);
 
-        return $query;
+        return InscripcionPeriodo::query()
+            ->with('matricula.alumno')
+            ->whereIn('estatus', self::ESTATUS_INSCRIPCION_ACTIVA)
+            ->whereDoesntHave('cargasAcademicas')
+            ->whereHas('matricula', function (Builder $mat) use ($ids): void {
+                $mat->whereIn('estado', self::ESTADOS_MATRICULA_ACTIVA)
+                    ->whereIn('oferta_academica_id', $ids);
+            });
     }
 
     protected function inscripcionesConCalificacionesPendientes(User $user): Builder
     {
-        $ofertas = OfertaAcademica::query();
-        $this->alcance->aplicarAlcanceOfertasAcademicas($ofertas, $user);
-        $ofertasIds = $ofertas->pluck('id');
+        $ids = $this->ofertasIds($user);
 
         return InscripcionPeriodo::query()
-            ->whereIn('estatus', ['activa', 'inscrita'])
+            ->whereIn('estatus', self::ESTATUS_INSCRIPCION_ACTIVA)
             ->whereHas('cargasAcademicas')
-            ->whereHas('matricula', function (Builder $mat): void {
-                $mat->whereIn('estado', ['activa', 'vigente']);
+            ->whereHas('matricula', function (Builder $mat) use ($ids): void {
+                $mat->whereIn('estado', self::ESTADOS_MATRICULA_ACTIVA)
+                    ->whereIn('oferta_academica_id', $ids);
             })
-            ->whereHas('matricula', fn (Builder $mat) => $mat->whereIn('oferta_academica_id', $ofertasIds))
             ->where(function (Builder $q): void {
                 $q->whereDoesntHave('cargasAcademicas.materiasCursadas')
                     ->orWhereHas('cargasAcademicas.materiasCursadas', function (Builder $m): void {
@@ -228,27 +515,22 @@ class ControlEscolarDashboardService
 
     protected function importacionesBaseQuery(User $user): Builder
     {
-        $query = ImportacionHistoricaMaterias::query()->with('matricula.alumno');
-        $query->whereHas('matricula', function (Builder $mat) use ($user): void {
-            $ofertas = \App\Models\OfertaAcademica::query();
-            $this->alcance->aplicarAlcanceOfertasAcademicas($ofertas, $user);
-            $mat->whereIn('oferta_academica_id', $ofertas->pluck('id'));
-        });
+        $ids = $this->ofertasIds($user);
 
-        return $query;
+        return ImportacionHistoricaMaterias::query()
+            ->with('matricula.alumno')
+            ->whereHas('matricula', fn (Builder $mat) => $mat->whereIn('oferta_academica_id', $ids));
     }
 
     protected function trayectoriasListas(User $user): Builder
     {
-        $ofertas = OfertaAcademica::query();
-        $this->alcance->aplicarAlcanceOfertasAcademicas($ofertas, $user);
-        $ofertasIds = $ofertas->pluck('id');
+        $ids = $this->ofertasIds($user);
 
         return TrayectoriaAcademica::query()
             ->whereIn('estado', ['consolidada', 'lista_certificacion'])
-            ->whereHas('matricula', function (Builder $q) use ($ofertasIds): void {
-                $q->whereIn('estado', ['activa', 'vigente']);
-                $q->whereIn('oferta_academica_id', $ofertasIds);
+            ->whereHas('matricula', function (Builder $q) use ($ids): void {
+                $q->whereIn('estado', self::ESTADOS_MATRICULA_ACTIVA)
+                    ->whereIn('oferta_academica_id', $ids);
             });
     }
 
@@ -281,27 +563,111 @@ class ControlEscolarDashboardService
         return trim(implode(' ', array_filter([$alumno->nombre, $alumno->primer_apellido, $alumno->segundo_apellido])));
     }
 
-    protected function estadoHumano(?string $estado): string
+    /**
+     * @return array{sede: ?string, ciclo_escolar: ?string, total_alumnos_alcance: int}
+     */
+    protected function contextoOperativo(User $user, int $totalAlumnos): array
     {
-        return match ($estado) {
-            'borrador' => 'Borrador',
-            'en_revision' => 'En revision',
-            'pendiente_revision' => 'Pendiente de revision',
-            'aprobado' => 'Aprobado',
-            'rechazado' => 'Con observaciones',
-            default => $estado ?: 'Sin estado',
+        $ciclo = CicloEscolar::query()
+            ->where('clave', 'SXCE-DEMO-CICLO-2026')
+            ->first();
+
+        if ($ciclo === null) {
+            $ciclo = CicloEscolar::query()->where('activo', true)->orderByDesc('id')->first();
+        }
+
+        $nombresSedes = $user->sedes()->orderBy('nombre')->limit(3)->pluck('nombre');
+        $sede = match (true) {
+            $nombresSedes->count() === 0 => null,
+            $nombresSedes->count() === 1 => (string) $nombresSedes->first(),
+            default => $nombresSedes->count().' sedes en alcance',
+        };
+
+        return [
+            'sede' => $sede,
+            'ciclo_escolar' => $ciclo?->nombre,
+            'total_alumnos_alcance' => $totalAlumnos,
+        ];
+    }
+
+    /**
+     * @param  array<string, int>|null  $conteosEstatus
+     * @return array{tipo: string, total: int, segmentos: list<array{key: string, label: string, color: string, count: int, pct: float|int}>}
+     */
+    protected function alumnosDistribucion(User $user, ?array $conteosEstatus = null): array
+    {
+        if ($this->alumnosBaseQuery($user)
+            ->where('metadata->origen', ResetDemoControlEscolarService::ORIGEN)
+            ->exists()) {
+            return $this->distribucionPorEscenarioDemo($user);
+        }
+
+        $conteos = $conteosEstatus ?? $this->conteosAlumnosPorEstatus($user);
+
+        return $this->armarSegmentosDistribucion($conteos, 'estatus', self::ESTATUS_VISUAL);
+    }
+
+    /**
+     * @return array{tipo: string, total: int, segmentos: list<array{key: string, label: string, color: string, count: int, pct: float|int}>}
+     */
+    protected function distribucionPorEscenarioDemo(User $user): array
+    {
+        $escenarioSql = $this->expresionEscenarioDemoSql();
+        $origen = ResetDemoControlEscolarService::ORIGEN;
+
+        $rows = $this->alumnosBaseQuery($user)
+            ->where('metadata->origen', $origen)
+            ->selectRaw("{$escenarioSql} as escenario, COUNT(*) as total")
+            ->groupBy('escenario')
+            ->pluck('total', 'escenario');
+
+        $conteos = [];
+        foreach ($rows as $escenario => $total) {
+            $clave = $escenario !== null && $escenario !== '' ? (string) $escenario : 'sin_escenario';
+            $conteos[$clave] = (int) $total;
+        }
+
+        return $this->armarSegmentosDistribucion($conteos, 'escenario_demo', self::ESCENARIO_DEMO_VISUAL);
+    }
+
+    private function expresionEscenarioDemoSql(): string
+    {
+        $driver = Alumno::query()->getConnection()->getDriverName();
+
+        return match ($driver) {
+            'sqlite' => "COALESCE(json_extract(metadata, '$.scenario'), 'sin_escenario')",
+            'pgsql' => "COALESCE(metadata->>'scenario', 'sin_escenario')",
+            default => "COALESCE(JSON_UNQUOTE(JSON_EXTRACT(metadata, '$.scenario')), 'sin_escenario')",
         };
     }
 
-    protected function estadoImportacionHumano(ImportacionHistoricaMaterias $imp): string
+    /**
+     * @param  array<string, int>  $conteos
+     * @param  array<string, array{label: string, color: string}>  $catalogo
+     * @return array{tipo: string, total: int, segmentos: list<array{key: string, label: string, color: string, count: int, pct: float|int}>}
+     */
+    protected function armarSegmentosDistribucion(array $conteos, string $tipo, array $catalogo): array
     {
-        if (data_get($imp->validacion_payload, 'tiene_bloqueos') === true) {
-            return 'Con errores de validacion';
-        }
-        if ($imp->estado === 'confirmada') {
-            return 'Confirmada';
+        $total = array_sum($conteos);
+        $segmentos = [];
+
+        foreach ($conteos as $clave => $count) {
+            $visual = $catalogo[$clave] ?? ['label' => ucfirst(str_replace('_', ' ', $clave)), 'color' => '#64748b'];
+            $segmentos[] = [
+                'key' => $clave,
+                'label' => $visual['label'],
+                'color' => $visual['color'],
+                'count' => $count,
+                'pct' => $total > 0 ? round(($count / $total) * 100, 1) : 0,
+            ];
         }
 
-        return 'En proceso';
+        usort($segmentos, static fn (array $a, array $b): int => $b['count'] <=> $a['count']);
+
+        return [
+            'tipo' => $tipo,
+            'total' => $total,
+            'segmentos' => $segmentos,
+        ];
     }
 }

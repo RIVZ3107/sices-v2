@@ -1,5 +1,19 @@
-import React from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { controlEscolarApi } from '../../api/controlEscolar';
+
+function formatActualizado(iso) {
+    if (!iso) return '—';
+    try {
+        return new Intl.DateTimeFormat('es-MX', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(iso));
+    } catch {
+        return '—';
+    }
+}
+
+function formatNum(n) {
+    return new Intl.NumberFormat('es-MX').format(Number(n) || 0);
+}
 
 // --- UTILIDADES DE ESTILO (PALETA UNIFICADA) ---
 function StatusBadge({ children, tone }) {
@@ -186,34 +200,56 @@ const Icons = {
     ),
 };
 
-const DEMO_BAJAS = [
-    { alumno: 'María Fernanda López Ruiz', matricula: 'A23010245', tipo: 'Baja temporal', motivo: 'Problemas de salud', fecha: '20/05/2025', hora: '09:32 a. m.', estatus: 'Pendiente', tone: 'green', typeColor: '#DC2626', icon: Icons.lock },
-    { alumno: 'José Andrés Martínez Díaz', matricula: 'A23009876', tipo: 'Baja definitiva', motivo: 'Cambio de residencia', fecha: '20/05/2025', hora: '09:15 a. m.', estatus: 'En revisión', tone: 'blue', typeColor: '#6B21A8', icon: Icons.boxX },
-    { alumno: 'Ana Paula García Torres', matricula: 'A23011488', tipo: 'Cambio de grupo', motivo: 'Reorganización académica', fecha: '20/05/2025', hora: '08:47 a. m.', estatus: 'En revisión', tone: 'orange', typeColor: '#185FA5', icon: Icons.users },
-    { alumno: 'Diego Alejandro Pérez Soto', matricula: 'A23010567', tipo: 'Cambio de turno', motivo: 'Compatibilidad de horarios', fecha: '20/05/2025', hora: '08:25 a. m.', estatus: 'Pendiente', tone: 'green', typeColor: '#0F6E56', icon: Icons.clock },
-    { alumno: 'Valeria Hernández Cruz', matricula: 'A23011123', tipo: 'Cambio de programa', motivo: 'Cambio de área de estudio', fecha: '20/05/2025', hora: '08:03 a. m.', estatus: 'Observada', tone: 'red', typeColor: '#534AB7', icon: Icons.graduationCap },
-    { alumno: 'Luis Fernando Aguilar León', matricula: 'A23010398', tipo: 'Baja definitiva', motivo: 'Abandono de estudios', fecha: '19/05/2025', hora: '04:12 p. m.', estatus: 'Aprobada', tone: 'green', typeColor: '#DC2626', icon: Icons.lock },
-    { alumno: 'Sofía Valentina Morales Peña', matricula: 'A23011620', tipo: 'Cambio de grupo', motivo: 'Nivelación de grupos', fecha: '19/05/2025', hora: '03:41 p. m.', estatus: 'Rechazada', tone: 'red', typeColor: '#185FA5', icon: Icons.users },
-];
-
-const MOTIVOS_DONUT = [
-    { label: 'Cambio de residencia', pct: 37, count: 21, color: '#185FA5' }, // Azul
-    { label: 'Problemas de salud', pct: 21, count: 12, color: '#0F6E56' },   // Verde
-    { label: 'Incompatibilidad de horarios', pct: 16, count: 9, color: '#EA580C' }, // Naranja
-    { label: 'Reorganización académica', pct: 11, count: 6, color: '#6B21A8' }, // Morado
-    { label: 'Abandono de estudios', pct: 8, count: 4, color: '#EAB308' },    // Amarillo
-    { label: 'Otros', pct: 7, count: 4, color: '#64748b' },                   // Gris
-];
-
-const CAMBIOS_RECIENTES = [
-    { text: 'Baja temporal aprobada', subtext: 'María José Ramírez López (A23010765)', date: '20/05/2025 09:10 a. m.', color: '#0F6E56' },
-    { text: 'Cambio de grupo en revisión', subtext: 'Carlos Eduardo Flores (A23010987)', date: '20/05/2025 08:55 a. m.', color: '#EA580C' },
-    { text: 'Baja definitiva rechazada', subtext: 'Diana Sofía Méndez (A23011234)', date: '20/05/2025 08:30 a. m.', color: '#DC2626' },
-    { text: 'Cambio de turno aprobado', subtext: 'Jorge Luis Hernández (A23010102)', date: '20/05/2025 07:45 a. m.', color: '#0F6E56' },
-    { text: 'Cambio de programa en revisión', subtext: 'Camila Andrea Torres (A23011510)', date: '20/05/2025 07:15 a. m.', color: '#6B21A8' },
-];
+const TYPE_ICONS = {
+    lock: Icons.lock,
+    boxX: Icons.boxX,
+    users: Icons.users,
+    clock: Icons.clock,
+    graduationCap: Icons.graduationCap,
+};
 
 export function BajasCambiosPage() {
+    const [search, setSearch] = useState('');
+    const [estatusFiltro, setEstatusFiltro] = useState('');
+    const [page, setPage] = useState(1);
+    const [perPage] = useState(10);
+    const [payload, setPayload] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState('');
+
+    const cargar = useCallback(async () => {
+        setLoading(true);
+        setError('');
+        try {
+            const res = await controlEscolarApi.bajasCambios({
+                search: search.trim() || undefined,
+                estatus: estatusFiltro || undefined,
+                page,
+                per_page: perPage,
+            });
+            setPayload(res?.data ?? null);
+        } catch (err) {
+            setPayload(null);
+            setError(err?.message ?? 'No se pudieron cargar las bajas y cambios.');
+        } finally {
+            setLoading(false);
+        }
+    }, [search, estatusFiltro, page, perPage]);
+
+    useEffect(() => {
+        const t = setTimeout(() => void cargar(), search.trim() ? 350 : 0);
+        return () => clearTimeout(t);
+    }, [cargar]);
+
+    useEffect(() => {
+        setPage(1);
+    }, [search, estatusFiltro]);
+
+    const metricas = payload?.metricas ?? {};
+    const rows = payload?.listado?.data ?? [];
+    const meta = payload?.listado?.meta ?? {};
+    const motivosDonut = payload?.motivos_frecuentes ?? [];
+    const cambiosRecientes = payload?.cambios_recientes ?? [];
     const surface = {
         background: 'white',
         border: '1px solid #e2e8f0',
@@ -235,11 +271,13 @@ export function BajasCambiosPage() {
         margin: 0,
     };
 
-    const grad = `conic-gradient(${MOTIVOS_DONUT.map((m, i, arr) => {
-        const start = (arr.slice(0, i).reduce((s, x) => s + x.pct, 0) / 100) * 360;
-        const end = (arr.slice(0, i + 1).reduce((s, x) => s + x.pct, 0) / 100) * 360;
-        return `${m.color} ${start}deg ${end}deg`;
-    }).join(', ')})`;
+    const grad = motivosDonut.length > 0
+        ? `conic-gradient(${motivosDonut.map((m, i, arr) => {
+            const start = (arr.slice(0, i).reduce((s, x) => s + x.pct, 0) / 100) * 360;
+            const end = (arr.slice(0, i + 1).reduce((s, x) => s + x.pct, 0) / 100) * 360;
+            return `${m.color} ${start}deg ${end}deg`;
+        }).join(', ')})`
+        : 'conic-gradient(#e2e8f0 0deg 360deg)';
 
     return (
         <div style={{ padding: '24px 32px', background: '#f8fafc', minHeight: '100vh', fontFamily: 'system-ui, -apple-system, sans-serif' }}>
@@ -253,7 +291,7 @@ export function BajasCambiosPage() {
 
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 12 }}>
                     <p style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: '#94a3b8', margin: 0 }}>
-                        🕐 Actualizado: 20/05/2025 09:45 a. m.
+                        Actualizado: {loading && !payload ? '…' : formatActualizado(payload?.actualizado_en)}
                     </p>
                 </div>
             </div>
@@ -298,26 +336,40 @@ export function BajasCambiosPage() {
                 </Link>
             </div>
 
+            {error ? (
+                <p style={{ marginBottom: 16, padding: '12px 16px', background: '#FEE2E2', color: '#991B1B', borderRadius: 8, fontSize: 13 }}>
+                    {error}
+                </p>
+            ) : null}
+
             <div style={{ display: 'flex', gap: 16, marginBottom: 24, flexWrap: 'wrap' }}>
-                <MetricCard 
-                    icon={Icons.lock} iconBg="#FEE2E2" iconColor="#DC2626" 
-                    title="Bajas temporales" value="19" 
-                    trend="↓ 11% vs. ciclo anterior" trendColor="#0F6E56" 
+                <MetricCard
+                    icon={Icons.lock} iconBg="#FEE2E2" iconColor="#DC2626"
+                    title="Bajas temporales"
+                    value={loading && !payload ? '…' : formatNum(metricas.bajas_temporales)}
+                    trend="En tu alcance operativo"
+                    trendColor="#64748b"
                 />
-                <MetricCard 
-                    icon={Icons.boxX} iconBg="#F3E8FF" iconColor="#6B21A8" 
-                    title="Bajas definitivas" value="27" 
-                    trend="↑ 20% vs. ciclo anterior" trendColor="#DC2626" 
+                <MetricCard
+                    icon={Icons.boxX} iconBg="#F3E8FF" iconColor="#6B21A8"
+                    title="Bajas definitivas"
+                    value={loading && !payload ? '…' : formatNum(metricas.bajas_definitivas)}
+                    trend="Registros consolidados"
+                    trendColor="#64748b"
                 />
-                <MetricCard 
-                    icon={Icons.users} iconBg="#DBEAFE" iconColor="#185FA5" 
-                    title="Cambios pendientes" value="45" 
-                    trend="↓ 6% vs. ciclo anterior" trendColor="#0F6E56" 
+                <MetricCard
+                    icon={Icons.users} iconBg="#DBEAFE" iconColor="#185FA5"
+                    title="Cambios pendientes"
+                    value={loading && !payload ? '…' : formatNum(metricas.cambios_pendientes)}
+                    trend="Pendientes o en revisión"
+                    trendColor="#BA7517"
                 />
-                <MetricCard 
-                    icon={Icons.alertTriangle} iconBg="#FFEDD5" iconColor="#EA580C" 
-                    title="Solicitudes observadas" value="12" 
-                    trend="↑ 12% vs. ciclo anterior" trendColor="#DC2626" 
+                <MetricCard
+                    icon={Icons.alertTriangle} iconBg="#FFEDD5" iconColor="#EA580C"
+                    title="Solicitudes observadas"
+                    value={loading && !payload ? '…' : formatNum(metricas.solicitudes_observadas)}
+                    trend="Requieren atención"
+                    trendColor="#DC2626"
                 />
             </div>
 
@@ -333,10 +385,17 @@ export function BajasCambiosPage() {
                         </h2>
                         
                         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                            <select style={{ height: 36, border: '1px solid #e2e8f0', borderRadius: 8, padding: '0 10px', fontSize: 13, background: 'white', color: '#0f172a', outline: 'none' }}>
-                                <option>Todos los estatus</option>
-                                <option>Pendiente</option>
-                                <option>En revisión</option>
+                            <select
+                                value={estatusFiltro}
+                                onChange={(e) => setEstatusFiltro(e.target.value)}
+                                style={{ height: 36, border: '1px solid #e2e8f0', borderRadius: 8, padding: '0 10px', fontSize: 13, background: 'white', color: '#0f172a', outline: 'none' }}
+                            >
+                                <option value="">Todos los estatus</option>
+                                <option value="Pendiente">Pendiente</option>
+                                <option value="En revisión">En revisión</option>
+                                <option value="Aprobada">Aprobada</option>
+                                <option value="Observada">Observada</option>
+                                <option value="Rechazada">Rechazada</option>
                             </select>
                             <div style={{ position: 'relative', display: 'inline-block' }}>
                                 <span style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}>
@@ -345,6 +404,8 @@ export function BajasCambiosPage() {
                                 <input
                                     type="search"
                                     placeholder="Buscar en la tabla..."
+                                    value={search}
+                                    onChange={(e) => setSearch(e.target.value)}
                                     style={{
                                         height: 36, width: 220,
                                         paddingLeft: 34, paddingRight: 12,
@@ -381,9 +442,23 @@ export function BajasCambiosPage() {
                                 </tr>
                             </thead>
                             <tbody>
-                                {DEMO_BAJAS.map((r, i) => (
+                                {loading && rows.length === 0 ? (
+                                    <tr>
+                                        <td colSpan={6} style={{ padding: 24, textAlign: 'center', color: '#64748b', fontSize: 13 }}>
+                                            Cargando solicitudes…
+                                        </td>
+                                    </tr>
+                                ) : null}
+                                {!loading && rows.length === 0 ? (
+                                    <tr>
+                                        <td colSpan={6} style={{ padding: 24, textAlign: 'center', color: '#64748b', fontSize: 13 }}>
+                                            No hay bajas o cambios registrados en tu alcance.
+                                        </td>
+                                    </tr>
+                                ) : null}
+                                {rows.map((r) => (
                                     <tr
-                                        key={i}
+                                        key={r.id}
                                         style={{ borderBottom: '1px solid #f1f5f9', transition: 'background 0.2s' }}
                                         onMouseEnter={(e) => e.currentTarget.style.background = '#f8fafc'}
                                         onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
@@ -394,7 +469,10 @@ export function BajasCambiosPage() {
                                         </td>
                                         <td style={{ padding: '14px 10px' }}>
                                             <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 500, color: '#475569' }}>
-                                                <span style={{ color: r.typeColor }}>{r.icon}</span> {r.tipo}
+                                                <span style={{ color: r.type_color ?? r.typeColor }}>
+                                                    {TYPE_ICONS[r.type_key] ?? Icons.lock}
+                                                </span>
+                                                {r.tipo}
                                             </div>
                                         </td>
                                         <td style={{ padding: '14px 10px', fontSize: 12, color: '#475569' }}>{r.motivo}</td>
@@ -435,22 +513,39 @@ export function BajasCambiosPage() {
                     </div>
 
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 16, paddingTop: 16, borderTop: '1px solid #f1f5f9', flexWrap: 'wrap', gap: 8 }}>
-                        <span style={{ fontSize: 12, color: '#64748b' }}>Mostrando 1 a 7 de 57 resultados</span>
+                        <span style={{ fontSize: 12, color: '#64748b' }}>
+                            {meta.from && meta.to
+                                ? `Mostrando ${meta.from} a ${meta.to} de ${formatNum(meta.total)} resultados`
+                                : `Total: ${formatNum(meta.total ?? 0)} resultados`}
+                        </span>
                         <div style={{ display: 'flex', gap: 6 }}>
-                            {['<', '1', '2', '3', '4', '5', '...', '8', '>'].map((p, idx) => (
-                                <button
-                                    key={idx}
-                                    style={{
-                                        minWidth: 32, height: 32, padding: '0 8px', borderRadius: 6,
-                                        border: p === '1' ? 'none' : '1px solid #e2e8f0',
-                                        background: p === '1' ? '#185FA5' : 'white',
-                                        color: p === '1' ? 'white' : '#475569',
-                                        fontSize: 13, cursor: 'pointer',
-                                    }}
-                                >
-                                    {p}
-                                </button>
-                            ))}
+                            <button
+                                type="button"
+                                disabled={page <= 1 || loading}
+                                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                                style={{
+                                    minWidth: 32, height: 32, padding: '0 8px', borderRadius: 6,
+                                    border: '1px solid #e2e8f0', background: 'white', color: '#475569',
+                                    fontSize: 13, cursor: page <= 1 ? 'not-allowed' : 'pointer', opacity: page <= 1 ? 0.5 : 1,
+                                }}
+                            >
+                                &lt;
+                            </button>
+                            <span style={{ minWidth: 32, height: 32, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', borderRadius: 6, background: '#185FA5', color: 'white', fontSize: 13, padding: '0 8px' }}>
+                                {meta.current_page ?? page}
+                            </span>
+                            <button
+                                type="button"
+                                disabled={loading || (meta.last_page ?? 1) <= page}
+                                onClick={() => setPage((p) => p + 1)}
+                                style={{
+                                    minWidth: 32, height: 32, padding: '0 8px', borderRadius: 6,
+                                    border: '1px solid #e2e8f0', background: 'white', color: '#475569',
+                                    fontSize: 13, cursor: (meta.last_page ?? 1) <= page ? 'not-allowed' : 'pointer', opacity: (meta.last_page ?? 1) <= page ? 0.5 : 1,
+                                }}
+                            >
+                                &gt;
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -466,7 +561,7 @@ export function BajasCambiosPage() {
                             </div>
                             
                             <div style={{ display: 'flex', flexDirection: 'column', gap: 6, flex: 1 }}>
-                                {MOTIVOS_DONUT.map((m, i) => (
+                                {motivosDonut.map((m, i) => (
                                     <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: 10 }}>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                                             <div style={{ width: 8, height: 8, borderRadius: '50%', background: m.color }} />
@@ -489,7 +584,7 @@ export function BajasCambiosPage() {
                             <div style={{ position: 'absolute', left: 14, top: 8, bottom: 8, width: 2, background: '#e2e8f0' }} />
                             
                             <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                                {CAMBIOS_RECIENTES.map((c, i) => (
+                                {cambiosRecientes.map((c, i) => (
                                     <div key={i} style={{ position: 'relative', paddingLeft: 24 }}>
                                         <div style={{ position: 'absolute', left: 1, top: 4, width: 8, height: 8, borderRadius: '50%', background: c.color, border: '2px solid white' }} />
                                         <p style={{ fontSize: 12, fontWeight: 600, color: '#0f172a', margin: '0 0 2px 0' }}>{c.text}</p>

@@ -1,6 +1,25 @@
-import React from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { CE_ACTIVIDAD_RECIENTE, CE_DOCUMENTOS_REQUERIDOS, CE_DEMO_EXPEDIENTES } from '../../data/controlEscolarDemoData';
+import { controlEscolarApi } from '../../api/controlEscolar';
+
+function formatActualizado(iso) {
+    if (!iso) return '—';
+    try {
+        return new Intl.DateTimeFormat('es-MX', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(iso));
+    } catch {
+        return '—';
+    }
+}
+
+function formatNum(n) {
+    return new Intl.NumberFormat('es-MX').format(Number(n) || 0);
+}
+
+const ACTIVITY_STYLES = { 
+    upload: { color: '#185FA5', bg: '#DBEAFE' },
+    obs: { color: '#534AB7', bg: '#EEEDFE' },
+    check: { color: '#0F6E56', bg: '#DCFCE7' },
+};
 
 function StatusBadge({ children }) {
     const v = String(children).toLowerCase();
@@ -27,7 +46,7 @@ function StatusBadge({ children }) {
     );
 }
 
-function MetricCard({ icon, iconBg, iconColor, title, value, trend, trendUp }) {
+function MetricCard({ icon, iconBg, iconColor, title, value, trend, trendColor = '#64748b' }) {
     return (
         <div
             style={{
@@ -61,9 +80,9 @@ function MetricCard({ icon, iconBg, iconColor, title, value, trend, trendUp }) {
             <div>
                 <p style={{ fontSize: 12, color: '#64748b', marginBottom: 4, fontWeight: 500 }}>{title}</p>
                 <p style={{ fontSize: 24, fontWeight: 700, color: '#0f172a', lineHeight: 1 }}>{value}</p>
-                <p style={{ fontSize: 11, marginTop: 6, color: trendUp ? '#0F6E56' : '#BA7517', fontWeight: 500 }}>
-                    {trendUp ? '↑' : '↓'} {trend}
-                </p>
+                {trend ? (
+                    <p style={{ fontSize: 11, marginTop: 6, color: trendColor, fontWeight: 500 }}>{trend}</p>
+                ) : null}
             </div>
         </div>
     );
@@ -160,36 +179,49 @@ const Icons = {
     )
 };
 
-const DEMO_EXPEDIENTES = [
-    { folio: 'EXP-2025-000123', alumno: 'María Fernanda López Ruiz', matricula: 'A23010245', programa: 'Licenciatura en Administración', actualizado: '20/05/2025 09:32 a. m.', usuario: 'por Usuario Escuela', estatus: 'Completo' },
-    { folio: 'EXP-2025-000124', alumno: 'José Andrés Martínez Díaz', matricula: 'A23009876', programa: 'Ingeniería en Sistemas Computacionales', actualizado: '20/05/2025 09:15 a. m.', usuario: 'por Usuario Escuela', estatus: 'Con observaciones' },
-    { folio: 'EXP-2025-000125', alumno: 'Ana Paula García Torres', matricula: 'A23011488', programa: 'Psicología', actualizado: '20/05/2025 08:47 a. m.', usuario: 'por Usuario Escuela', estatus: 'Pendiente' },
-    { folio: 'EXP-2025-000126', alumno: 'Diego Alejandro Pérez Soto', matricula: 'A23010567', programa: 'Contador Público', actualizado: '20/05/2025 08:25 a. m.', usuario: 'por Usuario Escuela', estatus: 'Completo' },
-    { folio: 'EXP-2025-000127', alumno: 'Valeria Hernández Cruz', matricula: 'A23011123', programa: 'Derecho', actualizado: '20/05/2025 08:03 a. m.', usuario: 'por Usuario Escuela', estatus: 'Con observaciones' },
-];
-
-const DEMO_DOCS = [
-    { nombre: 'Acta de nacimiento', req: 'Obligatorio', comp: '2,680 (97%)', ok: true },
-    { nombre: 'CURP', req: 'Obligatorio', comp: '2,742 (99%)', ok: true },
-    { nombre: 'Certificado de bachillerato', req: 'Obligatorio', comp: '2,615 (95%)', ok: true },
-    { nombre: 'Comprobante de domicilio', req: 'Obligatorio', comp: '2,301 (84%)', ok: false },
-    { nombre: 'INE / Identificación oficial', req: 'Obligatorio', comp: '2,290 (83%)', ok: true },
-    { nombre: 'Fotografía tamaño infantil', req: 'Opcional', comp: '2,640 (96%)', ok: true },
-    { nombre: 'Carta de buena conducta', req: 'Opcional', comp: '1,342 (49%)', ok: false },
-    { nombre: 'Comprobante de pago', req: 'Opcional', comp: '1,890 (69%)', ok: false },
-];
-
-const DEMO_ACT = [
-    { type: 'upload', icon: Icons.upload, color: '#185FA5', bg: '#DBEAFE', title: 'Se cargó un documento en el expediente de', bold: 'María Fernanda López Ruiz', time: 'Hace 15 minutos' },
-    { type: 'obs', icon: Icons.eye, color: '#534AB7', bg: '#EEEDFE', title: 'Se agregó una observación al expediente de', bold: 'José Andrés Martínez Díaz', time: 'Hace 32 minutos' },
-    { type: 'check', icon: Icons.check, color: '#0F6E56', bg: '#DCFCE7', title: 'Se validó el expediente de', bold: 'Diego Alejandro Pérez Soto', time: 'Hace 1 hora' },
-    { type: 'upload', icon: Icons.upload, color: '#185FA5', bg: '#DBEAFE', title: 'Se cargó un documento en el expediente de', bold: 'Ana Paula García Torres', time: 'Hace 2 horas' },
-];
+function actividadIcon(type) {
+    if (type === 'obs') return Icons.eye;
+    if (type === 'check') return Icons.check;
+    return Icons.upload;
+}
 
 export function ExpedientesCePage() {
-    const rows = (typeof CE_DEMO_EXPEDIENTES !== 'undefined' && CE_DEMO_EXPEDIENTES.length) ? CE_DEMO_EXPEDIENTES : DEMO_EXPEDIENTES;
-    const documentos = (typeof CE_DOCUMENTOS_REQUERIDOS !== 'undefined' && CE_DOCUMENTOS_REQUERIDOS.length) ? CE_DOCUMENTOS_REQUERIDOS : DEMO_DOCS;
-    const actividad = (typeof CE_ACTIVIDAD_RECIENTE !== 'undefined' && CE_ACTIVIDAD_RECIENTE.length) ? CE_ACTIVIDAD_RECIENTE : DEMO_ACT;
+    const [search, setSearch] = useState('');
+    const [page, setPage] = useState(1);
+    const [perPage, setPerPage] = useState(10);
+    const [payload, setPayload] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState('');
+
+    const cargar = useCallback(async () => {
+        setLoading(true);
+        setError('');
+        try {
+            const res = await controlEscolarApi.expedientes({
+                search: search.trim() || undefined,
+                page,
+                per_page: perPage,
+            });
+            setPayload(res?.data ?? null);
+        } catch (err) {
+            setPayload(null);
+            setError(err?.message ?? 'No se pudo cargar el listado de expedientes.');
+        } finally {
+            setLoading(false);
+        }
+    }, [search, page, perPage]);
+
+    useEffect(() => {
+        const t = setTimeout(() => void cargar(), search.trim() ? 350 : 0);
+        return () => clearTimeout(t);
+    }, [cargar]);
+
+    const metricas = payload?.metricas ?? {};
+    const rows = payload?.listado?.data ?? [];
+    const meta = payload?.listado?.meta ?? {};
+    const documentos = payload?.documentos_requeridos ?? [];
+    const actividad = payload?.actividad_reciente ?? [];
+    const promedioDocs = payload?.promedio_documentos_completos ?? 0;
 
     const surface = {
         background: 'white',
@@ -224,7 +256,7 @@ export function ExpedientesCePage() {
 
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 12 }}>
                     <p style={{ fontSize: 11, color: '#94a3b8', margin: 0 }}>
-                        🕐 Actualizado: 20/05/2025 09:45 a. m.
+                        Actualizado: {loading && !payload ? '…' : formatActualizado(payload?.actualizado_en)}
                     </p>
                 </div>
             </div>
@@ -234,7 +266,7 @@ export function ExpedientesCePage() {
                     {[
                         { to: '/app/expedientes', label: 'Crear expediente', icon: Icons.userPlus, color: '#185FA5' },
                         { to: '/app/documentos/bandejas/por-rol', label: 'Cargar documento', icon: Icons.upload, color: '#0F6E56' },
-                        { to: '/app/control-escolar/expedientes', label: 'Validar', icon: Icons.check, color: '#534AB7' },
+                        { to: '/app/control-escolar/expedientes', label: 'Validar expediente operativo', icon: Icons.check, color: '#534AB7' },
                         { to: '/app/observaciones', label: 'Observar', icon: Icons.eye, color: '#BA7517' },
                     ].map(({ to, label, icon, color }) => (
                         <Link
@@ -267,10 +299,10 @@ export function ExpedientesCePage() {
             </div>
 
             <div style={{ display: 'flex', gap: 16, marginBottom: 24, flexWrap: 'wrap' }}>
-                <MetricCard icon={Icons.folder} iconBg="#DBEAFE" iconColor="#185FA5" title="Expedientes pendientes" value="58" trend="18% vs. ciclo anterior" trendUp={true} />
-                <MetricCard icon={Icons.checkCircle} iconBg="#DCFCE7" iconColor="#0F6E56" title="Completos" value="1,842" trend="12% vs. ciclo anterior" trendUp={false} />
-                <MetricCard icon={Icons.eyeBig} iconBg="#FEF3C7" iconColor="#BA7517" title="Con observaciones" value="126" trend="9% vs. ciclo anterior" trendUp={true} />
-                <MetricCard icon={Icons.fileText} iconBg="#EEEDFE" iconColor="#534AB7" title="Documentos faltantes" value="312" trend="14% vs. ciclo anterior" trendUp={true} />
+                <MetricCard icon={Icons.folder} iconBg="#DBEAFE" iconColor="#185FA5" title="Expedientes pendientes" value={formatNum(metricas.pendientes)} trend={`${formatNum(metricas.total_alcance)} en tu alcance`} />
+                <MetricCard icon={Icons.checkCircle} iconBg="#DCFCE7" iconColor="#0F6E56" title="Completos" value={formatNum(metricas.completos)} />
+                <MetricCard icon={Icons.eyeBig} iconBg="#FEF3C7" iconColor="#BA7517" title="Con observaciones" value={formatNum(metricas.con_observaciones)} />
+                <MetricCard icon={Icons.fileText} iconBg="#EEEDFE" iconColor="#534AB7" title="Documentos faltantes" value={formatNum(metricas.documentos_faltantes)} />
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: 16, alignItems: 'start' }}>
