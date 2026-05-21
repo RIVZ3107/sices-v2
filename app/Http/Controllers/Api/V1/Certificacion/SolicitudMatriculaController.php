@@ -18,21 +18,27 @@ class SolicitudMatriculaController extends Controller
 
     public function index(Request $request): JsonResponse
     {
-        if (! $request->user()?->can('ver_solicitud_matricula')) {
+        if (
+            ! $request->user()?->can('ver_solicitud_matricula')
+            && ! $request->user()?->can('solicitudes_matricula.ver')
+        ) {
             abort(403);
         }
 
         $estado = $request->query('estado');
         $estado = is_string($estado) ? trim($estado) : null;
 
-        $rows = $this->solicitudes->listarParaUsuario($request->user(), $estado);
+        $rows = $this->solicitudes->listarBandejaParaUsuario($request->user(), $estado);
 
         return response()->json(['ok' => true, 'data' => $rows]);
     }
 
     public function ultimaPorAlumno(Request $request, int $alumno): JsonResponse
     {
-        if (! $request->user()?->can('ver_solicitud_matricula')) {
+        if (
+            ! $request->user()?->can('ver_solicitud_matricula')
+            && ! $request->user()?->can('solicitudes_matricula.ver')
+        ) {
             abort(403);
         }
 

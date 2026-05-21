@@ -87,7 +87,8 @@ export function CeInstSurface({ title, children, className = '' }) {
     );
 }
 
-export function CeStatusBadge({ children, tone = 'neutral' }) {
+/** Badge con clases institucionales (páginas Dirección que usan CeShell + Tailwind). */
+export function CeInstStatusBadge({ children, tone = 'neutral' }) {
     const map = {
         Activo: 'inst-badge-success',
         Concluido: 'inst-badge-success',
@@ -132,6 +133,9 @@ export function CeStatusBadge({ children, tone = 'neutral' }) {
     const cls = map[children] ?? map[tone] ?? 'inst-badge';
     return <span className={`${cls} text-xs`}>{children}</span>;
 }
+
+/** Alias para páginas Dirección que importan CeStatusBadge desde CeShell. */
+export { CeInstStatusBadge as CeStatusBadge };
 
 /** Pie de tabla estilo contrato (paginación decorativa). */
 export function CePaginationFoot({ showingFrom, showingTo, total, noun = 'registros' }) {

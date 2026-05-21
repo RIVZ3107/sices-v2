@@ -8,6 +8,8 @@ use App\Http\Controllers\Controller;
 use App\Models\CicloEscolar;
 use App\Models\Institucion;
 use App\Models\OfertaAcademica;
+use App\Models\PlanEstudio;
+use App\Models\ProgramaEstudio;
 use App\Models\Region;
 use App\Models\Sede;
 use App\Models\Subsistema;
@@ -71,6 +73,128 @@ class CatalogoCapturaController extends Controller
         $filas = $q->orderBy('nombre')->get(['id', 'subsistema_id', 'region_id', 'clave', 'nombre']);
 
         return response()->json(['data' => $filas]);
+    }
+
+    public function programas(Request $request): JsonResponse
+    {
+        $user = $request->user();
+
+        $q = ProgramaEstudio::query()
+            ->with(['nivelAcademico:id,clave,nombre', 'subsistema:id,clave,nombre'])
+            ->withCount(['planesEstudio as planes_vigentes' => fn ($pq) => $pq->where('activo', true)]);
+
+        if ($request->filled('subsistema_id')) {
+            $q->where('subsistema_id', $request->integer('subsistema_id'));
+        }
+        if ($request->filled('activo')) {
+            $q->where('activo', $request->boolean('activo'));
+        }
+        if ($request->filled('search')) {
+            $term = '%'.trim((string) $request->input('search')).'%';
+            $q->where(function ($w) use ($term): void {
+                $w->where('nombre', 'like', $term)
+                    ->orWhere('clave', 'like', $term);
+            });
+        }
+
+        if (! $this->alcance->exentaRestriccionTerritorial($user) && ! $this->alcance->alcanceTerritorialEstaVacio($user)) {
+            $q->whereHas('ofertasAcademicas', function ($o) use ($user): void {
+                $o->where('activo', true);
+                $this->alcance->aplicarAlcanceOfertasAcademicas($o, $user);
+            });
+        }
+
+        $filas = $q->orderBy('nombre')->get();
+        $ids = $filas->pluck('id');
+
+        $instPorPrograma = [];
+        if ($ids->isNotEmpty()) {
+            $ofertas = OfertaAcademica::query()
+                ->whereIn('programa_estudio_id', $ids)
+                ->where('activo', true)
+                ->with('institucion:id,nombre')
+                ->orderBy('programa_estudio_id')
+                ->orderBy('id')
+                ->get(['id', 'programa_estudio_id', 'institucion_id']);
+
+            foreach ($ofertas as $oferta) {
+                if (! isset($instPorPrograma[$oferta->programa_estudio_id])) {
+                    $instPorPrograma[$oferta->programa_estudio_id] = $oferta->institucion?->nombre ?? '—';
+                }
+            }
+        }
+
+        $rows = $filas->map(fn (ProgramaEstudio $p) => [
+            'id' => $p->id,
+            'clave' => $p->clave,
+            'nombre' => $p->nombre,
+            'nivel' => $p->nivelAcademico?->nombre ?? '—',
+            'nivel_clave' => $p->nivelAcademico?->clave,
+            'subsistema' => $p->subsistema?->nombre ?? $p->subsistema?->clave,
+            'institucion' => $instPorPrograma[$p->id] ?? '—',
+            'planes_vigentes' => (int) ($p->planes_vigentes ?? 0),
+            'activo' => $p->activo,
+            'estatus' => $p->activo ? 'activo' : 'inactivo',
+        ])->values();
+
+        return response()->json(['data' => $rows]);
+    }
+
+    public function planesEstudio(Request $request): JsonResponse
+    {
+        $user = $request->user();
+
+        $q = PlanEstudio::query()
+            ->with(['programaEstudio:id,clave,nombre,creditos_minimos'])
+            ->withCount('planMaterias as materias_count');
+
+        if ($request->filled('programa_estudio_id')) {
+            $q->where('programa_estudio_id', $request->integer('programa_estudio_id'));
+        }
+        if ($request->filled('subsistema_id')) {
+            $q->where('subsistema_id', $request->integer('subsistema_id'));
+        }
+        if ($request->filled('activo')) {
+            $q->where('activo', $request->boolean('activo'));
+        }
+        if ($request->filled('search')) {
+            $term = '%'.trim((string) $request->input('search')).'%';
+            $q->where(function ($w) use ($term): void {
+                $w->where('nombre', 'like', $term)
+                    ->orWhere('clave', 'like', $term)
+                    ->orWhereHas('programaEstudio', fn ($p) => $p->where('nombre', 'like', $term));
+            });
+        }
+
+        if (! $this->alcance->exentaRestriccionTerritorial($user) && ! $this->alcance->alcanceTerritorialEstaVacio($user)) {
+            $q->whereHas('ofertasAcademicas', function ($o) use ($user): void {
+                $o->where('activo', true);
+                $this->alcance->aplicarAlcanceOfertasAcademicas($o, $user);
+            });
+        }
+
+        $rows = $q->orderBy('nombre')->get()->map(function (PlanEstudio $p): array {
+            $version = data_get($p->metadata, 'version');
+            if ($version === null || $version === '') {
+                $version = $p->anio_aprobacion !== null ? (string) $p->anio_aprobacion : $p->clave;
+            }
+
+            return [
+                'id' => $p->id,
+                'nombre' => $p->nombre,
+                'clave' => $p->clave,
+                'version' => (string) $version,
+                'programa' => $p->programaEstudio?->nombre ?? '—',
+                'programa_clave' => $p->programaEstudio?->clave,
+                'creditos' => (int) (data_get($p->metadata, 'creditos_totales') ?? $p->programaEstudio?->creditos_minimos ?? 0),
+                'materias' => (int) ($p->materias_count ?? 0),
+                'activo' => $p->activo,
+                'estatus' => $p->activo ? 'vigente' : 'inactivo',
+                'anio_aprobacion' => $p->anio_aprobacion,
+            ];
+        })->values();
+
+        return response()->json(['data' => $rows]);
     }
 
     public function ofertasAcademicas(Request $request): JsonResponse

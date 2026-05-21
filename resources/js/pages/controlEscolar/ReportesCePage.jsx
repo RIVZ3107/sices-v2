@@ -1,39 +1,20 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { controlEscolarApi } from '../../api/controlEscolar';
+import {
+    CeIcons,
+    CeMetricCard,
+    CePriorityBadge,
+    CeQuickAction,
+    CeStatusBadge,
+    ceAvatarStyle,
+    ceColors,
+    ceInitials,
+    ceTheme,
+    formatCeActualizado,
+    formatCeNum,
+} from '../../components/controlEscolar';
 
-function formatActualizado(iso) {
-    if (!iso) return '—';
-    try {
-        return new Intl.DateTimeFormat('es-MX', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(iso));
-    } catch {
-        return '—';
-    }
-}
-
-function formatNum(n) {
-    return new Intl.NumberFormat('es-MX').format(Number(n) || 0);
-}
-
-// --- UTILIDADES DE ESTILO ---
-function MetricCard({ icon, iconBg, iconColor, title, value, trend, trendUp, isNeutral }) {
-    return (
-        <div style={{ background: 'white', border: '1px solid #e2e8f0', borderRadius: 12, padding: '16px', display: 'flex', alignItems: 'center', gap: 12, flex: 1, minWidth: '220px', boxShadow: '0 1px 2px rgba(0,0,0,0.02)' }}>
-            <div style={{ width: 42, height: 42, borderRadius: '50%', background: iconBg, color: iconColor, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                {icon}
-            </div>
-            <div style={{ flex: 1, minWidth: 0 }}>
-                <p style={{ fontSize: 11, color: '#64748b', marginBottom: 2, fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{title}</p>
-                <p style={{ fontSize: 20, fontWeight: 700, color: '#0f172a', lineHeight: 1 }}>{value}</p>
-                <p style={{ fontSize: 10, marginTop: 4, color: isNeutral ? '#64748b' : (trendUp ? '#0F6E56' : '#991B1B'), fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                    {!isNeutral && (trendUp ? '↑ ' : '↓ ')}{trend}
-                </p>
-            </div>
-        </div>
-    );
-}
-
-// --- GRÁFICA SVG PURA ---
 function LineChart({ datasets, labels }) {
     const W = 280;
     const H = 130;
@@ -134,30 +115,13 @@ function LineChart({ datasets, labels }) {
     );
 }
 
-// --- ICONOS ---
-const Icons = {
-    users: (<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>),
-    userPlus: (<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="8.5" cy="7" r="4" /><line x1="20" y1="8" x2="20" y2="14" /><line x1="23" y1="11" x2="17" y2="11" /></svg>),
-    refreshCw: (<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><polyline points="23 4 23 10 17 10" /><polyline points="1 20 1 14 7 14" /><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" /></svg>),
-    alertTriangle: (<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" /><line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" /></svg>),
-    lock: (<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="3" y="11" width="18" height="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg>),
-    folder: (<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" /></svg>),
-    fileText: (<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" /><polyline points="10 9 9 9 8 9" /></svg>),
-    table: (<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2" /><line x1="3" y1="9" x2="21" y2="9" /><line x1="3" y1="15" x2="21" y2="15" /><line x1="9" y1="9" x2="9" y2="21" /><line x1="15" y1="9" x2="15" y2="21" /></svg>),
-    download: (<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="8 17 12 21 16 17" /><line x1="12" y1="12" x2="12" y2="21" /><path d="M20.88 18.09A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.29" /></svg>),
-    clock: (<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>),
-    eye: (<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" /><circle cx="12" cy="12" r="3" /></svg>),
-    shieldCheck: (<svg width="20" height="20" viewBox="0 0 24 24" fill="#185FA5" stroke="white" strokeWidth="1"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /><polyline points="9 12 11 14 15 10" strokeWidth="2" /></svg>),
-    filter: (<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" /></svg>),
-};
-
 const ICON_BY_KEY = {
     users: 'users',
     refreshCw: 'refreshCw',
     alertTriangle: 'alertTriangle',
     folder: 'folder',
-    fileText: 'fileText',
-    table: 'table',
+    fileText: 'file',
+    table: 'scrollText',
 };
 
 export function ReportesCePage() {
@@ -201,37 +165,20 @@ export function ReportesCePage() {
 
     const resolveIcon = (key) => {
         const k = ICON_BY_KEY[key] ?? key;
-        return Icons[k] ?? Icons.fileText;
-    };
-
-    const surface = {
-        background: 'white',
-        border: '1px solid #e2e8f0',
-        borderRadius: 12,
-        padding: '20px',
-        boxShadow: '0 1px 2px rgba(0,0,0,0.02)',
-        display: 'flex',
-        flexDirection: 'column',
-    };
-
-    const surfaceTitle = {
-        fontSize: 14,
-        fontWeight: 600,
-        color: '#0f172a',
-        margin: '0 0 16px 0',
+        return CeIcons[k] ?? CeIcons.file;
     };
 
     return (
-        <div style={{ padding: '24px 32px', background: '#f8fafc', minHeight: '100vh', fontFamily: 'system-ui, -apple-system, sans-serif' }}>
+        <div style={{ ...ceTheme.pageShell }}>
 
             <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 24, flexWrap: 'wrap', gap: 16 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                     <h1 style={{ fontSize: 24, fontWeight: 700, color: '#0f172a', margin: 0 }}>Reportes e indicadores</h1>
-                    {Icons.shieldCheck}
+                    {CeIcons.shieldCheck}
                 </div>
                 <p style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: '#94a3b8', margin: 0 }}>
-                    <span style={{ color: '#94a3b8' }}>{Icons.clock}</span>
-                    Actualizado: {loading && !payload ? '…' : formatActualizado(payload?.actualizado_en)}
+                    <span style={{ color: '#94a3b8' }}>{CeIcons.clock}</span>
+                    Actualizado: {loading && !payload ? '…' : formatCeActualizado(payload?.actualizado_en)}
                     {payload?.ciclo_label ? ` · Ciclo ${payload.ciclo_label}` : ''}
                 </p>
             </div>
@@ -247,7 +194,7 @@ export function ReportesCePage() {
                     {(acciones.length ? acciones : [
                         { to: '/app/control-escolar/alumnos', label: 'Reporte de matrícula', icon: 'users', color: '#185FA5' },
                         { to: '/app/control-escolar/reinscripciones', label: 'Reporte de reinscripciones', icon: 'refreshCw', color: '#0F6E56' },
-                        { to: '/app/control-escolar/solicitudes', label: 'Pendientes', icon: 'alertTriangle', color: '#BA7517' },
+                        { to: '/app/control-escolar/solicitudes', label: 'Pendientes', icon: CeIcons.alertTriangle, color: '#BA7517' },
                     ]).map(({ to, label, icon, color }) => (
                         <Link key={label} to={to} style={{ display: 'inline-flex', alignItems: 'center', gap: 8, height: 38, padding: '0 16px', borderRadius: 8, background: 'white', border: '1px solid #e2e8f0', fontSize: 13, fontWeight: 500, textDecoration: 'none', color: '#0f172a' }}>
                             <span style={{ color, display: 'flex', alignItems: 'center' }}>{resolveIcon(icon)}</span>
@@ -256,27 +203,27 @@ export function ReportesCePage() {
                     ))}
                 </div>
                 <Link to="#" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, height: 38, padding: '0 16px', borderRadius: 8, background: 'white', border: '1px solid #e2e8f0', fontSize: 13, fontWeight: 500, textDecoration: 'none', color: '#0f172a' }}>
-                    <span style={{ color: '#185FA5', display: 'flex' }}>{Icons.filter}</span> Filtros
+                    <span style={{ color: '#185FA5', display: 'flex' }}>{CeIcons.filter}</span> Filtros
                 </Link>
             </div>
 
             <div style={{ display: 'flex', gap: 16, marginBottom: 24, overflowX: 'auto', paddingBottom: 8 }}>
-                <MetricCard icon={Icons.users} iconBg="#DBEAFE" iconColor="#185FA5" title="Matrícula total" value={formatNum(metricas.matricula_total)} trend={metricas.matricula_total_trend ?? '—'} trendUp={metricas.matricula_total_trend_up !== false} isNeutral />
-                <MetricCard icon={Icons.refreshCw} iconBg="#DCFCE7" iconColor="#0F6E56" title="Reinscripciones" value={formatNum(metricas.reinscripciones)} trend={metricas.reinscripciones_trend ?? '—'} trendUp={metricas.reinscripciones_trend_up !== false} isNeutral />
-                <MetricCard icon={Icons.userPlus} iconBg="#FEF3C7" iconColor="#BA7517" title="Nuevas inscripciones" value={formatNum(metricas.nuevas_inscripciones)} trend={metricas.nuevas_inscripciones_trend ?? '—'} trendUp={metricas.nuevas_inscripciones_trend_up !== false} isNeutral />
-                <MetricCard icon={Icons.folder} iconBg="#F3E8FF" iconColor="#534AB7" title="Expedientes completos" value={formatNum(metricas.expedientes_completos)} trend={metricas.expedientes_completos_trend ?? '—'} trendUp={metricas.expedientes_completos_trend_up !== false} isNeutral />
-                <MetricCard icon={Icons.lock} iconBg="#FEE2E2" iconColor="#991B1B" title="Reinscripciones bloqueadas" value={formatNum(metricas.reinscripciones_bloqueadas)} trend={metricas.reinscripciones_bloqueadas_trend ?? '—'} trendUp={metricas.reinscripciones_bloqueadas_trend_up === true} isNeutral />
-                <MetricCard icon={Icons.alertTriangle} iconBg="#FFEDD5" iconColor="#C2410C" title="Pendientes por atender" value={formatNum(metricas.pendientes)} trend={metricas.pendientes_trend ?? '—'} trendUp={metricas.pendientes_trend_up === true} isNeutral />
+                <CeMetricCard icon={CeIcons.users} iconBg="#DBEAFE" iconColor="#185FA5" title="Matrícula total" value={formatCeNum(metricas.matricula_total)} trend={metricas.matricula_total_trend ?? '—'} trendUp={metricas.matricula_total_trend_up !== false} isNeutral />
+                <CeMetricCard icon={CeIcons.refreshCw} iconBg="#DCFCE7" iconColor="#0F6E56" title="Reinscripciones" value={formatCeNum(metricas.reinscripciones)} trend={metricas.reinscripciones_trend ?? '—'} trendUp={metricas.reinscripciones_trend_up !== false} isNeutral />
+                <CeMetricCard icon={CeIcons.userPlus} iconBg="#FEF3C7" iconColor="#BA7517" title="Nuevas inscripciones" value={formatCeNum(metricas.nuevas_inscripciones)} trend={metricas.nuevas_inscripciones_trend ?? '—'} trendUp={metricas.nuevas_inscripciones_trend_up !== false} isNeutral />
+                <CeMetricCard icon={CeIcons.folder} iconBg="#F3E8FF" iconColor="#534AB7" title="Expedientes completos" value={formatCeNum(metricas.expedientes_completos)} trend={metricas.expedientes_completos_trend ?? '—'} trendUp={metricas.expedientes_completos_trend_up !== false} isNeutral />
+                <CeMetricCard icon={CeIcons.lock} iconBg="#FEE2E2" iconColor="#991B1B" title="Reinscripciones bloqueadas" value={formatCeNum(metricas.reinscripciones_bloqueadas)} trend={metricas.reinscripciones_bloqueadas_trend ?? '—'} trendUp={metricas.reinscripciones_bloqueadas_trend_up === true} isNeutral />
+                <CeMetricCard icon={CeIcons.alertTriangle} iconBg="#FFEDD5" iconColor="#C2410C" title="Pendientes por atender" value={formatCeNum(metricas.pendientes)} trend={metricas.pendientes_trend ?? '—'} trendUp={metricas.pendientes_trend_up === true} isNeutral />
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 24 }}>
 
-                <div style={surface}>
-                    <p style={surfaceTitle}>Matrícula por programa</p>
+                <div style={ceTheme.surface}>
+                    <p style={ceTheme.surfaceTitle}>Matrícula por programa</p>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 1, gap: 24 }}>
                         <div style={{ position: 'relative', width: 110, height: 110, borderRadius: '50%', background: matriculaPrograma.conic_gradient, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                             <div style={{ width: 84, height: 84, borderRadius: '50%', background: 'white', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-                                <span style={{ fontSize: 18, fontWeight: 700, color: '#0f172a' }}>{formatNum(matriculaPrograma.total)}</span>
+                                <span style={{ fontSize: 18, fontWeight: 700, color: '#0f172a' }}>{formatCeNum(matriculaPrograma.total)}</span>
                                 <span style={{ fontSize: 10, color: '#64748b' }}>Total</span>
                             </div>
                         </div>
@@ -294,12 +241,12 @@ export function ReportesCePage() {
                     <Link to="/app/control-escolar/alumnos" style={{ display: 'block', textAlign: 'center', fontSize: 12, fontWeight: 500, color: '#185FA5', textDecoration: 'none', marginTop: 16 }}>Ver detalle ›</Link>
                 </div>
 
-                <div style={surface}>
-                    <p style={surfaceTitle}>Expedientes por estatus</p>
+                <div style={ceTheme.surface}>
+                    <p style={ceTheme.surfaceTitle}>Expedientes por estatus</p>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 1, gap: 24 }}>
                         <div style={{ position: 'relative', width: 110, height: 110, borderRadius: '50%', background: expedientesEstatus.conic_gradient, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                             <div style={{ width: 84, height: 84, borderRadius: '50%', background: 'white', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-                                <span style={{ fontSize: 18, fontWeight: 700, color: '#0f172a' }}>{formatNum(expedientesEstatus.total)}</span>
+                                <span style={{ fontSize: 18, fontWeight: 700, color: '#0f172a' }}>{formatCeNum(expedientesEstatus.total)}</span>
                                 <span style={{ fontSize: 10, color: '#64748b' }}>Total</span>
                             </div>
                         </div>
@@ -317,8 +264,8 @@ export function ReportesCePage() {
                     <Link to="/app/control-escolar/expedientes" style={{ display: 'block', textAlign: 'center', fontSize: 12, fontWeight: 500, color: '#185FA5', textDecoration: 'none', marginTop: 16 }}>Ver detalle ›</Link>
                 </div>
 
-                <div style={surface}>
-                    <p style={surfaceTitle}>Trámites por mes</p>
+                <div style={ceTheme.surface}>
+                    <p style={ceTheme.surfaceTitle}>Trámites por mes</p>
 
                     <div style={{ display: 'flex', gap: 12, marginBottom: 10, flexWrap: 'wrap' }}>
     {tramitesDatasets.map(({ label, color, dash }) => (
@@ -361,8 +308,8 @@ export function ReportesCePage() {
                     </Link>
                 </div>
 
-                <div style={surface}>
-                    <p style={surfaceTitle}>Indicadores clave</p>
+                <div style={ceTheme.surface}>
+                    <p style={ceTheme.surfaceTitle}>Indicadores clave</p>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 16, flex: 1, justifyContent: 'center' }}>
                         {indicadores.map(({ label, value, width, bar_color, delta, delta_up }) => (
                             <div key={label}>
@@ -388,14 +335,14 @@ export function ReportesCePage() {
 
             </div>
 
-            <div style={surface}>
+            <div style={ceTheme.surface}>
                 <h2 style={{ fontSize: 16, fontWeight: 600, color: '#0f172a', margin: '0 0 16px 0' }}>Reportes frecuentes</h2>
                 <div style={{ overflowX: 'auto' }}>
                     <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                         <thead>
                             <tr>
                                 {['Reporte', 'Descripción', 'Última generación', 'Formato', 'Acciones'].map((h) => (
-                                    <th key={h} style={{ padding: '12px 10px', textAlign: h === 'Acciones' ? 'right' : 'left', fontSize: 11, fontWeight: 600, color: '#64748b', borderBottom: '1px solid #e2e8f0', whiteSpace: 'nowrap', background: '#f8fafc' }}>
+                                    <th key={h} style={{ padding: '12px 10px', textAlign: h === 'Acciones' ? 'right' : 'left', fontSize: 11, fontWeight: 600, color: '#64748b', borderBottom: '1px solid #e2e8f0', whiteSpace: 'nowrap', background: ceColors.pageBg }}>
                                         {h}
                                     </th>
                                 ))}
@@ -441,13 +388,13 @@ export function ReportesCePage() {
                                         <div style={{ display: 'flex', gap: 16, alignItems: 'center', justifyContent: 'flex-end' }}>
                                             <Link to={r.ruta ?? '/app/control-escolar/reportes'} style={{ fontSize: 12, fontWeight: 500, color: '#185FA5', textDecoration: 'none' }}>Generar</Link>
                                             <Link to={r.ruta ?? '/app/control-escolar/reportes'} style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, fontWeight: 500, color: '#185FA5', textDecoration: 'none' }}>
-                                                <span style={{ display: 'flex' }}>{Icons.download}</span> Descargar
+                                                <span style={{ display: 'flex' }}>{CeIcons.download}</span> Descargar
                                             </Link>
                                             <Link to="#" style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, fontWeight: 500, color: '#185FA5', textDecoration: 'none' }}>
-                                                <span style={{ display: 'flex' }}>{Icons.clock}</span> Programar
+                                                <span style={{ display: 'flex' }}>{CeIcons.clock}</span> Programar
                                             </Link>
                                             <Link to="#" style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, fontWeight: 500, color: '#185FA5', textDecoration: 'none' }}>
-                                                <span style={{ display: 'flex' }}>{Icons.eye}</span> Ver
+                                                <span style={{ display: 'flex' }}>{CeIcons.eye}</span> Ver
                                             </Link>
                                         </div>
                                     </td>

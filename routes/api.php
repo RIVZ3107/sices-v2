@@ -19,6 +19,8 @@ use App\Http\Controllers\Api\V1\Certificacion\TrayectoriaCapturaController;
 use App\Http\Controllers\Api\V1\Certificacion\ValidacionNormativaImportacionLegacyController;
 use App\Http\Controllers\Api\V1\ControlEscolar\ControlEscolarController;
 use App\Http\Controllers\Api\V1\Dashboard\DashboardController;
+use App\Http\Controllers\Api\V1\EducacionSuperior\EducacionSuperiorMetricasController;
+use App\Http\Controllers\Api\V1\EducacionSuperior\EducacionSuperiorReportesController;
 use App\Http\Controllers\Api\V1\Me\MeAparienciaController;
 use App\Http\Controllers\Api\V1\Me\UserMenuController;
 use App\Http\Controllers\Api\V1\Sistema\ConfiguracionVisualSistemaController;
@@ -84,6 +86,8 @@ Route::prefix('v1/certificacion')
             Route::get('catalogos/regiones', [CatalogoCapturaController::class, 'regiones']);
             Route::get('catalogos/instituciones', [CatalogoCapturaController::class, 'instituciones']);
             Route::get('catalogos/sedes', [CatalogoCapturaController::class, 'sedes']);
+            Route::get('catalogos/programas', [CatalogoCapturaController::class, 'programas']);
+            Route::get('catalogos/planes-estudio', [CatalogoCapturaController::class, 'planesEstudio']);
             Route::get('catalogos/ofertas-academicas', [CatalogoCapturaController::class, 'ofertasAcademicas']);
         });
 
@@ -257,6 +261,12 @@ Route::prefix('v1/control-escolar')
         Route::get('importaciones', [ControlEscolarController::class, 'importaciones'])
             ->middleware('permission_or:importaciones_academicas.ver|importar_calificaciones|calificaciones.ver|ver_alumnos|alumnos.ver');
     });
+
+Route::get('v1/educacion-superior/metricas', EducacionSuperiorMetricasController::class)
+    ->middleware('auth:sanctum');
+
+Route::get('v1/educacion-superior/reportes-oficiales', EducacionSuperiorReportesController::class)
+    ->middleware('auth:sanctum');
 
 Route::prefix('v1/catalogos')
     ->middleware('auth:sanctum')

@@ -46,12 +46,44 @@ class EducacionSuperiorModulosTest extends TestCase
 
         $this->getJson('/api/v1/certificacion/catalogos/instituciones')->assertOk();
         $this->getJson('/api/v1/certificacion/catalogos/sedes?search=U.P.N.')->assertOk();
+        $this->getJson('/api/v1/certificacion/catalogos/programas')->assertOk();
+        $this->getJson('/api/v1/certificacion/catalogos/planes-estudio')->assertOk();
 
         $row = collect($this->getJson('/api/v1/certificacion/catalogos/sedes?search=U.P.N.')->json('data'))->first();
         $this->assertNotNull($row);
         $this->assertArrayNotHasKey('legacy_kcve_subsede', $row);
         $this->assertArrayNotHasKey('legacy_rcve_institucion', $row);
         $this->assertArrayNotHasKey('legacy_rcvect', $row);
+    }
+
+    public function test_metricas_ligeras_educacion_superior(): void
+    {
+        $u = $this->usuarioEducacionSuperior();
+        Sanctum::actingAs($u);
+
+        $metricas = $this->getJson('/api/v1/educacion-superior/metricas')->assertOk()->json('data');
+        $this->assertArrayHasKey('pendientes_revision', $metricas);
+        $this->assertArrayHasKey('instituciones_activas', $metricas);
+        $this->assertArrayHasKey('egresados_candidatos', $metricas);
+        $this->assertArrayHasKey('solicitudes_matricula_pendientes', $metricas);
+    }
+
+    public function test_reportes_oficiales_desde_base_de_datos(): void
+    {
+        $u = $this->usuarioEducacionSuperior();
+        Sanctum::actingAs($u);
+
+        $data = $this->getJson('/api/v1/educacion-superior/reportes-oficiales')
+            ->assertOk()
+            ->json('data');
+
+        $this->assertArrayHasKey('metricas', $data);
+        $this->assertArrayHasKey('reportes', $data);
+        $this->assertArrayHasKey('indicadores', $data);
+        $this->assertNotEmpty($data['reportes']);
+        $this->assertSame('911', $data['reportes'][0]['clave'] ?? null);
+        $this->assertArrayHasKey('ultima_generacion', $data['reportes'][0]);
+        $this->assertArrayHasKey('responsable', $data['reportes'][0]);
     }
 
     public function test_dashboard_y_solicitudes_accesibles(): void

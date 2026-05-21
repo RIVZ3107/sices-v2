@@ -369,6 +369,106 @@ final class SolicitudMatriculaService
         return $q->whereIn('oferta_academica_id', $ids)->limit(500)->get();
     }
 
+    /**
+     * Bandeja unificada: solicitudes de matrícula + matrículas ya asignadas en el sistema.
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function listarBandejaParaUsuario(User $user, ?string $estado = null): array
+    {
+        $items = collect();
+
+        foreach ($this->listarParaUsuario($user, $estado) as $solicitud) {
+            $items->push($this->serializarFilaSolicitud($solicitud));
+        }
+
+        $incluirMatriculasDirectas = $estado === null
+            || $estado === ''
+            || $estado === SolicitudMatricula::ESTADO_MATRICULA_ASIGNADA;
+
+        if ($incluirMatriculasDirectas) {
+            $vinculadas = SolicitudMatricula::query()
+                ->whereNotNull('matricula_id')
+                ->pluck('matricula_id');
+
+            $q = Matricula::query()
+                ->with([
+                    'alumno:id,nombre,primer_apellido,segundo_apellido,curp',
+                    'ofertaAcademica.institucion:id,nombre',
+                    'ofertaAcademica.programaEstudio:id,nombre,clave',
+                ])
+                ->whereNotIn('id', $vinculadas)
+                ->orderByDesc('updated_at')
+                ->limit(500);
+
+            if (! $user->hasAnyRole(['superadmin', 'admin', 'educacion_superior'])) {
+                $ofertas = OfertaAcademica::query();
+                $this->alcance->aplicarAlcanceOfertasAcademicas($ofertas, $user);
+                $ids = $ofertas->pluck('id');
+                $q->whereIn('oferta_academica_id', $ids);
+            }
+
+            foreach ($q->get() as $matricula) {
+                $items->push($this->serializarFilaMatricula($matricula));
+            }
+        }
+
+        return $items
+            ->sortByDesc(fn (array $f) => (string) ($f['updated_at'] ?? ''))
+            ->values()
+            ->all();
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    protected function serializarFilaSolicitud(SolicitudMatricula $s): array
+    {
+        $row = $s->toArray();
+        $row['origen'] = 'solicitud';
+        $row['solicitud_id'] = $s->id;
+        $row['clave_matricula'] = null;
+        $row['updated_at'] = $s->updated_at?->toIso8601String();
+
+        return $row;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    protected function serializarFilaMatricula(Matricula $m): array
+    {
+        $oferta = $m->ofertaAcademica;
+        $inst = $oferta?->institucion;
+        $programa = $oferta?->programaEstudio;
+
+        return [
+            'id' => $m->id,
+            'origen' => 'matricula',
+            'solicitud_id' => null,
+            'alumno_id' => $m->alumno_id,
+            'matricula_id' => $m->id,
+            'oferta_academica_id' => $m->oferta_academica_id,
+            'clave_matricula' => $m->matricula,
+            'estado' => SolicitudMatricula::ESTADO_MATRICULA_ASIGNADA,
+            'estado_matricula' => $m->estado,
+            'alumno' => $m->alumno ? [
+                'id' => $m->alumno->id,
+                'nombre' => $m->alumno->nombre,
+                'primer_apellido' => $m->alumno->primer_apellido,
+                'segundo_apellido' => $m->alumno->segundo_apellido,
+                'curp' => $m->alumno->curp,
+            ] : null,
+            'institucion' => $inst ? ['id' => $inst->id, 'nombre' => $inst->nombre] : null,
+            'programa_estudio' => $programa ? [
+                'id' => $programa->id,
+                'nombre' => $programa->nombre,
+                'clave' => $programa->clave,
+            ] : null,
+            'updated_at' => $m->updated_at?->toIso8601String(),
+        ];
+    }
+
     public function ultimaVigenteParaAlumno(int $alumnoId): ?SolicitudMatricula
     {
         return SolicitudMatricula::query()
