@@ -12,9 +12,11 @@ use App\Enums\Certificacion\EstadoWorkflow;
 use App\Models\DocumentoAcademico;
 use App\Models\Matricula;
 use App\Services\Certificacion\CertificacionAlcanceService;
+use App\Services\Certificacion\AuditoriaService;
 use App\Services\Certificacion\DocumentoAcademicoCapturaService;
 use App\Services\Certificacion\DocumentoAcademicoRequisitosService;
 use App\Services\Certificacion\DocumentoAcademicoWorkflowService;
+use App\Services\Certificacion\DocumentoRevisionInstitucionalService;
 use App\Services\Certificacion\FolioService;
 use App\Services\Certificacion\UrlShortTokenService;
 use App\Services\Certificacion\ValidacionAcademicaDocumentoService;
@@ -33,6 +35,8 @@ class DocumentoAcademicoProcesoController extends Controller
         protected FolioService $folioService,
         protected UrlShortTokenService $urlShortTokenService,
         protected CertificacionAlcanceService $alcance,
+        protected DocumentoRevisionInstitucionalService $revisionInstitucional,
+        protected AuditoriaService $auditoria,
     ) {}
 
     public function store(StoreDocumentoAcademicoCapturaRequest $request): JsonResponse
@@ -113,7 +117,35 @@ class DocumentoAcademicoProcesoController extends Controller
     {
         $this->authorize('view', $documento);
 
+        $documento->load([
+            'alumno',
+            'matricula',
+            'institucion',
+            'sede',
+            'ofertaAcademica.programaEstudio',
+            'ofertaAcademica.planEstudio',
+        ]);
+
         return new DocumentoAcademicoCapturaResource($documento);
+    }
+
+    public function revisionInstitucional(DocumentoAcademico $documento): JsonResponse
+    {
+        $this->authorize('view', $documento);
+
+        $detalle = $this->revisionInstitucional->armarDetalle($documento->fresh(), request()->user());
+
+        $this->auditoria->registrar(
+            'documento_academico.revision_institucional_consulta',
+            DocumentoAcademico::class,
+            $documento->id,
+            ['estado_workflow' => $documento->estado_workflow],
+            request()->user()?->id,
+            request()->ip(),
+            request()->userAgent(),
+        );
+
+        return response()->json(['data' => $detalle]);
     }
 
     public function validar(DocumentoAcademico $documento): JsonResponse

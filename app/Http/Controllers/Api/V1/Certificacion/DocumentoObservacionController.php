@@ -39,9 +39,15 @@ class DocumentoObservacionController extends Controller
     public function store(StoreDocumentoObservacionRequest $request, DocumentoAcademico $documento): JsonResponse
     {
         $this->authorize('rechazar', $documento);
-        if (! $request->user()->hasRole('educacion_superior') && ! $request->user()->hasAnyRole(['admin', 'superadmin'])) {
+
+        $user = $request->user();
+        $puedeObservar = $user?->hasAnyRole(['admin', 'superadmin', 'educacion_superior', 'responsable_certificacion_titulacion'])
+            || $user?->can('validaciones_normativas.rechazar')
+            || $user?->can('certificacion.validar')
+            || $user?->can('documentos.observar');
+        if (! $puedeObservar) {
             throw ValidationException::withMessages([
-                'rol' => ['Solo Educación Superior puede registrar observaciones institucionales.'],
+                'rol' => ['No tiene permiso para registrar observaciones institucionales.'],
             ]);
         }
 

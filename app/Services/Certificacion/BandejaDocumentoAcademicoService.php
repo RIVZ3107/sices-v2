@@ -97,7 +97,7 @@ class BandejaDocumentoAcademicoService
         }
 
         if ($user->hasRole('educacion_superior')) {
-            return ['pendientes_revision', 'aprobados', 'rechazados', 'cancelados', 'listos_para_firma'];
+            return ['en_revision', 'pendientes_revision', 'aprobados', 'rechazados', 'cancelados', 'listos_para_firma'];
         }
 
         if ($user->hasRole('sistemas')) {
@@ -105,7 +105,7 @@ class BandejaDocumentoAcademicoService
         }
 
         if ($user->hasRole('responsable_certificacion_titulacion')) {
-            return ['pendientes_revision', 'aprobados', 'rechazados', 'cancelados', 'listos_para_firma'];
+            return ['en_revision', 'pendientes_revision', 'aprobados', 'rechazados', 'cancelados', 'listos_para_firma'];
         }
 
         if ($user->hasRole('responsable_evaluacion')) {
@@ -125,6 +125,8 @@ class BandejaDocumentoAcademicoService
             ->with([
                 'alumno:id,curp,nombre,primer_apellido,segundo_apellido',
                 'matricula:id,matricula',
+                'ofertaAcademica.programaEstudio:id,nombre,clave',
+                'ofertaAcademica.planEstudio:id,nombre,clave',
                 'institucion:id,nombre,clave',
                 'sede:id,nombre,clave',
                 'cicloEscolar:id,nombre,clave',

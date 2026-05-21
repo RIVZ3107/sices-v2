@@ -7,14 +7,17 @@ namespace App\Http\Controllers\Api\V1\Certificacion;
 use App\Enums\Certificacion\DocumentoVersionTipo;
 use App\Http\Controllers\Controller;
 use App\Models\DocumentoAcademico;
+use App\Services\Certificacion\AuditoriaService;
 use App\Services\Certificacion\DecNormal2025PipelineService;
 use App\Support\Certificacion\Specs\DecNormal2025Spec;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 
 class DocumentoDecNormalController extends Controller
 {
     public function __construct(
         protected DecNormal2025PipelineService $pipeline,
+        protected AuditoriaService $auditoria,
     ) {}
 
     public function generarPayload(DocumentoAcademico $documento): JsonResponse
@@ -36,12 +39,21 @@ class DocumentoDecNormalController extends Controller
         ]);
     }
 
-    public function generarCadena(DocumentoAcademico $documento): JsonResponse
+    public function generarCadena(Request $request, DocumentoAcademico $documento): JsonResponse
     {
-        $this->authorize('view', $documento);
-        abort_unless(auth()->user()?->can('generar_cadena'), 403);
+        $this->authorize('generarCadena', $documento);
 
         $cadena = $this->pipeline->generarCadena($documento->fresh(), auth()->id());
+
+        $this->auditoria->registrar(
+            evento: 'documento_academico.cadena_generada',
+            entidadTipo: DocumentoAcademico::class,
+            entidadId: $documento->id,
+            payload: ['estado_cadena' => $documento->fresh()->estado_cadena],
+            userId: $request->user()?->id,
+            ip: $request->ip(),
+            userAgent: $request->userAgent(),
+        );
 
         return response()->json([
             'data' => [
@@ -52,12 +64,21 @@ class DocumentoDecNormalController extends Controller
         ]);
     }
 
-    public function generarXml(DocumentoAcademico $documento): JsonResponse
+    public function generarXml(Request $request, DocumentoAcademico $documento): JsonResponse
     {
-        $this->authorize('view', $documento);
-        abort_unless(auth()->user()?->can('generar_xml'), 403);
+        $this->authorize('generarXml', $documento);
 
         $version = $this->pipeline->generarXml($documento->fresh(), auth()->id());
+
+        $this->auditoria->registrar(
+            evento: 'documento_academico.xml_generado',
+            entidadTipo: DocumentoAcademico::class,
+            entidadId: $documento->id,
+            payload: ['estado_xml' => $documento->fresh()->estado_xml, 'xml_version_id' => $version->id],
+            userId: $request->user()?->id,
+            ip: $request->ip(),
+            userAgent: $request->userAgent(),
+        );
 
         return response()->json([
             'data' => [

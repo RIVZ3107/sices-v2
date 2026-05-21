@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { alumnosApi } from '../../api/alumnos';
 import { catalogosApi } from '../../api/catalogos';
 import { materiasCursadasApi } from '../../api/materiasCursadas';
@@ -15,6 +16,8 @@ import { MateriaWarningBadge } from '../../components/academic/MateriaWarningBad
 import { DataTable } from '../../components/ui/DataTable';
 
 export function MateriasCursadasPage() {
+    const [searchParams] = useSearchParams();
+    const alumnoPre = Number(searchParams.get('alumno') ?? '');
     const [q, setQ] = useState('');
     const [hits, setHits] = useState([]);
     const [alumnoSel, setAlumnoSel] = useState(null);
@@ -81,6 +84,17 @@ export function MateriasCursadasPage() {
             setBusy(false);
         }
     }, []);
+
+    useEffect(() => {
+        if (!Number.isFinite(alumnoPre) || alumnoPre <= 0) return;
+        alumnosApi
+            .show(alumnoPre)
+            .then((res) => {
+                const row = res?.data ?? null;
+                if (row) void cargarExpediente(row);
+            })
+            .catch(() => {});
+    }, [alumnoPre, cargarExpediente]);
 
     const bloqueCatalogo = Boolean(Number(form.plan_materia_id) > 0 || Number(form.carga_academica_id) > 0);
 

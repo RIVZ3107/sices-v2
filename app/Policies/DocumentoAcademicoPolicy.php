@@ -31,6 +31,10 @@ class DocumentoAcademicoPolicy
             return false;
         }
 
+        if ($user->hasRole('auditor') && ! $user->hasAnyRole(['superadmin', 'admin'])) {
+            return true;
+        }
+
         if (SicesAuth::canAny($user, 'aprobar_documentos', 'documentos.aprobar', 'documentos.aprobar_institucionalmente')
             || SicesAuth::canAny($user, 'crear_documentos', 'documentos.crear', 'documentos.crear_borrador')) {
             return true;
@@ -86,16 +90,27 @@ class DocumentoAcademicoPolicy
 
     public function aprobar(User $user, DocumentoAcademico $documento): bool
     {
-        return (SicesAuth::canAny($user, 'aprobar_documentos', 'documentos.aprobar', 'documentos.aprobar_institucionalmente')
-                || $user->can('validaciones_normativas.aprobar')
-                || $user->can('certificacion.autorizar_emision'))
+        return (SicesAuth::canAny(
+            $user,
+            'aprobar_documentos',
+            'documentos.aprobar',
+            'documentos.aprobar_institucionalmente',
+        )
+            || $user->can('validaciones_normativas.aprobar')
+            || $user->can('certificacion.autorizar_emision')
+            || $user->can('certificacion.validar'))
             && $this->alcance->documentoEnAlcance($user, $documento);
     }
 
     public function rechazar(User $user, DocumentoAcademico $documento): bool
     {
-        return (SicesAuth::canAny($user, 'rechazar_documentos', 'documentos.rechazar', 'documentos.rechazar_institucionalmente')
-                || $user->can('validaciones_normativas.rechazar'))
+        return (SicesAuth::canAny(
+            $user,
+            'rechazar_documentos',
+            'documentos.rechazar',
+            'documentos.rechazar_institucionalmente',
+        )
+            || $user->can('validaciones_normativas.rechazar'))
             && $this->alcance->documentoEnAlcance($user, $documento);
     }
 
@@ -107,23 +122,68 @@ class DocumentoAcademicoPolicy
 
     public function asignarFolioInterno(User $user, DocumentoAcademico $documento): bool
     {
-        return (SicesAuth::canAny($user, 'preparar_documento_firma', 'documentos.enviar_revision')
-                || $user->can('certificacion.autorizar_emision'))
+        return (SicesAuth::canAny($user, 'preparar_documento_firma', 'folios.asignar')
+                || $user->can('certificacion.autorizar_emision')
+                || $user->can('documentos.liberar_proceso_tecnico'))
             && $this->alcance->documentoEnAlcance($user, $documento);
     }
 
     public function emitirTokenConsultaPublica(User $user, DocumentoAcademico $documento): bool
     {
-        return (SicesAuth::canAny($user, 'preparar_documento_firma', 'documentos.enviar_revision')
-                || $user->can('certificacion.autorizar_emision'))
+        if ($user->hasRole('control_escolar_escuela') && ! $user->hasAnyRole(['superadmin', 'admin'])) {
+            return false;
+        }
+
+        return (SicesAuth::canAny(
+            $user,
+            'consulta_publica.emitir_token',
+            'consulta_publica.configurar',
+            'preparar_documento_firma',
+            'documentos.liberar_proceso_tecnico',
+            'certificacion.autorizar_emision',
+        ))
             && $this->alcance->documentoEnAlcance($user, $documento);
     }
 
     public function marcarListoParaFirma(User $user, DocumentoAcademico $documento): bool
     {
-        return (SicesAuth::canAny($user, 'preparar_documento_firma', 'documentos.enviar_revision')
-                || $user->can('documentos.liberar_proceso_tecnico')
-                || $user->can('certificacion.enviar_a_proceso_tecnico'))
+        return (SicesAuth::canAny(
+            $user,
+            'preparar_documento_firma',
+            'documentos.liberar_proceso_tecnico',
+            'certificacion.enviar_a_proceso_tecnico',
+        ))
             && $this->alcance->documentoEnAlcance($user, $documento);
+    }
+
+    public function firmar(User $user, DocumentoAcademico $documento): bool
+    {
+        if ($user->hasRole('responsable_certificacion_titulacion') && ! $user->hasAnyRole(['superadmin', 'admin'])) {
+            return false;
+        }
+
+        if (! SicesAuth::canAny($user, 'firma.ejecutar', 'solicitar_firma')) {
+            return false;
+        }
+
+        return $this->alcance->documentoEnAlcance($user, $documento);
+    }
+
+    public function generarCadena(User $user, DocumentoAcademico $documento): bool
+    {
+        if (! SicesAuth::canAny($user, 'generar_cadena', 'cadena_original.generar')) {
+            return false;
+        }
+
+        return $this->view($user, $documento);
+    }
+
+    public function generarXml(User $user, DocumentoAcademico $documento): bool
+    {
+        if (! SicesAuth::canAny($user, 'generar_xml', 'xml.generar')) {
+            return false;
+        }
+
+        return $this->view($user, $documento);
     }
 }

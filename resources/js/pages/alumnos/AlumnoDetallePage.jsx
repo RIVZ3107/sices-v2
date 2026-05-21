@@ -10,6 +10,7 @@ import { PageHeader } from '../../components/PageHeader';
 import { AlertBox } from '../../components/ui/AlertBox';
 import { SectionCard } from '../../components/ui/SectionCard';
 import { DataTable } from '../../components/ui/DataTable';
+import { EstadoSepLegacyPanel } from '../expedientes/components/EstadoSepLegacyPanel';
 
 function permiso(nombre) {
     return Boolean(getUser()?.permissions?.includes(nombre));
@@ -49,6 +50,7 @@ const TABS = [
     { key: 'certificacion', label: 'Certificación' },
     { key: 'observaciones', label: 'Observaciones' },
     { key: 'historial', label: 'Historial' },
+    { key: 'estado_sep', label: 'Estado SEP / SICES' },
 ];
 
 export function AlumnoDetallePage() {
@@ -545,6 +547,12 @@ export function AlumnoDetallePage() {
             ) : null}
             {tab === 'observaciones' ? <SectionCard title="Observaciones"><p className="text-sm">Pendientes: {observacionesPend.length}</p><Link to={`/app/observaciones?alumno=${alumnoPk}`} className="inst-btn inst-btn-secondary text-sm mt-2 inline-flex">Abrir observaciones</Link></SectionCard> : null}
             {tab === 'historial' ? <SectionCard title="Historial"><ul className="grid gap-1 text-xs">{(data?.linea_tiempo_certificacion ?? []).map((ln, idx) => <li key={idx}>{ln.fecha?.slice?.(0, 10)} · {ln.tipo} · {ln.estado_principal}</li>)}</ul></SectionCard> : null}
+            {tab === 'estado_sep' ? (
+                <EstadoSepLegacyPanel
+                    alumnoId={alumnoPk}
+                    curp={alumno?.curp}
+                />
+            ) : null}
         </section>
     );
 }

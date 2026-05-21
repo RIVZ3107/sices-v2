@@ -1,11 +1,12 @@
 import { Navigate } from 'react-router-dom';
-import { getUser } from '../../authStore';
+import { userCan, userCanAny } from '../../utils/userPermissions';
 
-export function RequirePermission({ permission, children }) {
-    const user = getUser();
-    const perms = user?.permissions ?? [];
-    if (!perms.includes(permission)) {
+export function RequirePermission({ permission, anyOf = [], children }) {
+    const ok = permission ? userCan(permission) : userCanAny(anyOf);
+
+    if (!ok) {
         return <Navigate to="/app/dashboard" replace />;
     }
+
     return children;
 }

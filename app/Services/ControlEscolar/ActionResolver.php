@@ -110,6 +110,25 @@ final class ActionResolver
                 'devolver_solicitud_matricula',
                 'rechazar_solicitud_matricula',
             ],
+            'responsable_certificacion_titulacion' => [
+                'ejecutar_firma_tecnica',
+                'generar_cadena',
+                'generar_xml',
+                'generar_pdf',
+                'validar_xml',
+                'firmar_documento',
+            ],
+            'director_escuela' => [
+                'ejecutar_firma_tecnica',
+                'generar_cadena',
+                'generar_xml',
+                'generar_pdf',
+                'validar_xml',
+                'firmar_documento',
+            ],
+            'control_escolar_escuela' => [
+                'ejecutar_firma_tecnica',
+            ],
         ];
     }
 
@@ -533,7 +552,8 @@ final class ActionResolver
                 'responsable_certificacion_titulacion' => 'documentos.liberar_proceso_tecnico',
             ],
             'preparar_documento_certificacion' => [
-                'responsable_certificacion_titulacion' => 'documentos.generar_documento',
+                'responsable_certificacion_titulacion' => 'preparar_documento_firma',
+                'educacion_superior' => 'documentos.liberar_proceso_tecnico',
             ],
             'ver_mi_expediente' => [
                 'alumno_egresado' => 'expediente.ver_propio',
@@ -563,7 +583,17 @@ final class ActionResolver
             return true;
         }
 
-        return $user->can($permission);
+        if ($user->can($permission)) {
+            return true;
+        }
+
+        return match ($permission) {
+            'firma.ejecutar' => $user->can('solicitar_firma'),
+            'solicitar_firma' => $user->can('firma.ejecutar'),
+            'documentos.liberar_proceso_tecnico' => $user->can('preparar_documento_firma'),
+            'preparar_documento_firma' => $user->can('documentos.liberar_proceso_tecnico'),
+            default => false,
+        };
     }
 
     /**
@@ -847,7 +877,7 @@ final class ActionResolver
                 'description' => 'Preparación hacia emisión (certificación/titulación).',
                 'route' => '/app/documentos/bandejas/listos-para-firma',
                 'method' => 'GET',
-                'permission_required' => 'preparar_documento_firma',
+                'permission_required' => 'documentos.liberar_proceso_tecnico',
                 'priority' => 250,
                 'variant' => 'primary',
                 'icon' => 'document-check',
@@ -937,7 +967,7 @@ final class ActionResolver
                 'description' => 'Orquestación de firma en entorno controlado.',
                 'route' => '/app/sistemas/configuracion',
                 'method' => 'POST',
-                'permission_required' => 'solicitar_firma',
+                'permission_required' => 'firma.ejecutar',
                 'priority' => 40,
                 'variant' => 'warning',
                 'icon' => 'pencil-square',

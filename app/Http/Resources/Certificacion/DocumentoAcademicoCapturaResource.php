@@ -67,6 +67,38 @@ class DocumentoAcademicoCapturaResource extends JsonResource
                 'created_at' => $ultima->created_at?->toIso8601String(),
             ] : null,
             'tiene_observaciones_pendientes' => (bool) ($obsPend > 0),
+            'alumno' => $this->whenLoaded('alumno', function () {
+                $a = $this->alumno;
+
+                return [
+                    'id' => $a->id,
+                    'curp' => $a->curp,
+                    'nombre' => $a->nombre,
+                    'primer_apellido' => $a->primer_apellido,
+                    'segundo_apellido' => $a->segundo_apellido,
+                    'nombre_completo' => trim(implode(' ', array_filter([
+                        $a->nombre,
+                        $a->primer_apellido,
+                        $a->segundo_apellido,
+                    ]))),
+                ];
+            }),
+            'matricula' => $this->whenLoaded('matricula', fn () => [
+                'id' => $this->matricula->id,
+                'matricula' => $this->matricula->matricula,
+                'estado' => $this->matricula->estado,
+            ]),
+            'institucion' => $this->whenLoaded('institucion', fn () => [
+                'id' => $this->institucion->id,
+                'nombre' => $this->institucion->nombre,
+                'clave' => $this->institucion->clave,
+            ]),
+            'sede' => $this->whenLoaded('sede', fn () => [
+                'id' => $this->sede->id,
+                'nombre' => $this->sede->nombre,
+                'clave' => $this->sede->clave,
+            ]),
+            'validacion_resumen' => $meta['validacion_resumen'] ?? null,
             'created_at' => $this->created_at?->toIso8601String(),
             'updated_at' => $this->updated_at?->toIso8601String(),
         ];

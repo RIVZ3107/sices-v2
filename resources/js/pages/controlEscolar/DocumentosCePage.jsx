@@ -259,6 +259,39 @@ export function DocumentosCePage() {
     return (
         <div style={{ padding: '24px 32px', background: '#f8fafc', minHeight: '100vh', fontFamily: 'system-ui, -apple-system, sans-serif' }}>
 
+            <div
+                style={{
+                    marginBottom: 20,
+                    padding: '14px 18px',
+                    background: '#EFF6FF',
+                    border: '1px solid #BFDBFE',
+                    borderRadius: 10,
+                    display: 'flex',
+                    flexWrap: 'wrap',
+                    gap: 12,
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                }}
+            >
+                <div>
+                    <p style={{ margin: 0, fontSize: 14, fontWeight: 600, color: '#1e3a5f' }}>Certificación electrónica (SEP)</p>
+                    <p style={{ margin: '4px 0 0', fontSize: 12, color: '#475569' }}>
+                        Borradores, envío a revisión y seguimiento institucional en el módulo operativo.
+                    </p>
+                </div>
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                    <Link to="/app/documentos/bandejas/borradores" style={{ fontSize: 13, fontWeight: 600, color: '#185FA5', textDecoration: 'none' }}>
+                        Bandeja certificados
+                    </Link>
+                    <Link to="/app/expedientes" style={{ fontSize: 13, fontWeight: 600, color: '#185FA5', textDecoration: 'none' }}>
+                        Expediente alumno
+                    </Link>
+                    <Link to="/app/materias-cursadas" style={{ fontSize: 13, fontWeight: 600, color: '#185FA5', textDecoration: 'none' }}>
+                        Calificaciones
+                    </Link>
+                </div>
+            </div>
+
             <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 24, flexWrap: 'wrap', gap: 16 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                     <h1 style={{ fontSize: 24, fontWeight: 700, color: '#0f172a', margin: 0 }}>Documentos y constancias</h1>

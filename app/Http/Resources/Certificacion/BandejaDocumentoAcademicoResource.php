@@ -49,14 +49,26 @@ class BandejaDocumentoAcademicoResource extends JsonResource
                 'nombre' => $this->cicloEscolar?->nombre,
                 'clave' => $this->cicloEscolar?->clave,
             ]),
+            'tipo_certificacion' => $this->tipo_certificacion,
+            'matricula' => $this->whenLoaded('matricula', fn () => [
+                'id' => $this->matricula?->id,
+                'matricula' => $this->matricula?->matricula,
+            ]),
+            'programa' => $this->whenLoaded('ofertaAcademica', fn () => [
+                'nombre' => $this->ofertaAcademica?->programaEstudio?->nombre,
+            ]),
+            'plan' => $this->whenLoaded('ofertaAcademica', fn () => [
+                'nombre' => $this->ofertaAcademica?->planEstudio?->nombre,
+            ]),
             'alumno' => $this->whenLoaded('alumno', fn () => [
                 'id' => $this->alumno?->id,
                 'curp' => $this->alumno?->curp,
-                'nombre' => trim(implode(' ', array_filter([
+                'nombre_completo' => trim(implode(' ', array_filter([
                     $this->alumno?->nombre,
                     $this->alumno?->primer_apellido,
                     $this->alumno?->segundo_apellido,
                 ]))),
+                'nombre' => $this->alumno?->nombre,
             ]),
             'listo_para_firma' => (bool) ($meta['listo_para_firma'] ?? false),
             'listo_para_firma_marcado_en' => $meta['listo_para_firma_marcado_en'] ?? null,

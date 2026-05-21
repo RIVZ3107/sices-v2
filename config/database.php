@@ -114,6 +114,48 @@ return [
             // 'trust_server_certificate' => env('DB_TRUST_SERVER_CERTIFICATE', 'false'),
         ],
 
+        'control_escolar' => [
+            'driver' => env('CONTROL_ESCOLAR_DRIVER', 'mysql'),
+            'host' => env('CONTROL_ESCOLAR_HOST', '127.0.0.1'),
+            'port' => env('CONTROL_ESCOLAR_PORT', '3306'),
+            'database' => env('CONTROL_ESCOLAR_DATABASE', ''),
+            'username' => env('CONTROL_ESCOLAR_USERNAME', 'root'),
+            'password' => env('CONTROL_ESCOLAR_PASSWORD', ''),
+            'unix_socket' => env('CONTROL_ESCOLAR_SOCKET', ''),
+            'charset' => env('CONTROL_ESCOLAR_CHARSET', 'utf8mb4'),
+            'collation' => env('CONTROL_ESCOLAR_COLLATION', 'utf8mb4_unicode_ci'),
+            'prefix' => '',
+            'prefix_indexes' => true,
+            'strict' => true,
+            'options' => extension_loaded('pdo_mysql') ? [
+                PDO::ATTR_TIMEOUT => (int) env('CONTROL_ESCOLAR_TIMEOUT', 10),
+            ] : [],
+        ],
+
+        'informix_legacy' => [
+            'driver' => env('INFORMIX_DRIVER', 'informix'),
+            'host' => env('INFORMIX_HOST', ''),
+            'service' => env('INFORMIX_SERVICE', ''),
+            'database' => env('INFORMIX_DATABASE', ''),
+            'server' => env('INFORMIX_SERVER', ''),
+            'username' => env('INFORMIX_USERNAME', ''),
+            'password' => env('INFORMIX_PASSWORD', ''),
+            'prefix' => '',
+            'prefix_indexes' => true,
+        ],
+
+        'informix_sices' => [
+            'driver' => env('SICES_LEGACY_DRIVER', env('INFORMIX_DRIVER', 'informix')),
+            'host' => env('SICES_LEGACY_HOST', env('INFORMIX_HOST', '')),
+            'service' => env('SICES_LEGACY_SERVICE', env('INFORMIX_SERVICE', '')),
+            'database' => env('SICES_LEGACY_DATABASE', env('INFORMIX_DATABASE', '')),
+            'server' => env('SICES_LEGACY_SERVER', env('INFORMIX_SERVER', '')),
+            'username' => env('SICES_LEGACY_USERNAME', env('INFORMIX_USERNAME', '')),
+            'password' => env('SICES_LEGACY_PASSWORD', env('INFORMIX_PASSWORD', '')),
+            'prefix' => '',
+            'prefix_indexes' => true,
+        ],
+
     ],
 
     /*

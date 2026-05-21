@@ -94,7 +94,7 @@ export function SolicitudCertificacionPage() {
                 institucion_id: r.institucion_id ?? undefined,
                 sede_id: r.sede_id ?? undefined,
                 tipo_documento: 'certificado',
-                tipo_certificacion: tipoCert,
+                tipo_certificacion: tipoCert === 'termino' ? 'total' : 'parcial',
             });
             const id = py?.data?.id;
             setMsg(`Borrador institucional creado como certificado (${tipoCert === 'termino' ? 'total' : 'parcial'}).`);

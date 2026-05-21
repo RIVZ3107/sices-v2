@@ -186,6 +186,11 @@ final class SicesPermissionsCatalog
                 'apariencia_sistema.publicar',
                 'apariencia_sistema.restaurar',
                 'apariencia_sistema.subir_imagenes',
+                'consulta_publica.emitir_token',
+                'documentos.validar',
+                'documentos.validar_documentalmente',
+                'documentos.liberar_proceso_tecnico',
+                'firma.reintentar',
             ],
         )));
     }
@@ -198,6 +203,13 @@ final class SicesPermissionsCatalog
         }
 
         $extra = [
+            'sices_legacy.consultar',
+            'sices_legacy.health',
+            'sices_legacy.comparar',
+            'control_escolar.importar',
+            'certificacion.preparar',
+            'observaciones.crear',
+            'documentos.observar',
             'documentos.aprobar_academicamente',
             'validacion_normativa.aprobar',
             'asistencia.capturar',
@@ -232,11 +244,13 @@ final class SicesPermissionsCatalog
                 'logs.ver',
                 'jobs.ver', 'jobs.reintentar',
                 'integraciones.ver', 'integraciones.configurar',
+                'sices_legacy.consultar', 'sices_legacy.health', 'sices_legacy.comparar',
                 'auditoria.ver',
                 'cadena_original.generar',
                 'xml.ver', 'xml.generar', 'xml.validar',
-                'firma.ver', 'firma.ejecutar',
+                'firma.ver', 'firma.ejecutar', 'firma.reintentar',
                 'pdf.generar',
+                'ver_documentos',
                 'consulta_publica.configurar',
                 'reportes.ver',
                 'dashboard.ver',
@@ -249,6 +263,10 @@ final class SicesPermissionsCatalog
             ],
             'educacion_superior' => [
                 'dashboard.ver',
+                'certificacion.preparar',
+                'control_escolar.importar',
+                'observaciones.crear',
+                'documentos.observar',
                 'instituciones.ver', 'instituciones.crear', 'instituciones.editar', 'instituciones.suspender',
                 'sedes.ver', 'sedes.crear', 'sedes.editar', 'sedes.validar',
                 'programas.ver', 'programas.crear', 'programas.editar',
@@ -260,13 +278,18 @@ final class SicesPermissionsCatalog
                 'matriculas.asignar',
                 'validaciones_normativas.ver', 'validaciones_normativas.revisar', 'validaciones_normativas.aprobar',
                 'validaciones_normativas.observar', 'validaciones_normativas.rechazar',
-                'documentos.ver', 'documentos.validar_normativamente', 'documentos.liberar_proceso_tecnico',
-                'certificacion.ver', 'certificacion.autorizar_emision', 'certificacion.enviar_a_proceso_tecnico',
+                'documentos.ver', 'documentos.aprobar', 'documentos.rechazar',
+                'documentos.aprobar_institucionalmente', 'documentos.rechazar_institucionalmente',
+                'documentos.observar', 'documentos.validar_normativamente', 'documentos.liberar_proceso_tecnico',
+                'certificacion.ver', 'certificacion.validar', 'certificacion.autorizar_emision', 'certificacion.enviar_a_proceso_tecnico',
                 'folios.ver',
                 'reportes.ver', 'reportes_oficiales.ver', 'reportes_oficiales.generar',
                 'consulta_publica.ver',
                 'notificaciones.ver',
                 'importaciones_academicas.ver',
+                'sices_legacy.consultar',
+                'sices_legacy.health',
+                'sices_legacy.comparar',
             ],
             'director_escuela' => [
                 'dashboard.ver',
@@ -291,6 +314,7 @@ final class SicesPermissionsCatalog
             ],
             'control_escolar_escuela' => [
                 'dashboard.ver',
+                'control_escolar.importar',
                 'notificaciones.ver',
                 'aspirantes.ver', 'aspirantes.crear', 'aspirantes.editar',
                 'expedientes.ver', 'expedientes.crear', 'expedientes.editar',
@@ -307,6 +331,7 @@ final class SicesPermissionsCatalog
                 'documentos.ver', 'documentos.crear_borrador', 'documentos.enviar_revision',
                 'observaciones.ver', 'observaciones.atender',
                 'reportes.ver',
+                'sices_legacy.consultar',
             ],
             'responsable_admision' => [
                 'aspirantes.ver', 'aspirantes.crear', 'aspirantes.editar',
@@ -316,6 +341,7 @@ final class SicesPermissionsCatalog
                 'observaciones.ver', 'observaciones.crear',
             ],
             'responsable_evaluacion' => [
+                'dashboard.ver',
                 'grupos.ver', 'docentes.ver',
                 'carga_academica.ver',
                 'calificaciones.ver', 'calificaciones.capturar', 'calificaciones.revisar', 'calificaciones.cerrar',
@@ -324,15 +350,23 @@ final class SicesPermissionsCatalog
                 'reportes.ver',
             ],
             'responsable_certificacion_titulacion' => [
-                'certificacion.ver', 'certificacion.revisar', 'certificacion.validar',
+                'certificacion.ver', 'certificacion.revisar', 'certificacion.validar', 'certificacion.preparar',
+                'control_escolar.importar',
+                'observaciones.crear',
+                'documentos.observar',
                 'titulacion.ver', 'titulacion.revisar',
                 'folios.ver', 'folios.asignar',
-                'documentos.ver', 'documentos.generar_documento', 'documentos.cancelar', 'documentos.reponer',
+                'documentos.ver', 'documentos.validar', 'documentos.validar_documentalmente',
+                'documentos.generar_documento', 'documentos.cancelar', 'documentos.reponer',
+                'documentos.liberar_proceso_tecnico',
                 'cadena_original.ver',
                 'xml.ver',
                 'pdf.ver',
-                'consulta_publica.ver',
+                'consulta_publica.ver', 'consulta_publica.emitir_token',
                 'reportes.ver',
+                'sices_legacy.consultar',
+                'sices_legacy.health',
+                'sices_legacy.comparar',
             ],
             'docente' => [
                 'grupos.ver_propios',
@@ -347,9 +381,13 @@ final class SicesPermissionsCatalog
                 'dashboard.ver',
                 'expedientes.ver',
                 'documentos.ver',
+                'certificacion.ver',
                 'reportes.ver',
                 'auditoria.ver',
                 'logs.ver_lectura',
+                'integraciones.ver',
+                'sices_legacy.consultar',
+                'sices_legacy.health',
                 'exportar_reportes',
             ],
             'alumno_egresado' => [
@@ -422,7 +460,9 @@ final class SicesPermissionsCatalog
             'aprobar_documentos' => ['documentos.aprobar', 'documentos.aprobar_institucionalmente'],
             'rechazar_documentos' => ['documentos.rechazar', 'documentos.rechazar_institucionalmente'],
             'cancelar_documentos' => ['documentos.cancelar'],
-            'preparar_documento_firma' => ['documentos.enviar_revision'],
+            'preparar_documento_firma' => ['documentos.enviar_revision', 'documentos.liberar_proceso_tecnico', 'consulta_publica.emitir_token'],
+            'solicitar_firma' => ['firma.ejecutar'],
+            'reintentar_firma' => ['firma.reintentar'],
             'ver_logs_integracion' => ['logs.ver'],
             'ver_auditoria' => ['auditoria.ver'],
             'generar_cadena' => ['cadena_original.generar'],
@@ -508,6 +548,8 @@ final class SicesPermissionsCatalog
             'validar_materias_cursadas',
             'ver_trayectorias',
             'ver_documentos',
+            'aprobar_documentos',
+            'rechazar_documentos',
             'ver_historial_estados',
             'revisar_importacion_legacy_normativa',
             'aprobar_importacion_legacy_normativa',
@@ -522,6 +564,9 @@ final class SicesPermissionsCatalog
             'generar_cadena',
             'generar_xml',
             'ver_xml',
+            'generar_pdf',
+            'solicitar_firma',
+            'reintentar_firma',
             'gestionar_configuracion_firma',
             'gestionar_plantillas_documentos',
             'gestionar_reglas_cadena',
@@ -529,6 +574,11 @@ final class SicesPermissionsCatalog
             'ver_logs_integracion',
             'ver_auditoria',
             'ver_historial_estados',
+        ];
+
+        $responsableCertificacion = [
+            'ver_documentos',
+            'preparar_documento_firma',
         ];
 
         $admin = [
@@ -588,13 +638,14 @@ final class SicesPermissionsCatalog
                 'ver_historial_estados',
                 'ver_documentos',
                 'ver_catalogos',
+                'certificacion.ver',
             ],
             'consulta' => [
                 'ver_documentos',
             ],
             'responsable_admision' => [],
             'responsable_evaluacion' => [],
-            'responsable_certificacion_titulacion' => [],
+            'responsable_certificacion_titulacion' => $responsableCertificacion,
             'alumno_egresado' => [],
             'aspirante_preinscrito' => [],
         ];
@@ -726,7 +777,38 @@ final class SicesPermissionsCatalog
             $merged = array_values(array_diff($merged, self::forbiddenForEducacionSuperior()));
         }
 
+        if ($roleName === 'responsable_certificacion_titulacion') {
+            $merged = array_values(array_diff($merged, self::forbiddenForResponsableCertificacionTitulacion()));
+        }
+
         return $merged;
+    }
+
+    /**
+     * Certificación funcional: sin operación técnica SEP/XML/cadena.
+     *
+     * @return list<string>
+     */
+    public static function forbiddenForResponsableCertificacionTitulacion(): array
+    {
+        return [
+            'generar_cadena',
+            'generar_xml',
+            'generar_pdf',
+            'solicitar_firma',
+            'reintentar_firma',
+            'cadena_original.generar',
+            'xml.generar',
+            'firma.ejecutar',
+            'firma.ver',
+            'pdf.generar',
+            'integraciones.ver',
+            'integraciones.configurar',
+            'jobs.ver',
+            'jobs.reintentar',
+            'logs.ver',
+            'menus.administrar',
+        ];
     }
 
     /**

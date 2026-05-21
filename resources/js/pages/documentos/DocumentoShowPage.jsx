@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useParams } from 'react-router-dom';
-import { getUser } from '../../authStore';
 import { documentosAcademicosApi } from '../../api/documentosAcademicos';
 import { observacionesApi } from '../../api/observaciones';
 import { ActionButton } from '../../components/ActionButton';
@@ -14,15 +13,46 @@ import { ValidacionResumenCard } from '../../components/ValidacionResumenCard';
 import { SectionCard } from '../../components/ui/SectionCard';
 import { Timeline } from '../../components/ui/Timeline';
 import { AlertBox } from '../../components/ui/AlertBox';
+import { userCanAny } from '../../utils/userPermissions';
+
 export function DocumentoShowPage() {
     const { id } = useParams();
     const navigate = useNavigate();
-    const role = getUser()?.roles?.[0] ?? 'admin';
     const [doc, setDoc] = useState(null);
     const [obs, setObs] = useState([]);
     const [val, setVal] = useState(null);
     const [msg, setMsg] = useState('');
     const [error, setError] = useState('');
+
+    const canEnviar = userCanAny(['enviar_revision', 'documentos.enviar_revision']);
+    const canAprobar = userCanAny([
+        'aprobar_documentos',
+        'documentos.aprobar',
+        'documentos.aprobar_institucionalmente',
+        'validaciones_normativas.aprobar',
+        'certificacion.autorizar_emision',
+        'certificacion.validar',
+    ]);
+    const canRechazar = userCanAny([
+        'rechazar_documentos',
+        'documentos.rechazar',
+        'documentos.rechazar_institucionalmente',
+        'validaciones_normativas.rechazar',
+    ]);
+    const canLiberarFirma = userCanAny([
+        'documentos.liberar_proceso_tecnico',
+        'preparar_documento_firma',
+        'certificacion.enviar_a_proceso_tecnico',
+    ]);
+    const canGenerarCadena = userCanAny(['generar_cadena', 'cadena_original.generar']);
+    const canGenerarXml = userCanAny(['generar_xml', 'xml.generar']);
+    const canFirma = userCanAny(['firma.ejecutar', 'solicitar_firma']);
+    const canTokenPublico = userCanAny([
+        'consulta_publica.emitir_token',
+        'consulta_publica.configurar',
+        'preparar_documento_firma',
+        'documentos.liberar_proceso_tecnico',
+    ]);
 
     async function refresh() {
         const [d, o] = await Promise.all([
@@ -32,6 +62,12 @@ export function DocumentoShowPage() {
         setDoc(d.data);
         setObs(o.data);
         setVal(d?.data?.validacion_resumen ?? null);
+        try {
+            const v = await documentosAcademicosApi.validar(id);
+            if (v?.data?.resumen) setVal(v.data.resumen);
+        } catch {
+            /* resumen opcional al cargar */
+        }
     }
 
     useEffect(() => {
@@ -49,6 +85,8 @@ export function DocumentoShowPage() {
             if (action === 'aprobar') await documentosAcademicosApi.aprobar(id, { motivo: 'Aprobacion desde frontend.' });
             if (action === 'rechazar') await documentosAcademicosApi.rechazar(id, { motivo: 'Rechazo desde frontend.' });
             if (action === 'preparar') await documentosAcademicosApi.marcarListoParaFirma(id, { motivo: 'Preparar firma.' });
+            if (action === 'token') await documentosAcademicosApi.emitirTokenConsulta(id, {});
+            if (action === 'firma') await documentosAcademicosApi.ejecutarFirma(id, {});
             if (action === 'validar') {
                 const res = await documentosAcademicosApi.validar(id);
                 setVal(res?.data?.resumen ?? null);
@@ -60,24 +98,20 @@ export function DocumentoShowPage() {
         }
     }
 
-    const canControl = ['control_escolar_escuela', 'director_escuela'].includes(role);
-    const canRevision = role === 'educacion_superior';
-    const canSistemas = role === 'sistemas';
-
     const timelineSteps = [
         { key: 'borrador', label: 'Borrador', done: ['borrador', 'en_revision', 'aprobado', 'rechazado', 'listo_para_firma'].includes(doc.estado_workflow) },
         { key: 'en_revision', label: 'En revision', done: ['en_revision', 'aprobado', 'rechazado', 'listo_para_firma'].includes(doc.estado_workflow) },
         { key: 'rechazado', label: 'Devuelto', done: doc.estado_workflow === 'rechazado' },
         { key: 'aprobado', label: 'Aprobado', done: ['aprobado', 'listo_para_firma'].includes(doc.estado_workflow) },
         { key: 'listo_para_firma', label: 'Listo para firma', done: doc.listo_para_firma },
-        { key: 'firmado', label: 'Firmado (futuro)', done: doc.estado_firma === 'firmado' },
+        { key: 'firmado', label: 'Firmado', done: doc.estado_firma === 'firmado' },
     ];
 
     return (
         <section className="grid gap-4 lg:grid-cols-[1fr_280px]">
             <PageHeader
                 title={`Documento #${doc.id}`}
-                subtitle="Detalle documental operativo por rol."
+                subtitle="Detalle documental según permisos del usuario."
                 actions={(
                     <div className="flex flex-wrap gap-2">
                         <ActionButton variant="secondary" onClick={() => navigate(`/app/documentos/${id}/captura`)}>Captura</ActionButton>
@@ -105,21 +139,20 @@ export function DocumentoShowPage() {
             <ObservacionesPanel items={obs} />
             <SectionCard title="Secciones de documento">
                 <p>Materias, trayectoria y detalles extendidos dependen de endpoints de consulta detallada backend.</p>
-                <p className="mt-1">No se implementa firma real SEP/since-service en esta fase.</p>
                 <Link to="/app/documentos/bandejas" className="mt-2 inline-block text-blue-700 hover:underline">Volver a bandejas</Link>
             </SectionCard>
             </div>
             <aside className="inst-surface grid h-max gap-3 p-4">
-                <h3 className="inst-title text-sm">Acciones por rol</h3>
+                <h3 className="inst-title text-sm">Acciones disponibles</h3>
                 <ActionButton variant="secondary" onClick={() => runAction('validar')}>Ver validación</ActionButton>
-                {canControl ? <ActionButton onClick={() => runAction('enviar')}>Enviar a revision</ActionButton> : null}
-                {canControl ? <ActionButton variant="secondary" onClick={() => navigate(`/app/documentos/${id}/captura`)}>Editar borrador</ActionButton> : null}
-                {canControl ? <ActionButton variant="secondary" onClick={() => navigate(`/app/documentos/${id}/observaciones`)}>Atender observaciones</ActionButton> : null}
-                {canRevision ? <ActionButton variant="secondary" onClick={() => navigate(`/app/documentos/${id}/observaciones`)}>Agregar observacion</ActionButton> : null}
-                {canRevision ? <ActionButton variant="danger" onClick={() => runAction('rechazar')}>Devolver/Rechazar</ActionButton> : null}
-                {canRevision ? <ActionButton onClick={() => runAction('aprobar')}>Aprobar</ActionButton> : null}
-                {canRevision ? <ActionButton variant="warning" onClick={() => runAction('preparar')}>Preparar para firma</ActionButton> : null}
-                {canSistemas ? <p className="inst-muted text-xs">Sistemas solo visualiza datos tecnicos y estado listo para firma. No se muestra accion de firmar.</p> : null}
+                {canEnviar ? <ActionButton onClick={() => runAction('enviar')}>Enviar a revision</ActionButton> : null}
+                {canRechazar ? <ActionButton variant="danger" onClick={() => runAction('rechazar')}>Rechazar / devolver</ActionButton> : null}
+                {canAprobar ? <ActionButton onClick={() => runAction('aprobar')}>Aprobar</ActionButton> : null}
+                {canLiberarFirma ? <ActionButton variant="warning" onClick={() => runAction('preparar')}>Liberar / listo para firma</ActionButton> : null}
+                {canTokenPublico ? <ActionButton variant="secondary" onClick={() => runAction('token')}>Emitir token consulta pública</ActionButton> : null}
+                {canGenerarCadena ? <p className="inst-muted text-xs">Cadena/XML: usar panel técnico Sistemas o API.</p> : null}
+                {canGenerarXml ? null : null}
+                {canFirma ? <ActionButton variant="warning" onClick={() => runAction('firma')}>Ejecutar firma técnica</ActionButton> : null}
             </aside>
         </section>
     );

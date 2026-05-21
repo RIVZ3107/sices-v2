@@ -119,6 +119,11 @@ class SystemMenusSeeder extends Seeder
         $mk(null, 'es_sol', 'Solicitudes de matrícula', '/app/solicitudes-matricula', 'matriculas', 6, 'OPERACION', 'solicitudes_matricula.ver', ['educacion_superior']);
         $mk(null, 'es_val', 'Validaciones normativas', '/app/educacion-superior/validaciones-normativas', 'validate', 7, 'OPERACION', 'validaciones_normativas.ver', ['educacion_superior']);
         $mk(null, 'es_cert', 'Certificación', '/app/educacion-superior/certificacion', 'docs', 8, 'OPERACION', 'certificacion.ver', ['educacion_superior']);
+        $mk(null, 'es_rev', 'Revisión de Certificación', '/app/certificacion/revision', 'validate', 9, 'OPERACION', 'certificacion.ver', ['educacion_superior']);
+        $mk('es_rev', 'es_rev_pen', 'Pendientes de revisión', '/app/certificacion/revision?bandeja=pendientes-revision', 'docs', 1, 'OPERACION', 'documentos.ver', ['educacion_superior']);
+        $mk('es_rev', 'es_rev_obs', 'Observados', '/app/certificacion/revision?bandeja=rechazados', 'audit', 2, 'OPERACION', 'documentos.ver', ['educacion_superior']);
+        $mk('es_rev', 'es_rev_apr', 'Aprobados', '/app/certificacion/revision?bandeja=aprobados', 'docs', 3, 'OPERACION', 'documentos.ver', ['educacion_superior']);
+        $mk('es_rev', 'es_rev_tec', 'Listos para proceso técnico', '/app/certificacion/revision?bandeja=listos-para-firma', 'docs', 4, 'OPERACION', 'documentos.ver', ['educacion_superior']);
         $mk(null, 'es_rep', 'Reportes oficiales', '/app/educacion-superior/reportes-oficiales', 'report', 9, 'OPERACION', 'reportes_oficiales.ver', ['educacion_superior']);
         $mk(null, 'es_cp', 'Consulta pública', '/app/consulta/documentos', 'validate', 10, 'CONSULTA', 'consulta_publica.ver', ['educacion_superior']);
         $mk(null, 'es_not', 'Notificaciones', '/app/notificaciones', 'status', 11, 'OPERACION', 'notificaciones.ver', ['educacion_superior']);
@@ -175,6 +180,11 @@ class SystemMenusSeeder extends Seeder
         $mk(null, 'rc_vac', 'Validación académica', '/app/documentos/validacion', 'validate', 4, 'CERT', 'certificacion.ver', ['responsable_certificacion_titulacion']);
         $mk(null, 'rc_vdoc', 'Validación documental', '/app/documentos/bandejas/por-rol', 'docs', 5, 'CERT', 'documentos.ver', ['responsable_certificacion_titulacion']);
         $mk(null, 'rc_fol', 'Folios', '/app/documentos/bandejas/aprobados', 'docs', 6, 'CERT', 'folios.ver', ['responsable_certificacion_titulacion']);
+        $mk(null, 'rc_rev', 'Revisión de Certificación', '/app/certificacion/revision', 'validate', 7, 'CERT', 'certificacion.ver', ['responsable_certificacion_titulacion']);
+        $mk('rc_rev', 'rc_rev_pen', 'Pendientes de revisión', '/app/certificacion/revision?bandeja=pendientes-revision', 'docs', 1, 'CERT', 'documentos.ver', ['responsable_certificacion_titulacion']);
+        $mk('rc_rev', 'rc_rev_obs', 'Observados', '/app/certificacion/revision?bandeja=rechazados', 'audit', 2, 'CERT', 'documentos.ver', ['responsable_certificacion_titulacion']);
+        $mk('rc_rev', 'rc_rev_apr', 'Aprobados', '/app/certificacion/revision?bandeja=aprobados', 'docs', 3, 'CERT', 'documentos.ver', ['responsable_certificacion_titulacion']);
+        $mk('rc_rev', 'rc_rev_tec', 'Listos para proceso técnico', '/app/certificacion/revision?bandeja=listos-para-firma', 'docs', 4, 'CERT', 'documentos.ver', ['responsable_certificacion_titulacion']);
         $mk(null, 'rc_cert', 'Certificados', '/app/documentos/bandejas/en-revision', 'docs', 7, 'CERT', 'certificacion.ver', ['responsable_certificacion_titulacion']);
         $mk(null, 'rc_tit', 'Títulos / grados', '/app/documentos/bandejas/aprobados', 'docs', 8, 'CERT', 'titulacion.ver', ['responsable_certificacion_titulacion']);
         $mk(null, 'rc_doc', 'Documentos oficiales', '/app/documentos/bandejas/por-rol', 'docs', 9, 'CERT', 'documentos.ver', ['responsable_certificacion_titulacion']);

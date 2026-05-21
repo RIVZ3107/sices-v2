@@ -34,4 +34,16 @@ return [
         'patron_matricula_regex' => env('UPN_PATRON_MATRICULA_REGEX', ''),
     ],
 
+    /*
+    | Firma SEP/SINCE — servicio 34 (multipart urlshort + prod únicamente).
+    */
+    'sep_firma' => [
+        'enabled' => filter_var(env('SEP_FIRMA_ENABLED', false), FILTER_VALIDATE_BOOL),
+        'simulada' => filter_var(env('SEP_FIRMA_SIMULADA', true), FILTER_VALIDATE_BOOL),
+        'endpoint' => env('SINCE_FIRMA_URL', env('SEP_FIRMA_ENDPOINT', '')),
+        'timeout' => (int) env('SEP_FIRMA_TIMEOUT', 30),
+        'produccion' => filter_var(env('SINCE_FIRMA_PROD', false), FILTER_VALIDATE_BOOL),
+        'use_bridge' => filter_var(env('SEP_FIRMA_USE_BRIDGE', false), FILTER_VALIDATE_BOOL),
+    ],
+
 ];

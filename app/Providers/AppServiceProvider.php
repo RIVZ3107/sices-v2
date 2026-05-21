@@ -2,6 +2,10 @@
 
 namespace App\Providers;
 
+use App\Contracts\ControlEscolar\ControlEscolarSourceAdapterInterface;
+use App\Contracts\SicesLegacy\SicesLegacyCertificadoRepositoryInterface;
+use App\Infrastructure\ControlEscolar\DatabaseControlEscolarSourceAdapter;
+use App\Infrastructure\SicesLegacy\InformixSicesLegacyCertificadoRepository;
 use App\Models\Alumno;
 use App\Models\ConfiguracionVisualSistema;
 use App\Models\DocumentoAcademico;
@@ -24,7 +28,15 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        $this->app->bind(
+            ControlEscolarSourceAdapterInterface::class,
+            DatabaseControlEscolarSourceAdapter::class,
+        );
+
+        $this->app->bind(
+            SicesLegacyCertificadoRepositoryInterface::class,
+            InformixSicesLegacyCertificadoRepository::class,
+        );
     }
 
     /**

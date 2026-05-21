@@ -11,7 +11,11 @@ use App\Http\Controllers\Api\V1\Certificacion\CatalogoCapturaController;
 use App\Http\Controllers\Api\V1\Certificacion\ValidacionNormativaImportacionLegacyController;
 use App\Http\Controllers\Api\V1\Certificacion\DocumentoAcademicoProcesoController;
 use App\Http\Controllers\Api\V1\Certificacion\DocumentoDecNormalController;
+use App\Http\Controllers\Api\V1\Certificacion\DocumentoFirmaController;
 use App\Http\Controllers\Api\V1\Certificacion\DocumentoObservacionController;
+use App\Http\Controllers\Api\V1\ControlEscolar\ControlEscolarController;
+use App\Http\Controllers\Api\V1\ControlEscolar\ControlEscolarIntegracionController;
+use App\Http\Controllers\Api\Certificacion\ConsultaPublicaController;
 use App\Http\Controllers\Api\V1\Certificacion\InscripcionPeriodoController;
 use App\Http\Controllers\Api\V1\Certificacion\MateriaCursadaCapturaController;
 use App\Http\Controllers\Api\V1\Certificacion\MatriculaCapturaController;
@@ -20,6 +24,7 @@ use App\Http\Controllers\Api\V1\Certificacion\TrayectoriaCapturaController;
 use App\Http\Controllers\Api\V1\Dashboard\DashboardController;
 use App\Http\Controllers\Api\V1\Me\MeAparienciaController;
 use App\Http\Controllers\Api\V1\Me\UserMenuController;
+use App\Http\Controllers\Api\V1\SicesLegacy\SicesLegacyConsultaController;
 use App\Http\Controllers\Api\V1\Sistema\ConfiguracionVisualSistemaController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -61,6 +66,8 @@ Route::prefix('v1/sistema/apariencia')
 
 Route::get('v1/dashboard', DashboardController::class)
     ->middleware('auth:sanctum');
+
+Route::get('v1/consulta-publica/documentos/{token}', [ConsultaPublicaController::class, 'showByToken']);
 
 Route::prefix('v1/academico')
     ->middleware('auth:sanctum')
@@ -137,25 +144,44 @@ Route::prefix('v1/certificacion')
         Route::put('trayectorias-academicas', [TrayectoriaCapturaController::class, 'upsert'])
             ->middleware('permission_or:gestionar_trayectorias|trayectoria.editar|trayectoria.recalcular');
 
-        Route::post('documentos-academicos', [DocumentoAcademicoProcesoController::class, 'store']);
-        Route::get('documentos-academicos/{documento}', [DocumentoAcademicoProcesoController::class, 'show']);
-        Route::post('documentos-academicos/{documento}/validar', [DocumentoAcademicoProcesoController::class, 'validar']);
-        Route::post('documentos-academicos/{documento}/pasar-pendiente', [DocumentoAcademicoProcesoController::class, 'pasarPendiente']);
-        Route::post('documentos-academicos/{documento}/enviar-revision', [DocumentoAcademicoProcesoController::class, 'enviarRevision']);
-        Route::post('documentos-academicos/{documento}/aprobar', [DocumentoAcademicoProcesoController::class, 'aprobar']);
-        Route::post('documentos-academicos/{documento}/rechazar', [DocumentoAcademicoProcesoController::class, 'rechazar']);
-        Route::post('documentos-academicos/{documento}/folio-interno', [DocumentoAcademicoProcesoController::class, 'asignarFolioInterno']);
-        Route::post('documentos-academicos/{documento}/token-consulta-publica', [DocumentoAcademicoProcesoController::class, 'emitirTokenConsultaPublica']);
-        Route::post('documentos-academicos/{documento}/listo-para-firma', [DocumentoAcademicoProcesoController::class, 'marcarListoParaFirma']);
-        Route::post('documentos-academicos/{documento}/dec-normal/payload', [DocumentoDecNormalController::class, 'generarPayload']);
-        Route::post('documentos-academicos/{documento}/dec-normal/cadena', [DocumentoDecNormalController::class, 'generarCadena']);
-        Route::post('documentos-academicos/{documento}/dec-normal/xml', [DocumentoDecNormalController::class, 'generarXml']);
-        Route::post('documentos-academicos/{documento}/dec-normal/validar-xml', [DocumentoDecNormalController::class, 'validarXml']);
-        Route::get('documentos-academicos/{documento}/dec-normal/errores', [DocumentoDecNormalController::class, 'errores']);
+        Route::post('documentos-academicos', [DocumentoAcademicoProcesoController::class, 'store'])
+            ->middleware('permission_or:crear_documentos|documentos.crear|documentos.crear_borrador');
+        Route::get('documentos-academicos/{documento}', [DocumentoAcademicoProcesoController::class, 'show'])
+            ->middleware('permission_or:ver_documentos|documentos.ver');
+        Route::get('documentos-academicos/{documento}/revision-institucional', [DocumentoAcademicoProcesoController::class, 'revisionInstitucional'])
+            ->middleware('permission_or:ver_documentos|documentos.ver|certificacion.ver|validaciones_normativas.ver');
+        Route::post('documentos-academicos/{documento}/validar', [DocumentoAcademicoProcesoController::class, 'validar'])
+            ->middleware('permission_or:ver_documentos|documentos.ver');
+        Route::post('documentos-academicos/{documento}/pasar-pendiente', [DocumentoAcademicoProcesoController::class, 'pasarPendiente'])
+            ->middleware('permission_or:editar_documentos|documentos.editar');
+        Route::post('documentos-academicos/{documento}/enviar-revision', [DocumentoAcademicoProcesoController::class, 'enviarRevision'])
+            ->middleware('permission_or:enviar_revision|documentos.enviar_revision');
+        Route::post('documentos-academicos/{documento}/aprobar', [DocumentoAcademicoProcesoController::class, 'aprobar'])
+            ->middleware('permission_or:aprobar_documentos|documentos.aprobar|documentos.aprobar_institucionalmente|validaciones_normativas.aprobar|certificacion.autorizar_emision|certificacion.validar');
+        Route::post('documentos-academicos/{documento}/rechazar', [DocumentoAcademicoProcesoController::class, 'rechazar'])
+            ->middleware('permission_or:rechazar_documentos|documentos.rechazar|documentos.rechazar_institucionalmente|validaciones_normativas.rechazar');
+        Route::post('documentos-academicos/{documento}/folio-interno', [DocumentoAcademicoProcesoController::class, 'asignarFolioInterno'])
+            ->middleware('permission_or:preparar_documento_firma|folios.asignar|documentos.liberar_proceso_tecnico|certificacion.autorizar_emision');
+        Route::post('documentos-academicos/{documento}/token-consulta-publica', [DocumentoAcademicoProcesoController::class, 'emitirTokenConsultaPublica'])
+            ->middleware('permission_or:consulta_publica.emitir_token|consulta_publica.configurar|preparar_documento_firma|documentos.liberar_proceso_tecnico|certificacion.autorizar_emision');
+        Route::post('documentos-academicos/{documento}/listo-para-firma', [DocumentoAcademicoProcesoController::class, 'marcarListoParaFirma'])
+            ->middleware('permission_or:documentos.liberar_proceso_tecnico|preparar_documento_firma|certificacion.enviar_a_proceso_tecnico');
+        Route::post('documentos-academicos/{documento}/firma/ejecutar', [DocumentoFirmaController::class, 'ejecutar'])
+            ->middleware('permission_or:firma.ejecutar|solicitar_firma');
+        Route::post('documentos-academicos/{documento}/dec-normal/payload', [DocumentoDecNormalController::class, 'generarPayload'])
+            ->middleware('permission_or:generar_cadena|cadena_original.generar|ver_documentos|documentos.ver');
+        Route::post('documentos-academicos/{documento}/dec-normal/cadena', [DocumentoDecNormalController::class, 'generarCadena'])
+            ->middleware('permission_or:generar_cadena|cadena_original.generar');
+        Route::post('documentos-academicos/{documento}/dec-normal/xml', [DocumentoDecNormalController::class, 'generarXml'])
+            ->middleware('permission_or:generar_xml|xml.generar');
+        Route::post('documentos-academicos/{documento}/dec-normal/validar-xml', [DocumentoDecNormalController::class, 'validarXml'])
+            ->middleware('permission_or:generar_xml|xml.generar|xml.validar');
+        Route::get('documentos-academicos/{documento}/dec-normal/errores', [DocumentoDecNormalController::class, 'errores'])
+            ->middleware('permission_or:ver_xml|xml.ver|generar_xml|xml.generar');
         Route::get('documentos-academicos/{documento}/observaciones', [DocumentoObservacionController::class, 'index'])
             ->middleware('permission_or:ver_documentos|documentos.ver');
         Route::post('documentos-academicos/{documento}/observaciones', [DocumentoObservacionController::class, 'store'])
-            ->middleware('permission_or:rechazar_documentos|documentos.rechazar|documentos.rechazar_institucionalmente');
+            ->middleware('permission_or:rechazar_documentos|documentos.rechazar|documentos.rechazar_institucionalmente|validaciones_normativas.rechazar|certificacion.validar|documentos.observar|observaciones.crear');
         Route::post('documentos-academicos/{documento}/observaciones/{observacion}/atender', [DocumentoObservacionController::class, 'atender'])
             ->middleware('permission_or:editar_documentos|documentos.editar');
         Route::post('documentos-academicos/{documento}/devolver-correccion', [DocumentoObservacionController::class, 'devolver'])
@@ -231,6 +257,24 @@ Route::prefix('v1/control-escolar')
             ->middleware('permission_or:ver_documentos|documentos.ver|dashboard.ver');
         Route::get('expedientes', [ControlEscolarController::class, 'expedientes'])
             ->middleware('permission_or:ver_alumnos|alumnos.ver|expedientes.ver');
+
+        Route::prefix('integracion')
+            ->middleware('permission_or:control_escolar.importar|certificacion.preparar|integraciones.ver|gestionar_trayectorias')
+            ->group(function () {
+                Route::get('health', [ControlEscolarIntegracionController::class, 'health']);
+            });
+
+        Route::middleware('permission_or:control_escolar.importar|certificacion.preparar|gestionar_trayectorias|crear_documentos|documentos.crear_borrador')
+            ->group(function () {
+                Route::get('alumnos/buscar', [ControlEscolarIntegracionController::class, 'buscar']);
+                Route::post('alumnos/importar', [ControlEscolarIntegracionController::class, 'importar']);
+            });
+
+        Route::middleware('permission_or:control_escolar.importar|certificacion.preparar|validaciones_normativas.aprobar|documentos.liberar_proceso_tecnico|preparar_documento_firma')
+            ->group(function () {
+                Route::get('matriculas/{matricula}/validar-dec', [ControlEscolarIntegracionController::class, 'validarDec']);
+                Route::post('matriculas/{matricula}/crear-documento-certificacion', [ControlEscolarIntegracionController::class, 'crearDocumentoCertificacion']);
+            });
     });
 
 Route::prefix('v1/catalogos')
@@ -238,4 +282,18 @@ Route::prefix('v1/catalogos')
     ->group(function () {
         Route::get('sedes', [CatalogoCapturaController::class, 'sedes'])
             ->middleware('permission_or:ver_catalogos|catalogos.ver|dashboard.ver|sedes.ver');
+    });
+
+Route::prefix('v1/sices-legacy')
+    ->middleware([
+        'auth:sanctum',
+        'permission_or:sices_legacy.consultar|sices_legacy.health|documentos.ver|expedientes.ver|integraciones.ver',
+    ])
+    ->group(function () {
+        Route::get('health', [SicesLegacyConsultaController::class, 'health'])
+            ->middleware('permission_or:sices_legacy.health|integraciones.ver');
+        Route::get('alumnos/{alumno}/estado-sep', [SicesLegacyConsultaController::class, 'estadoSepAlumno']);
+        Route::get('documentos/{documento}/estado-sep', [SicesLegacyConsultaController::class, 'estadoSepDocumento']);
+        Route::get('certificados/por-curp/{curp}', [SicesLegacyConsultaController::class, 'porCurp']);
+        Route::get('certificados/por-url-short/{urlShort}', [SicesLegacyConsultaController::class, 'porUrlShort']);
     });

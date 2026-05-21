@@ -27,6 +27,12 @@ class DocumentoObservacionService
         ?string $ip = null,
         ?string $userAgent = null,
     ): DocumentoObservacion {
+        if (in_array($documento->estado_firma, ['firmado', 'firmando'], true)) {
+            throw ValidationException::withMessages([
+                'estado_firma' => ['No se pueden registrar observaciones en documentos firmados o en proceso de firma.'],
+            ]);
+        }
+
         if (! in_array($documento->estado_workflow, [EstadoWorkflow::EN_REVISION->value, EstadoWorkflow::PENDIENTE->value], true)) {
             throw ValidationException::withMessages([
                 'estado_workflow' => ['Solo se pueden registrar observaciones en documentos en revisión o pendiente.'],

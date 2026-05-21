@@ -90,10 +90,7 @@ class CertificacionAlcanceService
         $idsRegiones = $user->regiones()->pluck('regiones.id');
 
         if ($idsInst->isEmpty() && $idsSedes->isEmpty() && $idsRegiones->isEmpty()) {
-            if ($user->hasRole('educacion_superior')) {
-                return true;
-            }
-            if ($user->hasRole('sistemas')) {
+            if ($user->hasRole(['educacion_superior', 'responsable_certificacion_titulacion', 'sistemas', 'auditor'])) {
                 return true;
             }
 
@@ -132,7 +129,7 @@ class CertificacionAlcanceService
         }
 
         if ($this->alcanceTerritorialEstaVacio($user)) {
-            if ($user->hasRole('educacion_superior') || $user->hasRole('sistemas')) {
+            if ($user->hasRole(['educacion_superior', 'responsable_certificacion_titulacion', 'sistemas', 'auditor'])) {
                 return;
             }
             $query->whereRaw('1 = 0');
@@ -170,7 +167,7 @@ class CertificacionAlcanceService
         }
 
         if ($this->alcanceTerritorialEstaVacio($user)) {
-            if ($user->hasRole('educacion_superior') || $user->hasRole('sistemas')) {
+            if ($user->hasRole(['educacion_superior', 'responsable_certificacion_titulacion', 'sistemas', 'auditor'])) {
                 return;
             }
             $query->whereRaw('1 = 0');
@@ -206,7 +203,7 @@ class CertificacionAlcanceService
         }
 
         if ($this->alcanceTerritorialEstaVacio($user)) {
-            if ($user->hasRole('educacion_superior') || $user->hasRole('sistemas')) {
+            if ($user->hasRole(['educacion_superior', 'responsable_certificacion_titulacion', 'sistemas', 'auditor'])) {
                 return;
             }
             $query->whereRaw('1 = 0');
@@ -243,7 +240,7 @@ class CertificacionAlcanceService
         }
 
         if ($this->alcanceTerritorialEstaVacio($user)) {
-            if ($user->hasRole('educacion_superior') || $user->hasRole('sistemas')) {
+            if ($user->hasRole(['educacion_superior', 'responsable_certificacion_titulacion', 'sistemas', 'auditor'])) {
                 return;
             }
             $query->whereRaw('1 = 0');
@@ -276,7 +273,7 @@ class CertificacionAlcanceService
         }
 
         if ($this->alcanceTerritorialEstaVacio($user)) {
-            if ($user->hasRole('educacion_superior') || $user->hasRole('sistemas')) {
+            if ($user->hasRole(['educacion_superior', 'responsable_certificacion_titulacion', 'sistemas', 'auditor'])) {
                 return;
             }
             $query->whereRaw('1 = 0');
