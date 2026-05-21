@@ -21,7 +21,6 @@ use App\Http\Controllers\Api\V1\Certificacion\MatriculaCapturaController;
 use App\Http\Controllers\Api\V1\Certificacion\SolicitudMatriculaController;
 use App\Http\Controllers\Api\V1\Certificacion\TrayectoriaCapturaController;
 use App\Http\Controllers\Api\V1\Certificacion\ValidacionNormativaImportacionLegacyController;
-use App\Http\Controllers\Api\V1\ControlEscolar\ControlEscolarController;
 use App\Http\Controllers\Api\V1\Dashboard\DashboardController;
 use App\Http\Controllers\Api\V1\EducacionSuperior\EducacionSuperiorMetricasController;
 use App\Http\Controllers\Api\V1\EducacionSuperior\EducacionSuperiorReportesController;
@@ -264,26 +263,6 @@ Route::prefix('v1/control-escolar')
             ->middleware('permission_or:ver_alumnos|alumnos.ver|expedientes.ver');
         Route::get('expedientes', [ControlEscolarController::class, 'expedientes'])
             ->middleware('permission_or:ver_alumnos|alumnos.ver|expedientes.ver');
-<<<<<<< HEAD
-
-        Route::prefix('integracion')
-            ->middleware('permission_or:control_escolar.importar|certificacion.preparar|integraciones.ver|gestionar_trayectorias')
-            ->group(function () {
-                Route::get('health', [ControlEscolarIntegracionController::class, 'health']);
-            });
-
-        Route::middleware('permission_or:control_escolar.importar|certificacion.preparar|gestionar_trayectorias|crear_documentos|documentos.crear_borrador')
-            ->group(function () {
-                Route::get('alumnos/buscar', [ControlEscolarIntegracionController::class, 'buscar']);
-                Route::post('alumnos/importar', [ControlEscolarIntegracionController::class, 'importar']);
-            });
-
-        Route::middleware('permission_or:control_escolar.importar|certificacion.preparar|validaciones_normativas.aprobar|documentos.liberar_proceso_tecnico|preparar_documento_firma')
-            ->group(function () {
-                Route::get('matriculas/{matricula}/validar-dec', [ControlEscolarIntegracionController::class, 'validarDec']);
-                Route::post('matriculas/{matricula}/crear-documento-certificacion', [ControlEscolarIntegracionController::class, 'crearDocumentoCertificacion']);
-            });
-=======
         Route::get('inscripciones', [ControlEscolarController::class, 'inscripciones'])
             ->middleware('permission_or:inscripciones.ver|gestionar_inscripciones_periodo|ver_alumnos|alumnos.ver');
         Route::get('reinscripciones', [ControlEscolarController::class, 'reinscripciones'])
@@ -306,7 +285,24 @@ Route::prefix('v1/control-escolar')
             ->middleware('permission:notificaciones.ver');
         Route::get('importaciones', [ControlEscolarController::class, 'importaciones'])
             ->middleware('permission_or:importaciones_academicas.ver|importar_calificaciones|calificaciones.ver|ver_alumnos|alumnos.ver');
->>>>>>> d926c721d87cf98b6a3f2798545c811d7a269764
+
+        Route::prefix('integracion')
+            ->middleware('permission_or:control_escolar.importar|certificacion.preparar|integraciones.ver|gestionar_trayectorias')
+            ->group(function () {
+                Route::get('health', [ControlEscolarIntegracionController::class, 'health']);
+            });
+
+        Route::middleware('permission_or:control_escolar.importar|certificacion.preparar|gestionar_trayectorias|crear_documentos|documentos.crear_borrador')
+            ->group(function () {
+                Route::get('alumnos/buscar', [ControlEscolarIntegracionController::class, 'buscar']);
+                Route::post('alumnos/importar', [ControlEscolarIntegracionController::class, 'importar']);
+            });
+
+        Route::middleware('permission_or:control_escolar.importar|certificacion.preparar|validaciones_normativas.aprobar|documentos.liberar_proceso_tecnico|preparar_documento_firma')
+            ->group(function () {
+                Route::get('matriculas/{matricula}/validar-dec', [ControlEscolarIntegracionController::class, 'validarDec']);
+                Route::post('matriculas/{matricula}/crear-documento-certificacion', [ControlEscolarIntegracionController::class, 'crearDocumentoCertificacion']);
+            });
     });
 
 Route::get('v1/educacion-superior/metricas', EducacionSuperiorMetricasController::class)
