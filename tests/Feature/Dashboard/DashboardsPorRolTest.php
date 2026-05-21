@@ -44,6 +44,8 @@ class DashboardsPorRolTest extends TestCase
         $this->assertFalse((bool) ($ce['payload']['technical'] ?? true));
         $this->assertArrayHasKey('contexto', $ce['payload']);
         $this->assertArrayHasKey('metricas', $ce['payload']);
+        $this->assertArrayHasKey('alumnos_distribucion', $ce['payload']);
+        $this->assertArrayHasKey('procesos_recientes', $ce['payload']);
         $this->assertArrayNotHasKey('xml_error', $ce['payload']);
         $cardKeys = array_column($ce['payload']['cards'] ?? [], 'key');
         $this->assertNotContains('xml_error', $cardKeys);

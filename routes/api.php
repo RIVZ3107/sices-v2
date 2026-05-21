@@ -2,13 +2,12 @@
 
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\BandejaDocumentoAcademicoController;
+use App\Http\Controllers\Api\V1\Academico\ImportacionHistoricaMateriasController;
 use App\Http\Controllers\Api\V1\Admin\MenuAdminController;
 use App\Http\Controllers\Api\V1\Admin\RoleManagementController;
 use App\Http\Controllers\Api\V1\Admin\UserManagementController;
-use App\Http\Controllers\Api\V1\Academico\ImportacionHistoricaMateriasController;
 use App\Http\Controllers\Api\V1\Certificacion\AlumnoCapturaController;
 use App\Http\Controllers\Api\V1\Certificacion\CatalogoCapturaController;
-use App\Http\Controllers\Api\V1\Certificacion\ValidacionNormativaImportacionLegacyController;
 use App\Http\Controllers\Api\V1\Certificacion\DocumentoAcademicoProcesoController;
 use App\Http\Controllers\Api\V1\Certificacion\DocumentoDecNormalController;
 use App\Http\Controllers\Api\V1\Certificacion\DocumentoFirmaController;
@@ -21,7 +20,11 @@ use App\Http\Controllers\Api\V1\Certificacion\MateriaCursadaCapturaController;
 use App\Http\Controllers\Api\V1\Certificacion\MatriculaCapturaController;
 use App\Http\Controllers\Api\V1\Certificacion\SolicitudMatriculaController;
 use App\Http\Controllers\Api\V1\Certificacion\TrayectoriaCapturaController;
+use App\Http\Controllers\Api\V1\Certificacion\ValidacionNormativaImportacionLegacyController;
+use App\Http\Controllers\Api\V1\ControlEscolar\ControlEscolarController;
 use App\Http\Controllers\Api\V1\Dashboard\DashboardController;
+use App\Http\Controllers\Api\V1\EducacionSuperior\EducacionSuperiorMetricasController;
+use App\Http\Controllers\Api\V1\EducacionSuperior\EducacionSuperiorReportesController;
 use App\Http\Controllers\Api\V1\Me\MeAparienciaController;
 use App\Http\Controllers\Api\V1\Me\UserMenuController;
 use App\Http\Controllers\Api\V1\SicesLegacy\SicesLegacyConsultaController;
@@ -90,6 +93,8 @@ Route::prefix('v1/certificacion')
             Route::get('catalogos/regiones', [CatalogoCapturaController::class, 'regiones']);
             Route::get('catalogos/instituciones', [CatalogoCapturaController::class, 'instituciones']);
             Route::get('catalogos/sedes', [CatalogoCapturaController::class, 'sedes']);
+            Route::get('catalogos/programas', [CatalogoCapturaController::class, 'programas']);
+            Route::get('catalogos/planes-estudio', [CatalogoCapturaController::class, 'planesEstudio']);
             Route::get('catalogos/ofertas-academicas', [CatalogoCapturaController::class, 'ofertasAcademicas']);
         });
 
@@ -255,8 +260,11 @@ Route::prefix('v1/control-escolar')
     ->group(function () {
         Route::get('dashboard', [ControlEscolarController::class, 'dashboard'])
             ->middleware('permission_or:ver_documentos|documentos.ver|dashboard.ver');
+        Route::get('alumnos', [ControlEscolarController::class, 'alumnos'])
+            ->middleware('permission_or:ver_alumnos|alumnos.ver|expedientes.ver');
         Route::get('expedientes', [ControlEscolarController::class, 'expedientes'])
             ->middleware('permission_or:ver_alumnos|alumnos.ver|expedientes.ver');
+<<<<<<< HEAD
 
         Route::prefix('integracion')
             ->middleware('permission_or:control_escolar.importar|certificacion.preparar|integraciones.ver|gestionar_trayectorias')
@@ -275,7 +283,37 @@ Route::prefix('v1/control-escolar')
                 Route::get('matriculas/{matricula}/validar-dec', [ControlEscolarIntegracionController::class, 'validarDec']);
                 Route::post('matriculas/{matricula}/crear-documento-certificacion', [ControlEscolarIntegracionController::class, 'crearDocumentoCertificacion']);
             });
+=======
+        Route::get('inscripciones', [ControlEscolarController::class, 'inscripciones'])
+            ->middleware('permission_or:inscripciones.ver|gestionar_inscripciones_periodo|ver_alumnos|alumnos.ver');
+        Route::get('reinscripciones', [ControlEscolarController::class, 'reinscripciones'])
+            ->middleware('permission_or:reinscripciones.ver|reinscripciones.revisar|reinscripciones.crear|ver_alumnos|alumnos.ver');
+        Route::get('trayectoria', [ControlEscolarController::class, 'trayectoria'])
+            ->middleware('permission_or:trayectoria.ver|ver_trayectorias|kardex.ver|ver_alumnos|alumnos.ver');
+        Route::get('calificaciones', [ControlEscolarController::class, 'calificaciones'])
+            ->middleware('permission_or:calificaciones.ver|calificaciones.capturar|calificaciones.revisar|ver_alumnos|alumnos.ver');
+        Route::get('documentos', [ControlEscolarController::class, 'documentos'])
+            ->middleware('permission_or:documentos.ver|ver_documentos|documentos.crear_borrador|expedientes.ver');
+        Route::get('bajas-cambios', [ControlEscolarController::class, 'bajasCambios'])
+            ->middleware('permission_or:expedientes.ver|expedientes.editar|ver_alumnos|alumnos.ver');
+        Route::get('solicitudes', [ControlEscolarController::class, 'solicitudes'])
+            ->middleware('permission_or:expedientes.ver|ver_solicitud_matricula|solicitudes_matricula.ver|documentos.ver|ver_documentos|inscripciones.ver|ver_alumnos|alumnos.ver');
+        Route::get('observaciones', [ControlEscolarController::class, 'observaciones'])
+            ->middleware('permission_or:observaciones.ver|documentos.ver|ver_documentos|expedientes.ver|ver_alumnos|alumnos.ver');
+        Route::get('reportes', [ControlEscolarController::class, 'reportes'])
+            ->middleware('permission_or:reportes.ver|exportar_reportes|expedientes.ver|ver_alumnos|alumnos.ver');
+        Route::get('notificaciones', [ControlEscolarController::class, 'notificaciones'])
+            ->middleware('permission:notificaciones.ver');
+        Route::get('importaciones', [ControlEscolarController::class, 'importaciones'])
+            ->middleware('permission_or:importaciones_academicas.ver|importar_calificaciones|calificaciones.ver|ver_alumnos|alumnos.ver');
+>>>>>>> d926c721d87cf98b6a3f2798545c811d7a269764
     });
+
+Route::get('v1/educacion-superior/metricas', EducacionSuperiorMetricasController::class)
+    ->middleware('auth:sanctum');
+
+Route::get('v1/educacion-superior/reportes-oficiales', EducacionSuperiorReportesController::class)
+    ->middleware('auth:sanctum');
 
 Route::prefix('v1/catalogos')
     ->middleware('auth:sanctum')
