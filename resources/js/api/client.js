@@ -13,13 +13,20 @@ function normalizeApiError(error) {
                     ? 'Ocurrio un error inesperado. Intenta nuevamente o contacta a soporte.'
                     : 'No se pudo completar la solicitud.';
 
+    const legacyPayload = payload?.data;
+    const legacyMessage =
+        legacyPayload && typeof legacyPayload.error === 'string' && legacyPayload.error !== ''
+            ? legacyPayload.error
+            : null;
+
     return {
         status,
         message:
             status === 403 && rawMessage.toLowerCase() === 'this action is unauthorized.'
                 ? 'No tienes permisos para esta accion en tu rol actual.'
-                : payload?.message ?? fallback,
+                : legacyMessage ?? payload?.message ?? fallback,
         errors: payload?.errors ?? {},
+        legacy: legacyPayload ?? null,
         original: error,
     };
 }

@@ -134,7 +134,8 @@ class ControlEscolarDecDataValidator
             if (trim((string) $materia->nombre) === '') {
                 $errores[] = "Materia {$clave}: nombre obligatorio.";
             }
-            if ($materia->calificacion === null || trim((string) $materia->calificacion) === '') {
+            $calificacion = $materia->calificacion ?? $materia->calificacion_final;
+            if ($calificacion === null || trim((string) $calificacion) === '') {
                 $errores[] = "Materia {$clave}: calificación obligatoria.";
             }
             if ($materia->periodo === null && $materia->semestre === null) {

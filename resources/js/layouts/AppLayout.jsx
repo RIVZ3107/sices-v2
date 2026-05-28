@@ -65,11 +65,36 @@ export function AppLayout() {
         .slice(0, 2)
         .map((part) => part[0]?.toUpperCase())
         .join('');
+    const isEducacionSuperiorModule = location.pathname.startsWith('/app/educacion-superior');
+    const isEducacionSuperiorRole = (user?.roles ?? []).includes('educacion_superior');
+
     const breadcrumb = useMemo(() => {
         const path = location.pathname.replace('/app/', '');
         return path.split('/').filter(Boolean).map((part) => part.replaceAll('-', ' '));
     }, [location.pathname]);
-    const currentSection = breadcrumb[breadcrumb.length - 1] ?? 'dashboard';
+
+    const esSectionTitles = {
+        certificacion: 'Supervisión de certificación',
+        instituciones: 'Instituciones',
+        sedes: 'Sedes / Subsedes',
+        programas: 'Programas académicos',
+        planes: 'Planes de estudio',
+        'validaciones-normativas': 'Validaciones normativas',
+        revision: 'Revisión por expediente',
+        'reportes-oficiales': 'Reportes oficiales',
+        upn: 'Certificación UPN',
+    };
+
+    const currentSection = useMemo(() => {
+        if (!isEducacionSuperiorModule) {
+            return breadcrumb[breadcrumb.length - 1] ?? 'dashboard';
+        }
+        const slug = breadcrumb[breadcrumb.length - 1];
+        if (slug === 'upn' && breadcrumb.includes('certificacion')) {
+            return 'Certificación UPN';
+        }
+        return esSectionTitles[slug] ?? slug?.replaceAll('-', ' ') ?? 'Educación Superior';
+    }, [breadcrumb, isEducacionSuperiorModule]);
 
     useEffect(() => {
         document.body.classList.toggle('theme-dark', darkMode);
@@ -88,8 +113,10 @@ export function AppLayout() {
         }
     }
 
+    const useEsShell = isEducacionSuperiorModule || isEducacionSuperiorRole;
+
     return (
-        <div className="admin-layout">
+        <div className={`admin-layout${useEsShell ? ' admin-layout--es' : ''}`}>
             <SidebarPro
                 user={user}
                 open={false}
@@ -178,12 +205,14 @@ export function AppLayout() {
                 </header>
 
                 <section className="admin-content">
-                    <div className="admin-breadcrumb">
-                        <span>Inicio</span>
-                        {breadcrumb.map((part) => (
-                            <span key={part}>/ {part}</span>
-                        ))}
-                    </div>
+                    {!useEsShell ? (
+                        <div className="admin-breadcrumb">
+                            <span>Inicio</span>
+                            {breadcrumb.map((part) => (
+                                <span key={part}>/ {part}</span>
+                            ))}
+                        </div>
+                    ) : null}
                     <Outlet />
                 </section>
             </main>

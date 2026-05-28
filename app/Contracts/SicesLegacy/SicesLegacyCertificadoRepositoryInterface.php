@@ -33,6 +33,11 @@ interface SicesLegacyCertificadoRepositoryInterface
     public function obtenerEstadoPdf(string $urlShort): array;
 
     /**
+     * XML timbrado SEP almacenado en Informix (solo lectura).
+     */
+    public function obtenerXmlSepPorUrlShort(string $urlShort): ?string;
+
+    /**
      * @return array<string, mixed>
      */
     public function health(): array;

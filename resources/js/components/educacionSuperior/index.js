@@ -8,6 +8,7 @@ export {
     formatEsNum,
 } from './esTheme';
 export { EsIcons } from './EsIcons';
+export { EsLoadingState } from './EsLoadingState';
 export { EsMetricCard } from './EsMetricCard';
 export { EsStatusBadge } from './EsStatusBadge';
 export { EsSidePanel } from './EsSidePanel';

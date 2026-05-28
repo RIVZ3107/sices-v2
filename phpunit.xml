@@ -32,5 +32,8 @@
         <env name="PULSE_ENABLED" value="false"/>
         <env name="TELESCOPE_ENABLED" value="false"/>
         <env name="NIGHTWATCH_ENABLED" value="false"/>
+        <env name="SICES_LEGACY_ENABLED" value="false"/>
+        <env name="SICES_LEGACY_READ_ONLY" value="true"/>
+        <env name="SICES_LEGACY_TIMEOUT" value="1"/>
     </php>
 </phpunit>

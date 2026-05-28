@@ -16,7 +16,9 @@ final readonly class SinceFirmaResult
         public ?string $selloSep = null,
         public ?int $httpStatus = null,
         public ?string $errorMessage = null,
+        public ?string $errorCode = null,
         public bool $simulada = false,
         public array $rawResponse = [],
+        public array $rawSanitized = [],
     ) {}
 }

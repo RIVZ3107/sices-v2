@@ -15,10 +15,9 @@ export const esColors = {
 };
 
 export const esTheme = {
+    /** Contenedor ES dentro de AppLayout (sin min-height ni fondo duplicado; ver .es-page-root en CSS). */
     pageShell: {
-        padding: '24px 32px',
-        background: esColors.pageBg,
-        minHeight: '100vh',
+        padding: 0,
         fontFamily: 'system-ui, -apple-system, sans-serif',
     },
     card: {

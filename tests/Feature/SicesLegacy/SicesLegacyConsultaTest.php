@@ -5,35 +5,126 @@ declare(strict_types=1);
 namespace Tests\Feature\SicesLegacy;
 
 use App\Contracts\SicesLegacy\SicesLegacyCertificadoRepositoryInterface;
-use App\Data\SicesLegacy\SicesLegacyCertificadoData;
+use App\Exceptions\Legacy\SicesLegacyConnectionException;
 use App\Models\Alumno;
+use App\Models\CicloEscolar;
+use App\Models\DocumentoAcademico;
 use App\Models\User;
-use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Config;
 use Laravel\Sanctum\Sanctum;
+use Tests\Support\SicesLegacy\InMemorySicesLegacyCertificadoRepository;
+use Tests\Support\SicesLegacy\SicesLegacyRbacTestHelper;
+use Tests\Support\SicesLegacy\SicesLegacyTestDoubles;
 use Tests\TestCase;
 
 class SicesLegacyConsultaTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected InMemorySicesLegacyCertificadoRepository $legacyRepo;
+
     protected function setUp(): void
     {
         parent::setUp();
-        $this->seed(RolesAndPermissionsSeeder::class);
+
+        Config::set('sices_legacy.enabled', false);
+        Config::set('sices_legacy.read_only', true);
+        Config::set('sices_legacy.timeout', 1);
+
+        $this->legacyRepo = new InMemorySicesLegacyCertificadoRepository;
+        $this->app->instance(SicesLegacyCertificadoRepositoryInterface::class, $this->legacyRepo);
+    }
+
+    public function test_health_sin_autenticacion_devuelve_401_json(): void
+    {
+        $response = $this->getJson('/api/v1/sices-legacy/health');
+
+        $response->assertUnauthorized()
+            ->assertJson(['message' => 'Unauthenticated.'])
+            ->assertHeader('Content-Type', 'application/json');
+
+        $this->assertStringNotContainsString('<!DOCTYPE', $response->getContent() ?: '');
+        $this->assertStringNotContainsString('Route [login] not defined', $response->getContent() ?: '');
     }
 
     public function test_usuario_con_permiso_puede_consultar_health(): void
     {
-        $usuario = User::factory()->create();
-        $usuario->assignRole('sistemas');
-        Sanctum::actingAs($usuario);
+        $this->legacyRepo->healthResponse = SicesLegacyTestDoubles::healthOk();
 
-        $this->getJson('/api/v1/sices-legacy/health')
+        $usuario = $this->usuarioConPermisosLegacy('sices_legacy.health');
+
+        $this->actingAs($usuario)
+            ->getJson('/api/v1/sices-legacy/health')
             ->assertOk()
-            ->assertJsonStructure(['data' => ['enabled', 'read_only', 'reachable']]);
+            ->assertJsonStructure(['data' => ['enabled', 'read_only', 'reachable', 'message']])
+            ->assertJsonPath('data.reachable', true);
+    }
+
+    public function test_health_con_modulo_desactivado_devuelve_enabled_false(): void
+    {
+        Config::set('sices_legacy.enabled', false);
+        $this->legacyRepo->healthResponse = SicesLegacyTestDoubles::healthDisabled();
+
+        $usuario = $this->usuarioConPermisosLegacy('sices_legacy.health');
+
+        $this->actingAs($usuario)
+            ->getJson('/api/v1/sices-legacy/health')
+            ->assertOk()
+            ->assertJsonPath('data.enabled', false)
+            ->assertJsonPath('data.reachable', false);
+    }
+
+    public function test_consulta_por_curp_respuesta_controlada(): void
+    {
+        Config::set('sices_legacy.enabled', true);
+
+        $cert = SicesLegacyTestDoubles::certificadoPorCurp();
+        $this->legacyRepo->porCurp['CURPLEG000000HDF00099'] = SicesLegacyTestDoubles::certificadosEncontrados($cert);
+
+        $usuario = $this->usuarioConPermisosLegacy('sices_legacy.consultar');
+
+        $this->actingAs($usuario)
+            ->getJson('/api/v1/sices-legacy/certificados/por-curp/CURPLEG000000HDF00099')
+            ->assertOk()
+            ->assertJsonPath('data.success', true)
+            ->assertJsonPath('data.certificados.0.url_short', 'urlshort99');
+    }
+
+    public function test_consulta_por_url_short_respuesta_controlada(): void
+    {
+        Config::set('sices_legacy.enabled', true);
+
+        $cert = SicesLegacyTestDoubles::certificadoPorUrlShort();
+        $this->legacyRepo->porUrlShort['tokenUrlShort100'] = $cert;
+
+        $usuario = $this->usuarioConPermisosLegacy('sices_legacy.consultar');
+
+        $this->actingAs($usuario)
+            ->getJson('/api/v1/sices-legacy/certificados/por-url-short/tokenUrlShort100')
+            ->assertOk()
+            ->assertJsonPath('data.success', true)
+            ->assertJsonPath('data.certificado.url_short', 'tokenUrlShort100')
+            ->assertJsonPath('data.estado.existe_en_sices', true);
+    }
+
+    public function test_consulta_con_conexion_fallida_no_expone_excepcion_cruda(): void
+    {
+        Config::set('sices_legacy.enabled', true);
+
+        $this->legacyRepo->excepcionEnCurp = new SicesLegacyConnectionException(
+            'Informix no disponible',
+            'informix_sices',
+        );
+
+        $usuario = $this->usuarioConPermisosLegacy('sices_legacy.consultar');
+
+        $this->actingAs($usuario)
+            ->getJson('/api/v1/sices-legacy/certificados/por-curp/CURPTEST000000HDF00101')
+            ->assertStatus(503)
+            ->assertJsonPath('data.success', false)
+            ->assertJsonPath('data.code', 'SICES_LEGACY_CONNECTION')
+            ->assertJsonMissingPath('data.exception');
     }
 
     public function test_usuario_sin_permiso_recibe_403(): void
@@ -48,9 +139,7 @@ class SicesLegacyConsultaTest extends TestCase
     {
         Config::set('sices_legacy.enabled', false);
 
-        $usuario = User::factory()->create();
-        $usuario->assignRole('educacion_superior');
-        Sanctum::actingAs($usuario);
+        $usuario = $this->usuarioConPermisosLegacy('sices_legacy.consultar');
 
         $alumno = Alumno::query()->create([
             'curp' => 'LEGACY000000HDF00001',
@@ -59,7 +148,8 @@ class SicesLegacyConsultaTest extends TestCase
             'segundo_apellido' => 'Off',
         ]);
 
-        $this->getJson("/api/v1/sices-legacy/alumnos/{$alumno->id}/estado-sep")
+        $this->actingAs($usuario)
+            ->getJson("/api/v1/sices-legacy/alumnos/{$alumno->id}/estado-sep")
             ->assertStatus(503)
             ->assertJsonPath('data.success', false)
             ->assertJsonPath('data.code', 'SICES_LEGACY_DISABLED');
@@ -68,15 +158,9 @@ class SicesLegacyConsultaTest extends TestCase
     public function test_si_no_hay_certificado_devuelve_existe_en_sices_false(): void
     {
         Config::set('sices_legacy.enabled', true);
-        Config::set('sices_legacy.read_only', true);
+        $this->legacyRepo->porCurp['LEGACY000000HDF00002'] = SicesLegacyTestDoubles::certificadosNoEncontrados();
 
-        $this->mock(SicesLegacyCertificadoRepositoryInterface::class, function ($mock): void {
-            $mock->shouldReceive('buscarPorCurp')->andReturn(collect());
-        });
-
-        $usuario = User::factory()->create();
-        $usuario->assignRole('responsable_certificacion_titulacion');
-        Sanctum::actingAs($usuario);
+        $usuario = $this->usuarioConPermisosLegacy('sices_legacy.consultar');
 
         $alumno = Alumno::query()->create([
             'curp' => 'LEGACY000000HDF00002',
@@ -85,46 +169,69 @@ class SicesLegacyConsultaTest extends TestCase
             'segundo_apellido' => 'Sices',
         ]);
 
-        $this->getJson("/api/v1/sices-legacy/alumnos/{$alumno->id}/estado-sep")
+        $this->actingAs($usuario)
+            ->getJson("/api/v1/sices-legacy/alumnos/{$alumno->id}/estado-sep")
             ->assertOk()
             ->assertJsonPath('data.success', true)
             ->assertJsonPath('data.estado.existe_en_sices', false);
     }
 
+    public function test_estado_sep_por_documento_respuesta_controlada(): void
+    {
+        Config::set('sices_legacy.enabled', true);
+
+        $cert = SicesLegacyTestDoubles::certificadoTimbrado(
+            curp: 'DOCLEG000000HDF00010',
+            urlShort: 'doc-url-short',
+            folio: 'FOL-DOC-10',
+        );
+        $this->legacyRepo->porCurp['DOCLEG000000HDF00010'] = SicesLegacyTestDoubles::certificadosEncontrados($cert);
+        $this->legacyRepo->materiasPorCertificado[99] = collect();
+
+        $alumno = Alumno::query()->create([
+            'curp' => 'DOCLEG000000HDF00010',
+            'nombre' => 'Doc',
+            'primer_apellido' => 'Legacy',
+            'segundo_apellido' => 'Test',
+        ]);
+
+        $ciclo = CicloEscolar::query()->create([
+            'clave' => 'CIC-SL-TEST',
+            'nombre' => '2025-2026',
+            'fecha_inicio' => '2025-08-01',
+            'fecha_fin' => '2026-07-31',
+            'es_actual' => true,
+            'activo' => true,
+        ]);
+
+        $documento = DocumentoAcademico::query()->create([
+            'alumno_id' => $alumno->id,
+            'ciclo_escolar_id' => $ciclo->id,
+            'tipo_documento' => 'certificado',
+            'tipo_certificacion' => 'total',
+            'estado_workflow' => 'borrador',
+        ]);
+
+        $usuario = $this->usuarioConPermisosLegacy('sices_legacy.consultar', 'sices_legacy.comparar');
+
+        $this->actingAs($usuario)
+            ->getJson("/api/v1/sices-legacy/documentos/{$documento->id}/estado-sep")
+            ->assertOk()
+            ->assertJsonPath('data.success', true)
+            ->assertJsonPath('data.estado.existe_en_sices', true)
+            ->assertJsonPath('data.estado.folio_digital_sep', 'FOL-DOC-10')
+            ->assertJsonStructure(['data' => ['comparacion', 'materias']]);
+    }
+
     public function test_si_hay_certificado_timbrado_devuelve_folio_y_url_short(): void
     {
         Config::set('sices_legacy.enabled', true);
-        Config::set('sices_legacy.read_only', true);
 
-        $cert = new SicesLegacyCertificadoData(
-            idSices: 99,
-            curp: 'LEGACY000000HDF00003',
-            matricula: 'MAT-LEG-01',
-            nombreCompleto: 'Alumno Legacy',
-            tipoCertificado: 'T',
-            cicloEscolar: '2025-2026',
-            urlShort: 'abc123url',
-            folioDigitalSep: 'FOLIO-DIG-SEP-001',
-            osituac: 'F',
-            istatus: '1',
-            opdf: 1,
-            tieneXmlLocal: true,
-            tieneXmlSep: true,
-            fechaModificacion: '2026-05-01',
-            institucion: 'Escuela Normal',
-            cct: '09DCC0001A',
-            carrera: 'LIC',
-            planEstudios: '2020',
-        );
+        $cert = SicesLegacyTestDoubles::certificadoTimbrado();
+        $this->legacyRepo->porCurp['LEGACY000000HDF00003'] = SicesLegacyTestDoubles::certificadosEncontrados($cert);
+        $this->legacyRepo->materiasPorCertificado[99] = collect();
 
-        $this->mock(SicesLegacyCertificadoRepositoryInterface::class, function ($mock) use ($cert): void {
-            $mock->shouldReceive('buscarPorCurp')->andReturn(collect([$cert]));
-            $mock->shouldReceive('obtenerMateriasPorCertificado')->andReturn(collect());
-        });
-
-        $usuario = User::factory()->create();
-        $usuario->assignRole('educacion_superior');
-        Sanctum::actingAs($usuario);
+        $usuario = $this->usuarioConPermisosLegacy('sices_legacy.consultar');
 
         $alumno = Alumno::query()->create([
             'curp' => 'LEGACY000000HDF00003',
@@ -133,7 +240,8 @@ class SicesLegacyConsultaTest extends TestCase
             'segundo_apellido' => 'Sices',
         ]);
 
-        $this->getJson("/api/v1/sices-legacy/alumnos/{$alumno->id}/estado-sep")
+        $this->actingAs($usuario)
+            ->getJson("/api/v1/sices-legacy/alumnos/{$alumno->id}/estado-sep")
             ->assertOk()
             ->assertJsonPath('data.estado.existe_en_sices', true)
             ->assertJsonPath('data.estado.timbrado', true)
@@ -143,9 +251,9 @@ class SicesLegacyConsultaTest extends TestCase
 
     public function test_auditor_puede_consultar_pero_no_existe_endpoint_escritura(): void
     {
-        $usuario = User::factory()->create();
-        $usuario->assignRole('auditor');
-        Sanctum::actingAs($usuario);
+        Config::set('sices_legacy.enabled', false);
+
+        $usuario = $this->usuarioConPermisosLegacy('sices_legacy.consultar');
 
         $alumno = Alumno::query()->create([
             'curp' => 'LEGACY000000HDF00004',
@@ -154,9 +262,8 @@ class SicesLegacyConsultaTest extends TestCase
             'segundo_apellido' => 'Test',
         ]);
 
-        Config::set('sices_legacy.enabled', false);
-
-        $this->getJson("/api/v1/sices-legacy/alumnos/{$alumno->id}/estado-sep")
+        $this->actingAs($usuario)
+            ->getJson("/api/v1/sices-legacy/alumnos/{$alumno->id}/estado-sep")
             ->assertStatus(503);
 
         $this->postJson("/api/v1/sices-legacy/alumnos/{$alumno->id}/estado-sep")
@@ -168,11 +275,26 @@ class SicesLegacyConsultaTest extends TestCase
 
     public function test_no_existen_rutas_post_put_delete_en_prefijo_sices_legacy(): void
     {
+        $usuario = $this->usuarioConPermisosLegacy('sices_legacy.health');
+
+        $this->actingAs($usuario)
+            ->postJson('/api/v1/sices-legacy/health')
+            ->assertStatus(405);
+
+        $this->actingAs($usuario)
+            ->deleteJson('/api/v1/sices-legacy/health')
+            ->assertStatus(405);
+    }
+
+    /**
+     * @param  string  ...$permissions
+     */
+    protected function usuarioConPermisosLegacy(string ...$permissions): User
+    {
         $usuario = User::factory()->create();
-        $usuario->assignRole('sistemas');
+        SicesLegacyRbacTestHelper::grant($usuario, ...$permissions);
         Sanctum::actingAs($usuario);
 
-        $this->postJson('/api/v1/sices-legacy/health')->assertStatus(405);
-        $this->deleteJson('/api/v1/sices-legacy/health')->assertStatus(405);
+        return $usuario;
     }
 }

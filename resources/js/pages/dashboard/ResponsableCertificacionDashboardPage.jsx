@@ -22,8 +22,10 @@ export function ResponsableCertificacionDashboardPage() {
                 { label: 'Aprobados', value: r.aprobados ?? 0, tone: 'success' },
             ]}
             quickActions={[
-                { label: 'Bandejas documentales', to: '/app/documentos/bandejas/por-rol' },
-                { label: 'Reportes', to: '/app/admin/reportes-basicos' },
+                { label: 'Módulo certificación', to: '/app/certificacion/dashboard' },
+                { label: 'Solicitudes', to: '/app/certificacion/solicitudes' },
+                { label: 'Revisión institucional', to: '/app/certificacion/revision' },
+                { label: 'Reportes', to: '/app/certificacion/reportes' },
             ]}
             priorities={[{ label: 'Pendientes', value: r.pendientes_revision ?? 0 }]}
             statusItems={[

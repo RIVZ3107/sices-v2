@@ -20,8 +20,8 @@ class AdmisionResultadosTest extends TestCase
         $user = User::factory()->create();
         $user->assignRole('responsable_admision');
 
-        $this->assertTrue($user->can('admision.resultados.ver'));
-        $this->assertTrue($user->can('admision.resultados.publicar'));
+        $this->assertTrue($user->can('admision.ver'));
+        $this->assertTrue($user->can('admision.aprobar'));
         $this->assertFalse($user->can('matriculas.asignar'));
         $this->assertFalse($user->can('asignar_matricula'));
         $this->assertFalse($user->can('firma.ejecutar'));

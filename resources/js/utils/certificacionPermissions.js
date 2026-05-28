@@ -1,0 +1,61 @@
+/** Permisos por pantalla del módulo Certificación (permissions[], no roles). */
+
+export const CERT_PERM = {
+    /** Sin `documentos.ver` aislado: Control Escolar no entra al layout institucional completo. */
+    module: [
+        'certificacion.ver',
+        'validaciones_normativas.ver',
+        'certificacion.validar',
+        'certificacion.autorizar_emision',
+        'certificacion.enviar_a_proceso_tecnico',
+        'preparar_documento_firma',
+        'folios.asignar',
+    ],
+    dashboard: ['certificacion.ver', 'documentos.ver', 'ver_documentos'],
+    solicitudes: [
+        'documentos.ver',
+        'ver_documentos',
+        'certificacion.validar',
+        'validaciones_normativas.ver',
+        'certificacion.ver',
+    ],
+    documentosACertificar: [
+        'documentos.ver',
+        'ver_documentos',
+        'certificacion.autorizar_emision',
+        'preparar_documento_firma',
+        'certificacion.ver',
+    ],
+    generacion: ['documentos.ver', 'ver_documentos', 'pdf.ver', 'certificacion.ver'],
+    firmaElectronica: ['firma.ver', 'documentos.ver', 'ver_documentos', 'certificacion.ver'],
+    firmaEjecutar: ['firma.ejecutar', 'solicitar_firma'],
+    procesoTecnico: [
+        'generar_cadena',
+        'cadena_original.generar',
+        'generar_xml',
+        'xml.generar',
+        'firma.ver',
+        'integraciones.ver',
+        'sistemas.integraciones.ver',
+    ],
+    entrega: ['pdf.ver', 'consulta_publica.ver', 'documentos.ver', 'ver_documentos'],
+    reportes: ['reportes.ver', 'certificacion.ver'],
+    configuracion: [
+        'configuracion.ver',
+        'configuracion.configurar',
+        'catalogos.configurar',
+        'sistemas.integraciones.ver',
+    ],
+    notificaciones: ['notificaciones.ver', 'documentos.ver', 'ver_documentos'],
+    liberarProceso: [
+        'documentos.liberar_proceso_tecnico',
+        'preparar_documento_firma',
+        'certificacion.enviar_a_proceso_tecnico',
+    ],
+    revision: [
+        'ver_documentos',
+        'documentos.ver',
+        'certificacion.ver',
+        'validaciones_normativas.ver',
+    ],
+};

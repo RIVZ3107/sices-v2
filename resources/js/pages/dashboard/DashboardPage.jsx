@@ -1,3 +1,4 @@
+import { Navigate } from 'react-router-dom';
 import { getUser } from '../../authStore';
 import { AdminDashboardPage } from '../admin/AdminDashboardPage';
 import { AuditorDashboardPage } from '../auditoria/AuditorDashboardPage';
@@ -41,12 +42,16 @@ export function DashboardPage() {
     if (resolvedRole === 'superadmin') return <SuperadminDashboardPage />;
     if (resolvedRole === 'admin') return <AdminDashboardPage />;
     if (resolvedRole === 'sistemas') return <SistemasDashboardPage />;
-    if (resolvedRole === 'educacion_superior') return <EducacionSuperiorDashboardPage />;
+    if (resolvedRole === 'educacion_superior') {
+        return <Navigate to="/app/educacion-superior/certificacion" replace />;
+    }
     if (resolvedRole === 'director_escuela') return <DirectorEscuelaDashboardPage />;
     if (resolvedRole === 'control_escolar_escuela') return <ControlEscolarDashboardPage />;
     if (resolvedRole === 'responsable_admision') return <ResponsableAdmisionDashboardPage />;
     if (resolvedRole === 'responsable_evaluacion') return <ResponsableEvaluacionDashboardPage />;
-    if (resolvedRole === 'responsable_certificacion_titulacion') return <ResponsableCertificacionDashboardPage />;
+    if (resolvedRole === 'responsable_certificacion_titulacion') {
+        return <Navigate to="/app/certificacion/dashboard" replace />;
+    }
     if (resolvedRole === 'docente') return <DocenteDashboardPage />;
     if (resolvedRole === 'auditor') return <AuditorDashboardPage />;
     if (resolvedRole === 'consulta') return <ConsultaDashboardPage />;

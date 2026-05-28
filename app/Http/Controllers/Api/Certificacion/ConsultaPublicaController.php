@@ -45,13 +45,10 @@ class ConsultaPublicaController extends Controller
 
         return response()->json([
             'data' => [
-                'token' => $token,
-                'documento_id' => $documento->id,
                 'folio_interno' => $documento->folio_interno,
                 'folio_digital_sep' => $documento->folio_digital_sep,
                 'tipo_documento' => $documento->tipo_documento,
-                'estado_workflow' => $documento->estado_workflow,
-                'estado_firma' => $documento->estado_firma,
+                'fecha_firma' => $documento->fecha_firma?->toIso8601String(),
                 'alumno' => [
                     'nombre' => trim(implode(' ', array_filter([
                         $documento->alumno?->nombre,
@@ -59,7 +56,10 @@ class ConsultaPublicaController extends Controller
                         $documento->alumno?->segundo_apellido,
                     ]))),
                 ],
-                'consulta_publica' => true,
+                'verificacion' => [
+                    'disponible' => true,
+                    'folio_digital_sep' => $documento->folio_digital_sep,
+                ],
             ],
         ]);
     }

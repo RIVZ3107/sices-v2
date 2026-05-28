@@ -5,17 +5,39 @@ import { ActionButton } from '../../../components/ActionButton';
 import { AlertBox } from '../../../components/ui/AlertBox';
 import { SectionCard } from '../../../components/ui/SectionCard';
 
+const PERMISOS_CONSULTA_SEP = [
+    'sices_legacy.consultar',
+    'sices_legacy.health',
+    'sices_legacy.comparar',
+    'documentos.ver',
+    'ver_documentos',
+    'expedientes.ver',
+    'integraciones.ver',
+];
+
 function puedeConsultarSep() {
     const perms = getUser()?.permissions ?? [];
-    return perms.some((p) =>
-        [
-            'sices_legacy.consultar',
-            'documentos.ver',
-            'ver_documentos',
-            'expedientes.ver',
-            'integraciones.ver',
-        ].includes(p),
-    );
+    return perms.some((p) => PERMISOS_CONSULTA_SEP.includes(p));
+}
+
+function mensajeErrorLegacy(err) {
+    const payload = err?.original?.response?.data?.data;
+    if (payload?.error && typeof payload.error === 'string') {
+        return payload.error;
+    }
+    if (err?.status === 503 || err?.status === 401) {
+        return 'No se pudo consultar SICES legacy. El expediente nuevo sigue disponible.';
+    }
+    return err?.message ?? 'No se pudo consultar SICES legacy. El expediente nuevo sigue disponible.';
+}
+
+function formatearUltimaConsulta(iso) {
+    if (!iso) return '—';
+    try {
+        return new Date(iso).toLocaleString('es-MX', { dateStyle: 'short', timeStyle: 'short' });
+    } catch {
+        return iso;
+    }
 }
 
 function etiquetaTipo(tipo) {
@@ -30,6 +52,7 @@ export function EstadoSepLegacyPanel({ alumnoId, documentoId = null, curp = null
     const [data, setData] = useState(null);
     const [busy, setBusy] = useState(false);
     const [error, setError] = useState('');
+    const [ultimaConsulta, setUltimaConsulta] = useState(null);
 
     if (!puedeConsultarSep()) {
         return (
@@ -55,9 +78,21 @@ export function EstadoSepLegacyPanel({ alumnoId, documentoId = null, curp = null
                 setError('No hay alumno o documento para consultar.');
                 return;
             }
-            setData(res?.data ?? null);
+            const payload = res?.data ?? null;
+            setData(payload);
+            if (payload?.success === true) {
+                setUltimaConsulta(new Date().toISOString());
+            } else if (payload?.success === false) {
+                setError(payload.error ?? 'No se pudo consultar SICES legacy. El expediente nuevo sigue disponible.');
+            }
         } catch (e) {
-            setError(e?.message ?? 'No se pudo consultar SICES legacy.');
+            const payload = e?.original?.response?.data?.data;
+            if (payload && payload.success === false) {
+                setData(payload);
+                setError(payload.error ?? 'No se pudo consultar SICES legacy. El expediente nuevo sigue disponible.');
+            } else {
+                setError(mensajeErrorLegacy(e));
+            }
         } finally {
             setBusy(false);
         }
@@ -144,7 +179,12 @@ export function EstadoSepLegacyPanel({ alumnoId, documentoId = null, curp = null
                         <strong>Folio digital SEP:</strong> {estado.folio_digital_sep ?? cert?.folio_digital_sep ?? '—'}
                     </p>
                     <p>
-                        <strong>Última actualización:</strong> {estado.ultima_actualizacion ?? cert?.fecha_modificacion ?? '—'}
+                        <strong>Última actualización (SICES):</strong>{' '}
+                        {estado.ultima_actualizacion ?? cert?.fecha_modificacion ?? '—'}
+                    </p>
+                    <p>
+                        <strong>Última consulta (esta pantalla):</strong>{' '}
+                        {formatearUltimaConsulta(ultimaConsulta)}
                     </p>
                     <p className="md:col-span-2">
                         <strong>Materias:</strong> MySQL {materias.mysql ?? 0} · SICES {materias.sices ?? 0}

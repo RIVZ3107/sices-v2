@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import { ErrorState } from '../ErrorState';
-import { LoadingState } from '../LoadingState';
 import { EsIcons } from './EsIcons';
+import { EsLoadingState } from './EsLoadingState';
 import { EsMetricCard } from './EsMetricCard';
 import { esColors, esTheme } from './esTheme';
 
@@ -88,6 +88,7 @@ export function EsMetricsStrip({ metrics = [], wide = false }) {
                     trendPrefix={m.trendPrefix}
                     valueSize={m.valueSize}
                     flex={m.flex !== false}
+                    onClick={m.onClick}
                 />
             ))}
         </div>
@@ -200,15 +201,15 @@ export function EsPageLayout({
 }) {
     if (loading) {
         return (
-            <div style={esTheme.pageShell}>
-                <LoadingState text={loadingText} />
+            <div className="es-page-root">
+                <EsLoadingState text={loadingText} />
             </div>
         );
     }
 
     if (error && !children && !sidebar) {
         return (
-            <div style={esTheme.pageShell}>
+            <div className="es-page-root">
                 <ErrorState message={error} />
             </div>
         );
@@ -224,7 +225,7 @@ export function EsPageLayout({
     );
 
     return (
-        <div style={esTheme.pageShell}>
+        <div className="es-page-root">
             <EsPageHeader
                 breadcrumbCurrent={breadcrumbCurrent}
                 title={title}

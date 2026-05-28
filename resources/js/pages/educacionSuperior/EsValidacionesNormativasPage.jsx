@@ -16,6 +16,7 @@ import {
     formatEsNum,
 } from '../../components/educacionSuperior';
 import { useEducacionSuperiorMetricas } from '../../hooks/useEducacionSuperiorMetricas';
+import { withTimeout } from '../../lib/withTimeout';
 
 const TABLE_HEADERS = ['Folio', 'Tipo', 'Institución', 'Alumno', 'Prioridad', 'Estado', 'Acciones'];
 
@@ -178,10 +179,13 @@ export function EsValidacionesNormativasPage() {
         setLoading(true);
         setError('');
 
-        Promise.all([
-            bandejasApi.listar('pendientes-revision', { per_page: 25, page: 1 }),
-            cargarSolicitudesActivas(),
-        ])
+        withTimeout(
+            Promise.all([
+                bandejasApi.listar('pendientes-revision', { per_page: 25, page: 1 }),
+                cargarSolicitudesActivas(),
+            ]),
+            20000,
+        )
             .then(([docsRes, solData]) => {
                 if (cancelled) return;
 

@@ -10,6 +10,12 @@ return [
 
     'read_only' => filter_var(env('SICES_LEGACY_READ_ONLY', true), FILTER_VALIDATE_BOOL),
 
+    'write_enabled' => filter_var(env('SICES_LEGACY_WRITE_ENABLED', false), FILTER_VALIDATE_BOOL),
+
+    'shadow_enabled' => filter_var(env('SICES_LEGACY_SHADOW_ENABLED', false), FILTER_VALIDATE_BOOL),
+
+    'writeback_enabled' => filter_var(env('SICES_LEGACY_WRITEBACK_ENABLED', false), FILTER_VALIDATE_BOOL),
+
     'timeout' => (int) env('SICES_LEGACY_TIMEOUT', 10),
 
     'encoding' => env('SICES_LEGACY_ENCODING', 'ISO-8859-1'),
@@ -51,8 +57,22 @@ return [
             'cve_institucion' => env('SICES_LEGACY_COL_CVE_INST', 'rcve_institucion'),
             'cve_carrera' => env('SICES_LEGACY_COL_CVE_CARRERA', 'rcve_carrera'),
             'plan' => env('SICES_LEGACY_COL_PLAN', 'oplan_estudios'),
+            'cadena_original' => env('SICES_LEGACY_COL_CADENA', 'ocadena_original'),
+            'sello_certificado' => env('SICES_LEGACY_COL_SELLO', 'osellocertficado'),
+            'cct' => env('SICES_LEGACY_COL_CCT', 'occt'),
+            'nombre_ct' => env('SICES_LEGACY_COL_NOMBRE_CT', 'onombre_ct'),
+            'licenciatura' => env('SICES_LEGACY_COL_LICENCIATURA', 'olicenciatura'),
+            'modalidad' => env('SICES_LEGACY_COL_MODALIDAD', 'omodalidad'),
+            'tipo_cert_label' => env('SICES_LEGACY_COL_TIPO_CERT_LABEL', 'otipo_cert'),
+            'cve_tipo_cert' => env('SICES_LEGACY_COL_CVE_TIPO_CERT', 'rcve_tipo_cert'),
+            'promedio' => env('SICES_LEGACY_COL_PROMEDIO', 'opromedio'),
+            'creditos' => env('SICES_LEGACY_COL_CREDITOS', 'ocreditos'),
+            'total_asignaturas' => env('SICES_LEGACY_COL_TOTAL_ASIG', 'ototalasignaturas'),
+            'fecha_expedicion' => env('SICES_LEGACY_COL_FECHA_EXP', 'ofechaexpedicion'),
+            'estado_inicial' => env('SICES_LEGACY_COL_ESTADO_INICIAL', 'osituac'),
         ],
         'materias' => [
+            'matricula' => env('SICES_LEGACY_COL_MAT_MATRICULA', 'omatricula_alumno'),
             'curp' => env('SICES_LEGACY_COL_MAT_CURP', 'ocurp_completa'),
             'ciclo' => env('SICES_LEGACY_COL_MAT_CICLO', 'ocicloescolar_materia'),
             'tipo_cert' => env('SICES_LEGACY_COL_MAT_TIPO', 'otipocert_materia'),

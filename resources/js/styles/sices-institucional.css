@@ -1593,3 +1593,229 @@ body {
     font-weight: 700;
     color: #2563eb;
 }
+
+/* Bandeja revisión institucional — toolbar y pestañas */
+.inst-bandeja-tabs {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 6px;
+    overflow-x: auto;
+    padding-bottom: 4px;
+    scrollbar-width: thin;
+}
+
+.inst-bandeja-tab {
+    flex: 0 0 auto;
+    border-radius: 999px;
+    padding: 0.45rem 0.9rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+    border: 1px solid var(--inst-border);
+    background: var(--inst-surface);
+    color: var(--inst-muted-2);
+    white-space: nowrap;
+    transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.inst-bandeja-tab:hover {
+    border-color: var(--inst-border-strong);
+    color: var(--inst-text);
+}
+
+.inst-bandeja-tab.is-active {
+    background: var(--inst-blue);
+    border-color: var(--inst-blue);
+    color: #fff;
+}
+
+.inst-bandeja-meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 8px;
+    font-size: 0.8rem;
+    color: var(--inst-muted);
+}
+
+.inst-bandeja-toolbar {
+    padding: 14px 16px;
+    display: grid;
+    gap: 10px;
+}
+
+.inst-bandeja-toolbar-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+}
+
+.inst-bandeja-search {
+    position: relative;
+    flex: 1 1 280px;
+    min-width: 200px;
+    display: flex;
+    align-items: center;
+}
+
+.inst-bandeja-search .inst-input {
+    width: 100%;
+    padding-left: 2.1rem;
+    padding-right: 2rem;
+    height: 40px;
+    border-radius: 10px;
+}
+
+.inst-bandeja-search-icon {
+    position: absolute;
+    left: 0.65rem;
+    color: var(--inst-muted);
+    font-size: 1rem;
+    pointer-events: none;
+    line-height: 1;
+}
+
+.inst-bandeja-search-clear {
+    position: absolute;
+    right: 0.35rem;
+    width: 28px;
+    height: 28px;
+    border: none;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--inst-muted);
+    font-size: 1.1rem;
+    cursor: pointer;
+    line-height: 1;
+}
+
+.inst-bandeja-search-clear:hover {
+    background: var(--inst-surface-muted);
+    color: var(--inst-text);
+}
+
+.inst-bandeja-filters-btn.is-active {
+    border-color: var(--inst-blue);
+    color: var(--inst-blue);
+}
+
+.inst-bandeja-filters-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 18px;
+    height: 18px;
+    margin-left: 6px;
+    padding: 0 5px;
+    border-radius: 999px;
+    background: var(--inst-blue);
+    color: #fff;
+    font-size: 0.65rem;
+    font-weight: 700;
+}
+
+.inst-bandeja-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.inst-bandeja-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 0.25rem 0.55rem;
+    border-radius: 999px;
+    border: 1px solid var(--inst-blue-soft);
+    background: var(--inst-blue-soft);
+    color: #1e3a8a;
+    font-size: 0.72rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.inst-bandeja-chip:hover {
+    background: #bfdbfe;
+}
+
+.inst-bandeja-advanced {
+    padding-top: 12px;
+    border-top: 1px solid var(--inst-border);
+}
+
+.inst-bandeja-advanced-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 10px 12px;
+}
+
+.inst-bandeja-field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.inst-bandeja-field > span {
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--inst-muted);
+}
+
+.inst-bandeja-advanced-hint {
+    margin: 10px 0 0;
+    font-size: 0.72rem;
+    color: var(--inst-muted);
+}
+
+/* Educación Superior: un solo shell visual (sin breadcrumb duplicado ni tarjeta inst-loading) */
+.admin-layout--es .admin-content {
+    margin: 0;
+}
+
+.admin-layout--es .admin-topbar-subtitle {
+    text-transform: none;
+}
+
+.es-page-root {
+    padding: 0 0 24px;
+    font-family: system-ui, -apple-system, sans-serif;
+}
+
+.es-loading-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    min-height: 200px;
+    padding: 32px 24px;
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+
+.es-loading-spinner {
+    width: 36px;
+    height: 36px;
+    border: 3px solid #e2e8f0;
+    border-top-color: #185fa5;
+    border-radius: 50%;
+    animation: es-spin 0.75s linear infinite;
+}
+
+.es-loading-text {
+    margin: 0;
+    font-size: 0.875rem;
+    color: #64748b;
+    font-weight: 500;
+}
+
+@keyframes es-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}

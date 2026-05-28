@@ -23,7 +23,8 @@ class MenuPorRolTest extends TestCase
         $this->seed(RolesAndPermissionsSeeder::class);
         $this->seed(SystemMenusSeeder::class);
 
-        $flatten = static function (array $tree, array &$routes, array &$perms, array &$labels): void {
+        $flatten = null;
+        $flatten = static function (array $tree, array &$routes, array &$perms, array &$labels) use (&$flatten): void {
             foreach ($tree as $n) {
                 if (! empty($n['route']) && $n['route'] !== '#') {
                     $routes[] = (string) $n['route'];
@@ -62,10 +63,13 @@ class MenuPorRolTest extends TestCase
         $this->assertContains('/app/control-escolar/importaciones', $ceRoutes);
         $this->assertContains('/app/control-escolar/observaciones', $ceRoutes);
         $this->assertContains('Solicitudes', $ceLabels);
+        $this->assertContains('/app/certificacion/solicitud', $ceRoutes);
         foreach ($ceRoutes as $r) {
             $this->assertStringNotContainsString('/app/sistemas', $r);
             $this->assertStringNotContainsString('legacy-normativa', $r);
             $this->assertStringNotContainsString('/app/sistema/apariencia', $r);
+            $this->assertStringNotContainsString('alumno=', $r);
+            $this->assertStringNotContainsString('materias-cursadas', $r);
         }
         foreach ($cePerms as $p) {
             $this->assertFalse(str_starts_with($p, 'xml.'));
@@ -100,8 +104,11 @@ class MenuPorRolTest extends TestCase
         $this->assertContains('/app/sistema/apariencia', $sysRoutes);
         $this->assertContains('Apariencia del sistema', $sysLabels);
 
-        // 5b Certificación: sin cola técnica de firma en menú
-        [$certRoutes] = $treeFor('responsable_certificacion_titulacion');
+        // 5b Certificación: módulo visual, sin cola técnica de firma en menú
+        [$certRoutes, , $certLabels] = $treeFor('responsable_certificacion_titulacion');
+        $this->assertContains('/app/certificacion/dashboard', $certRoutes);
+        $this->assertContains('/app/certificacion/firma-electronica', $certRoutes);
+        $this->assertNotContains('Dashboard', $certLabels);
         foreach ($certRoutes as $r) {
             $this->assertStringNotContainsString('listos-para-firma', $r);
             $this->assertStringNotContainsString('/app/sistemas', $r);
@@ -115,6 +122,7 @@ class MenuPorRolTest extends TestCase
         $this->assertContains('/app/educacion-superior/programas', $esRoutes);
         $this->assertContains('/app/educacion-superior/planes', $esRoutes);
         $this->assertContains('/app/educacion-superior/validaciones-normativas', $esRoutes);
+        $this->assertContains('/app/educacion-superior/certificacion', $esRoutes);
         $this->assertContains('/app/educacion-superior/reportes-oficiales', $esRoutes);
         $this->assertContains('Validaciones normativas', $esLabels);
         $this->assertContains('Sedes / Subsedes', $esLabels);

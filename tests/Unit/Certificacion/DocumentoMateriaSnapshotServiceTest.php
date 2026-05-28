@@ -19,6 +19,7 @@ use App\Models\Sede;
 use App\Models\Subsistema;
 use App\Services\Certificacion\DocumentoMateriaSnapshotService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Validation\ValidationException;
 use Tests\TestCase;
 
 class DocumentoMateriaSnapshotServiceTest extends TestCase
@@ -83,6 +84,142 @@ class DocumentoMateriaSnapshotServiceTest extends TestCase
         $snapshot->refresh();
         $this->assertSame('Historia', $snapshot->nombre);
         $this->assertSame('8.50', (string) $snapshot->calificacion_final);
+    }
+
+    public function test_forzar_regeneracion_bloqueada_si_documento_firmado(): void
+    {
+        $ctx = $this->crearContexto();
+        $documento = $this->crearDocumento($ctx, ['estado_firma' => 'firmado']);
+
+        $service = app(DocumentoMateriaSnapshotService::class);
+
+        $this->expectException(ValidationException::class);
+        $service->forzarRegeneracion($documento);
+    }
+
+    public function test_forzar_regeneracion_bloqueada_si_cadena_generada(): void
+    {
+        $ctx = $this->crearContexto();
+        $documento = $this->crearDocumento($ctx, ['estado_cadena' => 'generada']);
+
+        $service = app(DocumentoMateriaSnapshotService::class);
+
+        $this->expectException(ValidationException::class);
+        $service->forzarRegeneracion($documento);
+    }
+
+    public function test_ordenes_snapshot_sin_duplicados_cuando_algunas_materias_traen_orden(): void
+    {
+        $ctx = $this->crearContexto();
+        $ciclo = $ctx['ciclo'];
+
+        $alumno = Alumno::query()->create([
+            'curp' => 'BBBB000000HDFABC12',
+            'nombre' => 'Luis',
+            'primer_apellido' => 'Lopez',
+        ]);
+
+        $matricula = Matricula::query()->create([
+            'alumno_id' => $alumno->id,
+            'oferta_academica_id' => $ctx['oferta']->id,
+            'ciclo_escolar_id' => $ciclo->id,
+            'matricula' => 'M-2',
+        ]);
+
+        MateriaCursada::query()->create([
+            'alumno_id' => $alumno->id,
+            'matricula_id' => $matricula->id,
+            'ciclo_escolar_id' => $ciclo->id,
+            'clave' => 'MAT001',
+            'nombre' => 'A',
+            'calificacion' => 8,
+            'periodo' => '2024-1',
+            'semestre' => 1,
+            'orden' => 1,
+            'estado' => 'acreditada',
+        ]);
+        MateriaCursada::query()->create([
+            'alumno_id' => $alumno->id,
+            'matricula_id' => $matricula->id,
+            'ciclo_escolar_id' => $ciclo->id,
+            'clave' => 'MAT002',
+            'nombre' => 'B',
+            'calificacion' => 9,
+            'periodo' => '2024-1',
+            'semestre' => 1,
+            'orden' => 1,
+            'estado' => 'acreditada',
+        ]);
+        MateriaCursada::query()->create([
+            'alumno_id' => $alumno->id,
+            'matricula_id' => $matricula->id,
+            'ciclo_escolar_id' => $ciclo->id,
+            'clave' => 'MAT003',
+            'nombre' => 'C',
+            'calificacion' => 10,
+            'periodo' => '2024-1',
+            'semestre' => 1,
+            'estado' => 'acreditada',
+        ]);
+
+        $documento = DocumentoAcademico::query()->create([
+            'alumno_id' => $alumno->id,
+            'matricula_id' => $matricula->id,
+            'ciclo_escolar_id' => $ciclo->id,
+            'tipo_documento' => 'certificado',
+            'estado_workflow' => 'borrador',
+            'estado_cadena' => 'no_generada',
+            'estado_xml' => 'no_generado',
+            'estado_firma' => 'no_firmado',
+            'estado_pdf' => 'no_generado',
+        ]);
+
+        app(DocumentoMateriaSnapshotService::class)->forzarRegeneracion($documento);
+
+        $ordenes = $documento->materiasSnapshot()->orderBy('orden')->pluck('orden')->all();
+        $this->assertSame([1, 2, 3], $ordenes);
+    }
+
+    /**
+     * @param  array<string, mixed>  $overrides
+     */
+    private function crearDocumento(array $ctx, array $overrides = []): DocumentoAcademico
+    {
+        $ciclo = $ctx['ciclo'];
+        $alumno = Alumno::query()->create([
+            'curp' => 'CCCC000000HDFABC12',
+            'nombre' => 'Pedro',
+            'primer_apellido' => 'Ruiz',
+        ]);
+        $matricula = Matricula::query()->create([
+            'alumno_id' => $alumno->id,
+            'oferta_academica_id' => $ctx['oferta']->id,
+            'ciclo_escolar_id' => $ciclo->id,
+            'matricula' => 'M-3',
+        ]);
+        MateriaCursada::query()->create([
+            'alumno_id' => $alumno->id,
+            'matricula_id' => $matricula->id,
+            'ciclo_escolar_id' => $ciclo->id,
+            'clave' => 'MAT010',
+            'nombre' => 'Geografia',
+            'calificacion' => 7,
+            'periodo' => '2024-1',
+            'semestre' => 1,
+            'estado' => 'acreditada',
+        ]);
+
+        return DocumentoAcademico::query()->create(array_merge([
+            'alumno_id' => $alumno->id,
+            'matricula_id' => $matricula->id,
+            'ciclo_escolar_id' => $ciclo->id,
+            'tipo_documento' => 'certificado',
+            'estado_workflow' => 'borrador',
+            'estado_cadena' => 'no_generada',
+            'estado_xml' => 'no_generado',
+            'estado_firma' => 'no_firmado',
+            'estado_pdf' => 'no_generado',
+        ], $overrides));
     }
 
     /**

@@ -6,5 +6,5 @@ Route::get('/', function () {
     return view('welcome');
 });
 
-Route::view('/login', 'app');
+Route::view('/login', 'app')->name('login');
 Route::view('/app/{any?}', 'app')->where('any', '.*');

@@ -4,8 +4,10 @@ namespace App\Providers;
 
 use App\Contracts\ControlEscolar\ControlEscolarSourceAdapterInterface;
 use App\Contracts\SicesLegacy\SicesLegacyCertificadoRepositoryInterface;
+use App\Contracts\SicesLegacy\SicesLegacyShadowRepositoryInterface;
 use App\Infrastructure\ControlEscolar\DatabaseControlEscolarSourceAdapter;
 use App\Infrastructure\SicesLegacy\InformixSicesLegacyCertificadoRepository;
+use App\Infrastructure\SicesLegacy\InformixSicesLegacyShadowRepository;
 use App\Models\Alumno;
 use App\Models\ConfiguracionVisualSistema;
 use App\Models\DocumentoAcademico;
@@ -36,6 +38,11 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(
             SicesLegacyCertificadoRepositoryInterface::class,
             InformixSicesLegacyCertificadoRepository::class,
+        );
+
+        $this->app->bind(
+            SicesLegacyShadowRepositoryInterface::class,
+            InformixSicesLegacyShadowRepository::class,
         );
     }
 

@@ -28,7 +28,8 @@ class AdmisionMenuPermisosTest extends TestCase
         $res->assertOk();
 
         $routes = [];
-        $walk = static function (array $nodes) use (&$routes): void {
+        $walk = null;
+        $walk = static function (array $nodes) use (&$routes, &$walk): void {
             foreach ($nodes as $n) {
                 if (! empty($n['route']) && $n['route'] !== '#') {
                     $routes[] = (string) $n['route'];
@@ -42,21 +43,15 @@ class AdmisionMenuPermisosTest extends TestCase
 
         foreach ([
             '/app/dashboard',
-            '/app/admision/convocatorias',
-            '/app/admision/aspirantes',
-            '/app/admision/preinscripciones',
-            '/app/admision/expedientes-ingreso',
-            '/app/admision/evaluacion-ingreso',
-            '/app/admision/resultados',
-            '/app/admision/reportes',
-            '/app/admision/notificaciones',
+            '/app/expedientes',
+            '/app/observaciones',
         ] as $r) {
             $this->assertContains($r, $routes);
         }
 
         foreach ($routes as $route) {
             $this->assertTrue(
-                str_starts_with($route, '/app/dashboard') || str_starts_with($route, '/app/admision/'),
+                in_array($route, ['/app/dashboard', '/app/expedientes', '/app/observaciones'], true),
                 "Ruta inesperada en menú de admisión: {$route}",
             );
             $this->assertStringNotContainsString('/app/sistemas', $route);

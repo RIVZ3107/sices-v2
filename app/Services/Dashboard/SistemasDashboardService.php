@@ -80,7 +80,7 @@ final class SistemasDashboardService
                 ['key' => 'xml_error', 'title' => 'Incidencias XML / firma (estado error)', 'value' => $xmlError, 'href' => '/app/sistemas/configuracion'],
                 ['key' => 'firma_error', 'title' => 'Firma con error (bandeja)', 'value' => $firmaError, 'href' => '/app/documentos/bandejas/errores-firma'],
                 ['key' => 'pdf_pendiente', 'title' => 'Pendientes técnicos / PDF', 'value' => $pdfPendiente, 'href' => '/app/sistemas/configuracion'],
-                ['key' => 'listos_firma', 'title' => 'Listos para firma', 'value' => $b['listos_para_firma'] ?? 0, 'href' => '/app/sistemas/listos-para-firma'],
+                ['key' => 'listos_firma', 'title' => 'Listos para firma', 'value' => $b['listos_para_firma'] ?? 0, 'href' => '/app/sistemas/proceso-tecnico-certificacion'],
                 ['key' => 'integraciones', 'title' => 'Integraciones (simulación / logs)', 'value' => max(1, $logsDataset), 'href' => '/app/sistemas/configuracion'],
                 ['key' => 'logs', 'title' => 'Logs técnicos (referencia)', 'value' => max(1, $logsDataset), 'href' => '/app/sistemas/logs'],
                 ['key' => 'jobs_sim', 'title' => 'Eventos técnicos simulados (dataset)', 'value' => $eventosSim, 'href' => '/app/sistemas/dashboard'],

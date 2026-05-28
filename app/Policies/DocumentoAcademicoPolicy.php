@@ -162,7 +162,7 @@ class DocumentoAcademicoPolicy
             return false;
         }
 
-        if (! SicesAuth::canAny($user, 'firma.ejecutar', 'solicitar_firma')) {
+        if (! SicesAuth::canAny($user, 'firma.ejecutar')) {
             return false;
         }
 

@@ -10,6 +10,7 @@ export function EsMetricCard({
     trendPrefix = null,
     valueSize = 28,
     flex = true,
+    onClick = null,
 }) {
     const trendLine =
         trend === undefined || trend === null || trend === ''
@@ -27,8 +28,23 @@ export function EsMetricCard({
                 </p>
             );
 
+    const clickable = typeof onClick === 'function';
+
     return (
         <div
+            role={clickable ? 'button' : undefined}
+            tabIndex={clickable ? 0 : undefined}
+            onClick={clickable ? onClick : undefined}
+            onKeyDown={
+                clickable
+                    ? (e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                              e.preventDefault();
+                              onClick();
+                          }
+                      }
+                    : undefined
+            }
             style={{
                 ...esTheme.card,
                 padding: valueSize >= 30 ? 20 : 18,
@@ -37,6 +53,7 @@ export function EsMetricCard({
                 gap: valueSize >= 30 ? 16 : 14,
                 flex: flex ? 1 : undefined,
                 minWidth: flex ? 220 : undefined,
+                cursor: clickable ? 'pointer' : undefined,
             }}
         >
             <div

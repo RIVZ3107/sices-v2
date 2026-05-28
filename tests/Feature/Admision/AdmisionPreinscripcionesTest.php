@@ -20,9 +20,10 @@ class AdmisionPreinscripcionesTest extends TestCase
         $user = User::factory()->create();
         $user->assignRole('responsable_admision');
 
-        $this->assertTrue($user->can('admision.preinscripciones.ver'));
-        $this->assertTrue($user->can('admision.preinscripciones.validar'));
-        $this->assertTrue($user->can('admision.preinscripciones.rechazar'));
+        $this->assertTrue($user->can('admision.ver'));
+        $this->assertTrue($user->can('admision.revisar'));
+        $this->assertTrue($user->can('admision.rechazar'));
         $this->assertFalse($user->can('xml.generar'));
+        $this->assertFalse($user->can('firma.ejecutar'));
     }
 }

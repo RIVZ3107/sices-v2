@@ -126,6 +126,31 @@ class InformixSicesLegacyCertificadoRepository implements SicesLegacyCertificado
         ];
     }
 
+    public function obtenerXmlSepPorUrlShort(string $urlShort): ?string
+    {
+        $this->assertConsultaPermitida();
+        $urlShort = trim($urlShort);
+        $c = config('sices_legacy.columns.certificado');
+
+        $row = $this->runSelect(function (Connection $db) use ($urlShort, $c) {
+            return $db->table($this->tablaCertificado())
+                ->select([$c['xml_sep']])
+                ->where($c['url_short'], $urlShort)
+                ->first();
+        });
+
+        if ($row === null) {
+            return null;
+        }
+
+        $raw = $row->{$c['xml_sep']} ?? null;
+        if ($raw === null) {
+            return null;
+        }
+
+        return SicesLegacyTextEncoding::toUtf8($raw);
+    }
+
     public function health(): array
     {
         $enabled = (bool) config('sices_legacy.enabled');
@@ -136,6 +161,8 @@ class InformixSicesLegacyCertificadoRepository implements SicesLegacyCertificado
             return [
                 'enabled' => false,
                 'read_only' => $readOnly,
+                'write_enabled' => (bool) config('sices_legacy.write_enabled'),
+                'shadow_enabled' => (bool) config('sices_legacy.shadow_enabled'),
                 'connection' => $connection,
                 'reachable' => false,
                 'message' => 'SICES legacy deshabilitado (SICES_LEGACY_ENABLED=false).',
@@ -150,6 +177,8 @@ class InformixSicesLegacyCertificadoRepository implements SicesLegacyCertificado
             return [
                 'enabled' => true,
                 'read_only' => $readOnly,
+                'write_enabled' => (bool) config('sices_legacy.write_enabled'),
+                'shadow_enabled' => (bool) config('sices_legacy.shadow_enabled'),
                 'connection' => $connection,
                 'reachable' => true,
                 'message' => 'Conexión Informix operativa (consulta de prueba).',
@@ -158,6 +187,8 @@ class InformixSicesLegacyCertificadoRepository implements SicesLegacyCertificado
             return [
                 'enabled' => true,
                 'read_only' => $readOnly,
+                'write_enabled' => (bool) config('sices_legacy.write_enabled'),
+                'shadow_enabled' => (bool) config('sices_legacy.shadow_enabled'),
                 'connection' => $connection,
                 'reachable' => false,
                 'message' => 'No se pudo validar la conexión Informix.',

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\Certificacion;
 
 use App\Models\DocumentoAcademico;
+use App\Models\Subsistema;
 use App\Models\User;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
@@ -241,6 +242,15 @@ class BandejaDocumentoAcademicoService
         }
         if ($request->filled('subsistema_id')) {
             $q->where('subsistema_id', $request->integer('subsistema_id'));
+        }
+        if ($request->filled('subsistema')) {
+            $clave = strtoupper(trim($request->string('subsistema')->toString()));
+            $subsistemaId = Subsistema::query()->where('clave', $clave)->value('id');
+            if ($subsistemaId !== null) {
+                $q->where('subsistema_id', (int) $subsistemaId);
+            } else {
+                $q->whereRaw('1 = 0');
+            }
         }
         if ($request->filled('region_id')) {
             $q->where('region_id', $request->integer('region_id'));

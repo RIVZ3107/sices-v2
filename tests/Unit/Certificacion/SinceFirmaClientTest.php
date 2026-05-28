@@ -7,14 +7,20 @@ namespace Tests\Unit\Certificacion;
 use App\Exceptions\Certificacion\FirmaSepRealNoDisponibleException;
 use App\Services\Certificacion\SinceFirmaClient;
 use Illuminate\Support\Facades\Config;
+use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
+/**
+ * Alias de compatibilidad App\Services\Certificacion\SinceFirmaClient → Infrastructure.
+ */
 class SinceFirmaClientTest extends TestCase
 {
     public function test_solicitar_firma_simulada_es_reproducible_y_sin_http(): void
     {
-        Config::set('certificacion.sep_firma.enabled', false);
-        Config::set('certificacion.sep_firma.simulada', true);
+        Config::set('since.firma.enabled', true);
+        Config::set('since.firma.simulated', true);
+
+        Http::fake();
 
         $client = app(SinceFirmaClient::class);
 
@@ -33,12 +39,13 @@ class SinceFirmaClientTest extends TestCase
         $this->assertTrue($a['no_es_firma_valida_sep']);
         $this->assertArrayHasKey('folio_digital_sep_simulado', $a);
         $this->assertTrue($client->debeUsarSoloSimulacion());
+        Http::assertNothingSent();
     }
 
     public function test_ruta_since_real_dispara_excepcion_controlada(): void
     {
-        Config::set('certificacion.sep_firma.enabled', true);
-        Config::set('certificacion.sep_firma.simulada', false);
+        Config::set('since.firma.enabled', true);
+        Config::set('since.firma.simulated', false);
 
         $client = app(SinceFirmaClient::class);
 

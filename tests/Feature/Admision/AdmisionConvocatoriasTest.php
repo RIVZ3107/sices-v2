@@ -20,9 +20,10 @@ class AdmisionConvocatoriasTest extends TestCase
         $user = User::factory()->create();
         $user->assignRole('responsable_admision');
 
-        $this->assertTrue($user->can('admision.convocatorias.ver'));
-        $this->assertTrue($user->can('admision.convocatorias.crear'));
-        $this->assertTrue($user->can('admision.convocatorias.publicar'));
+        $this->assertTrue($user->can('admision.ver'));
+        $this->assertTrue($user->can('admision.revisar'));
+        $this->assertTrue($user->can('admision.aprobar'));
         $this->assertFalse($user->can('matriculas.asignar'));
+        $this->assertFalse($user->can('firma.ejecutar'));
     }
 }

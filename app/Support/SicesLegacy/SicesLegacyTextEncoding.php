@@ -31,4 +31,30 @@ final class SicesLegacyTextEncoding
 
         return $iconv !== false ? $iconv : $text;
     }
+
+    public static function fromUtf8(mixed $value): ?string
+    {
+        if ($value === null) {  
+            return null;
+        }
+
+        $text = trim((string) $value);
+        if ($text === '') {
+            return '';
+        }
+
+        $to = (string) config('sices_legacy.encoding', 'ISO-8859-1');
+        if ($to === 'UTF-8') {
+            return $text;
+        }
+
+        $converted = @mb_convert_encoding($text, $to, 'UTF-8');
+        if ($converted !== false) {
+            return $converted;
+        }
+
+        $iconv = @iconv('UTF-8', $to.'//IGNORE', $text);
+
+        return $iconv !== false ? $iconv : $text;
+    }
 }

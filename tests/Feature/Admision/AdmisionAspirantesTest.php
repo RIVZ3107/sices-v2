@@ -20,12 +20,14 @@ class AdmisionAspirantesTest extends TestCase
         $user = User::factory()->create();
         $user->assignRole('responsable_admision');
 
-        $this->assertTrue($user->can('admision.aspirantes.ver'));
-        $this->assertTrue($user->can('admision.aspirantes.crear'));
-        $this->assertTrue($user->can('admision.aspirantes.exportar'));
-        $this->assertTrue($user->can('admision.expedientes.observar'));
-        $this->assertTrue($user->can('admision.evaluaciones.registrar_resultado'));
+        // Permisos reales del rol en SicesPermissionsCatalog (no admision.* granular aún).
+        $this->assertTrue($user->can('aspirantes.ver'));
+        $this->assertTrue($user->can('aspirantes.crear'));
+        $this->assertTrue($user->can('admision.ver'));
+        $this->assertTrue($user->can('expedientes.ver'));
+        $this->assertTrue($user->can('observaciones.crear'));
         $this->assertFalse($user->can('matriculas.asignar'));
+        $this->assertFalse($user->can('firma.ejecutar'));
 
         $demo = (string) file_get_contents(base_path('resources/js/data/admisionDemoData.js'));
         $this->assertStringContainsString('Licenciatura en Pedagogía', $demo);

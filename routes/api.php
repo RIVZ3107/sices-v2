@@ -9,8 +9,11 @@ use App\Http\Controllers\Api\V1\Admin\UserManagementController;
 use App\Http\Controllers\Api\V1\Certificacion\AlumnoCapturaController;
 use App\Http\Controllers\Api\V1\Certificacion\CatalogoCapturaController;
 use App\Http\Controllers\Api\V1\Certificacion\DocumentoAcademicoProcesoController;
+use App\Http\Controllers\Api\V1\Certificacion\DocumentoCertificadoVistaController;
 use App\Http\Controllers\Api\V1\Certificacion\DocumentoDecNormalController;
 use App\Http\Controllers\Api\V1\Certificacion\DocumentoFirmaController;
+use App\Http\Controllers\Api\V1\Certificacion\LegacyCertificadoTimbradoJsonController;
+use App\Http\Controllers\Api\V1\Certificacion\SicesLegacyShadowExportController;
 use App\Http\Controllers\Api\V1\Certificacion\DocumentoObservacionController;
 use App\Http\Controllers\Api\V1\ControlEscolar\ControlEscolarController;
 use App\Http\Controllers\Api\V1\ControlEscolar\ControlEscolarIntegracionController;
@@ -170,8 +173,12 @@ Route::prefix('v1/certificacion')
             ->middleware('permission_or:consulta_publica.emitir_token|consulta_publica.configurar|preparar_documento_firma|documentos.liberar_proceso_tecnico|certificacion.autorizar_emision');
         Route::post('documentos-academicos/{documento}/listo-para-firma', [DocumentoAcademicoProcesoController::class, 'marcarListoParaFirma'])
             ->middleware('permission_or:documentos.liberar_proceso_tecnico|preparar_documento_firma|certificacion.enviar_a_proceso_tecnico');
+        Route::get('firma/config', [DocumentoFirmaController::class, 'config'])
+            ->middleware('permission_or:firma.ejecutar|firma.ver|firma.preflight|sistemas.integraciones.ver');
         Route::post('documentos-academicos/{documento}/firma/ejecutar', [DocumentoFirmaController::class, 'ejecutar'])
-            ->middleware('permission_or:firma.ejecutar|solicitar_firma');
+            ->middleware('permission:firma.ejecutar');
+        Route::get('documentos-academicos/{documento}/certificado-vista-json', [DocumentoCertificadoVistaController::class, 'show'])
+            ->middleware('permission_or:pdf.ver|pdf.generar|firma.ejecutar|documentos.ver|ver_documentos');
         Route::post('documentos-academicos/{documento}/dec-normal/payload', [DocumentoDecNormalController::class, 'generarPayload'])
             ->middleware('permission_or:generar_cadena|cadena_original.generar|ver_documentos|documentos.ver');
         Route::post('documentos-academicos/{documento}/dec-normal/cadena', [DocumentoDecNormalController::class, 'generarCadena'])
@@ -180,8 +187,14 @@ Route::prefix('v1/certificacion')
             ->middleware('permission_or:generar_xml|xml.generar');
         Route::post('documentos-academicos/{documento}/dec-normal/validar-xml', [DocumentoDecNormalController::class, 'validarXml'])
             ->middleware('permission_or:generar_xml|xml.generar|xml.validar');
+        Route::post('documentos-academicos/{documento}/dec-normal/preflight', [DocumentoDecNormalController::class, 'preflight'])
+            ->middleware('permission_or:xml.validar|firma.preflight|firma.ejecutar|integraciones.ver|sistemas.integraciones.ver');
         Route::get('documentos-academicos/{documento}/dec-normal/errores', [DocumentoDecNormalController::class, 'errores'])
             ->middleware('permission_or:ver_xml|xml.ver|generar_xml|xml.generar');
+        Route::get('documentos-academicos/{documento}/legacy-timbrado-json', [LegacyCertificadoTimbradoJsonController::class, 'show'])
+            ->middleware('permission_or:sices_legacy.exportar|sistemas.integraciones.ver|firma.preflight|firma.ejecutar|cadena_original.generar');
+        Route::post('documentos-academicos/{documento}/sices-legacy/shadow-export', [SicesLegacyShadowExportController::class, 'exportar'])
+            ->middleware('permission_or:sices_legacy.exportar|sistemas.integraciones.ver|firma.preflight');
         Route::get('documentos-academicos/{documento}/observaciones', [DocumentoObservacionController::class, 'index'])
             ->middleware('permission_or:ver_documentos|documentos.ver');
         Route::post('documentos-academicos/{documento}/observaciones', [DocumentoObservacionController::class, 'store'])

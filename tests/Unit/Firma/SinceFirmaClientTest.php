@@ -9,12 +9,24 @@ use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
+/**
+ * Cliente servicio 34 (Infrastructure\Since\SinceFirmaClient).
+ * Config: config/since.php — SINCE_FIRMA_*.
+ */
 class SinceFirmaClientTest extends TestCase
 {
+    protected function setUp(): void
+    {
+        parent::setUp();
+        Config::set('since.firma.prod_url', 'https://since.test/servicio34');
+        Config::set('since.firma.dev_url', 'https://since.test/servicio34');
+        Config::set('since.firma.env', 'prod');
+    }
+
     public function test_firmar_por_url_short_simulado_no_usa_http(): void
     {
-        Config::set('certificacion.sep_firma.enabled', true);
-        Config::set('certificacion.sep_firma.simulada', true);
+        Config::set('since.firma.enabled', true);
+        Config::set('since.firma.simulated', true);
 
         Http::fake();
 
@@ -30,9 +42,8 @@ class SinceFirmaClientTest extends TestCase
 
     public function test_multipart_real_parsea_xml_firmado_y_folio(): void
     {
-        Config::set('certificacion.sep_firma.enabled', true);
-        Config::set('certificacion.sep_firma.simulada', false);
-        Config::set('certificacion.sep_firma.endpoint', 'https://since.test/servicio34');
+        Config::set('since.firma.enabled', true);
+        Config::set('since.firma.simulated', false);
 
         Http::fake([
             'https://since.test/servicio34' => Http::response([
@@ -46,6 +57,7 @@ class SinceFirmaClientTest extends TestCase
         $result = $client->firmarPorUrlShort('SHORT99', true);
 
         $this->assertTrue($result->success);
+        $this->assertFalse($result->simulada);
         $this->assertSame('FD-123', $result->folioDigital);
         $this->assertSame('<xml firmado/>', $result->xmlFirmado);
         $this->assertSame('SELLO-ABC', $result->selloSep);
@@ -53,5 +65,20 @@ class SinceFirmaClientTest extends TestCase
         Http::assertSent(function ($request) {
             return $request->url() === 'https://since.test/servicio34';
         });
+    }
+
+    public function test_deshabilitado_no_usa_http(): void
+    {
+        Config::set('since.firma.enabled', false);
+        Config::set('since.firma.simulated', false);
+
+        Http::fake();
+
+        $client = app(SinceFirmaClient::class);
+        $result = $client->firmarPorUrlShort('TOKEN', true);
+
+        $this->assertFalse($result->success);
+        $this->assertSame('since_firma_disabled', $result->errorCode);
+        Http::assertNothingSent();
     }
 }

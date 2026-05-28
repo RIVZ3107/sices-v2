@@ -17,20 +17,18 @@ use App\Models\Region;
 use App\Models\Sede;
 use App\Models\Subsistema;
 use App\Models\User;
-use Database\Seeders\DatabaseSeeder;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Database\Seeders\RolesAndPermissionsSeeder;
+use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
 class RevisionInstitucionalCertificacionTest extends TestCase
 {
-    use RefreshDatabase;
+    use LazilyRefreshDatabase;
 
-    protected function setUp(): void
-    {
-        parent::setUp();
-        $this->seed(DatabaseSeeder::class);
-    }
+    protected bool $seed = true;
+
+    protected string $seeder = RolesAndPermissionsSeeder::class;
 
     public function test_educacion_superior_ve_bandeja_documentos_en_revision(): void
     {
@@ -77,6 +75,19 @@ class RevisionInstitucionalCertificacionTest extends TestCase
         ])->assertOk();
     }
 
+    public function test_devolver_a_correccion_exige_observacion_pendiente(): void
+    {
+        $usuario = User::factory()->create();
+        $usuario->assignRole('educacion_superior');
+        Sanctum::actingAs($usuario);
+
+        $doc = $this->crearDocumentoEnRevision();
+
+        $this->postJson("/api/v1/certificacion/documentos-academicos/{$doc->id}/devolver-correccion", [
+            'motivo' => 'Sin observaciones',
+        ])->assertStatus(422);
+    }
+
     public function test_educacion_superior_puede_devolver_a_correccion_con_observacion_pendiente(): void
     {
         $usuario = User::factory()->create();
@@ -114,6 +125,42 @@ class RevisionInstitucionalCertificacionTest extends TestCase
         $this->assertNotSame(403, $res->status());
     }
 
+    public function test_educacion_superior_no_puede_aprobar_con_observaciones_pendientes(): void
+    {
+        $usuario = User::factory()->create();
+        $usuario->assignRole('educacion_superior');
+        Sanctum::actingAs($usuario);
+
+        $doc = $this->crearDocumentoEnRevision();
+        DocumentoObservacion::query()->create([
+            'documento_academico_id' => $doc->id,
+            'tipo' => 'documental',
+            'observacion' => 'Pendiente.',
+            'estado' => 'pendiente',
+            'prioridad' => 'alta',
+        ]);
+
+        $this->postJson("/api/v1/certificacion/documentos-academicos/{$doc->id}/aprobar", [
+            'motivo' => 'No debe aprobar con obs pendientes',
+        ])->assertStatus(422);
+    }
+
+    public function test_responsable_certificacion_puede_asignar_folio_interno_si_aprobado(): void
+    {
+        $usuario = User::factory()->create();
+        $usuario->assignRole('responsable_certificacion_titulacion');
+        $this->assertTrue($usuario->can('folios.asignar') || $usuario->can('preparar_documento_firma'));
+        Sanctum::actingAs($usuario);
+
+        $doc = $this->crearDocumentoAprobado();
+
+        $res = $this->postJson("/api/v1/certificacion/documentos-academicos/{$doc->id}/folio-interno", [
+            'prefijo' => 'FOL-REV',
+        ]);
+
+        $this->assertNotSame(403, $res->status());
+    }
+
     public function test_educacion_superior_no_puede_generar_cadena(): void
     {
         $usuario = User::factory()->create();
@@ -135,6 +182,32 @@ class RevisionInstitucionalCertificacionTest extends TestCase
         $doc = $this->crearDocumentoAprobado();
 
         $this->postJson("/api/v1/certificacion/documentos-academicos/{$doc->id}/firma/ejecutar")
+            ->assertForbidden();
+    }
+
+    public function test_educacion_superior_no_puede_generar_xml(): void
+    {
+        $usuario = User::factory()->create();
+        $usuario->assignRole('educacion_superior');
+        Sanctum::actingAs($usuario);
+
+        $doc = $this->crearDocumentoAprobado();
+
+        $this->postJson("/api/v1/certificacion/documentos-academicos/{$doc->id}/dec-normal/xml")
+            ->assertForbidden();
+    }
+
+    public function test_responsable_certificacion_no_puede_generar_cadena_ni_xml(): void
+    {
+        $usuario = User::factory()->create();
+        $usuario->assignRole('responsable_certificacion_titulacion');
+        Sanctum::actingAs($usuario);
+
+        $doc = $this->crearDocumentoAprobado();
+
+        $this->postJson("/api/v1/certificacion/documentos-academicos/{$doc->id}/dec-normal/cadena")
+            ->assertForbidden();
+        $this->postJson("/api/v1/certificacion/documentos-academicos/{$doc->id}/dec-normal/xml")
             ->assertForbidden();
     }
 
@@ -324,7 +397,10 @@ class RevisionInstitucionalCertificacionTest extends TestCase
             'activo' => true,
         ]);
 
-        $nivel = NivelAcademico::query()->where('clave', 'LIC')->firstOrFail();
+        $nivel = NivelAcademico::query()->firstOrCreate(
+            ['clave' => 'LIC'],
+            ['nombre' => 'Licenciatura', 'activo' => true],
+        );
 
         $programa = ProgramaEstudio::query()->create([
             'nivel_academico_id' => $nivel->id,

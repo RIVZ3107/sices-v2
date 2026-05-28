@@ -12,7 +12,9 @@ import { AlertBox } from '../../components/ui/AlertBox';
 import { DataTable } from '../../components/ui/DataTable';
 import { SectionCard } from '../../components/ui/SectionCard';
 import { RequirePermission } from '../../components/auth/RequirePermission';
+import { EstadoSepLegacyPanel } from '../expedientes/components/EstadoSepLegacyPanel';
 import { canRevision, REV_PERM } from '../../utils/revisionInstitucionalPermissions';
+import { revisionInstitucionalBasePath } from '../../utils/certificacionRoutes';
 
 const SECCION_TIPO = {
     alumno: 'datos_alumno',
@@ -82,14 +84,21 @@ export function RevisionInstitucionalPage() {
         if (doc?.estado_workflow !== 'aprobado') {
             errs.push('Debe aprobar el documento antes de liberar a proceso técnico.');
         }
+        if (!validacion?.valido) {
+            errs.push('La validación académica tiene errores críticos.');
+            (validacion?.errores ?? []).forEach((e) => errs.push(String(e)));
+        }
         if (obsPendientes > 0) {
             errs.push('No se puede liberar con observaciones pendientes.');
         }
         if (doc?.listo_para_firma) {
             errs.push('El documento ya está listo para proceso técnico.');
         }
+        if (['firmado', 'cancelado'].includes(doc?.estado_firma ?? '')) {
+            errs.push('El documento ya fue firmado o está cancelado.');
+        }
         return errs;
-    }, [doc, obsPendientes]);
+    }, [doc, obsPendientes, validacion]);
 
     async function ejecutar(accion, payload = {}) {
         setBusy(true);
@@ -163,7 +172,7 @@ export function RevisionInstitucionalPage() {
                         title={`Revisión institucional #${doc?.id}`}
                         subtitle={`${data.alumno?.nombre_completo ?? ''} · ${data.alumno?.curp ?? ''}`}
                         actions={(
-                            <Link to="/app/certificacion/revision" className="inst-btn inst-btn-secondary text-sm">
+                            <Link to={revisionInstitucionalBasePath()} className="inst-btn inst-btn-secondary text-sm">
                                 Volver a bandeja
                             </Link>
                         )}
@@ -176,7 +185,7 @@ export function RevisionInstitucionalPage() {
                         />
                     ) : null}
 
-                    <SectionCard title="Estado del documento">
+                    <SectionCard title="Documento solicitado">
                         <div className="flex flex-wrap items-center gap-3">
                             <EstadoBadge estado={doc?.estado_workflow} />
                             <span className="text-sm">Firma: {doc?.estado_firma ?? 'no_firmado'}</span>
@@ -184,6 +193,10 @@ export function RevisionInstitucionalPage() {
                         </div>
                         <p className="text-sm text-slate-600 mt-2">
                             Folio: {doc?.folio_interno ?? 'Sin asignar'} · Tipo: {doc?.tipo_documento} ({doc?.tipo_certificacion})
+                        </p>
+                        <p className="text-sm text-slate-600">
+                            Envío a revisión:{' '}
+                            {doc?.fecha_solicitud ? new Date(doc.fecha_solicitud).toLocaleString('es-MX') : '—'}
                         </p>
                     </SectionCard>
 
@@ -246,6 +259,12 @@ export function RevisionInstitucionalPage() {
                         ok={Boolean(validacion?.valido)}
                         errores={validacion?.errores ?? []}
                         advertencias={validacion?.resumen?.advertencias ?? []}
+                    />
+
+                    <EstadoSepLegacyPanel
+                        alumnoId={data.alumno?.id}
+                        documentoId={doc?.id}
+                        curp={data.alumno?.curp}
                     />
 
                     {error ? <ErrorState message={error} /> : null}
@@ -332,7 +351,7 @@ export function RevisionInstitucionalPage() {
                             </ActionButton>
                             <ActionButton
                                 variant="warning"
-                                disabled={busy || !puedeOperar}
+                                disabled={busy || !puedeOperar || obsPendientes < 1}
                                 onClick={() => {
                                     const m = window.prompt('Motivo de devolución a corrección:', 'Atender observaciones institucionales.');
                                     if (m) void ejecutar('devolver', { motivo: m });
@@ -340,6 +359,9 @@ export function RevisionInstitucionalPage() {
                             >
                                 Devolver a corrección
                             </ActionButton>
+                            {obsPendientes < 1 ? (
+                                <p className="text-xs text-amber-700">Registre al menos una observación pendiente antes de devolver.</p>
+                            ) : null}
                         </>
                     ) : null}
 

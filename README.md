@@ -7,6 +7,12 @@
 <a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
 </p>
 
+## Documentación SICES v2
+
+Guía completa del sistema (arquitectura, API, React, BD, roles, seguridad, UX y go-live):
+
+**[docs/sices-v2/README.md](docs/sices-v2/README.md)**
+
 ## About Laravel
 
 Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
