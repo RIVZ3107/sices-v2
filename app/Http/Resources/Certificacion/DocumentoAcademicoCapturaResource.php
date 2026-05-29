@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Resources\Certificacion;
 
 use App\Models\DocumentoAcademico;
+use App\Services\DocumentosAcademicos\DocumentoAcademicoTipoService;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -51,6 +52,7 @@ class DocumentoAcademicoCapturaResource extends JsonResource
             'created_by' => $this->created_by,
             'approved_by' => $this->approved_by,
             'metadata' => $meta,
+            'capacidades_documento' => app(DocumentoAcademicoTipoService::class)->capacidadesDesdeDocumento($this->resource),
             'listo_para_firma' => (bool) ($meta['listo_para_firma'] ?? false),
             'listo_para_firma_marcado_en' => $meta['listo_para_firma_marcado_en'] ?? null,
             'observaciones_total_count' => (int) $obsTotal,

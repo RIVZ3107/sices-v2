@@ -18,6 +18,8 @@ use App\Models\Sede;
 use App\Models\TrayectoriaAcademica;
 use App\Services\Certificacion\AuditoriaService;
 use App\Services\Certificacion\DocumentoMateriaSnapshotService;
+use App\Services\DocumentosAcademicos\DocumentoAcademicoSolicitudActivaService;
+use App\Services\DocumentosAcademicos\DocumentoAcademicoTipoService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -28,6 +30,8 @@ class ControlEscolarSyncService
         protected ControlEscolarDecDataValidator $decValidator,
         protected DocumentoMateriaSnapshotService $snapshotService,
         protected AuditoriaService $auditoria,
+        protected DocumentoAcademicoTipoService $tiposDocumento,
+        protected DocumentoAcademicoSolicitudActivaService $solicitudActiva,
     ) {}
 
     public function importarPorCurp(string $curp): ControlEscolarSyncResult
@@ -118,10 +122,28 @@ class ControlEscolarSyncService
         $institucionId = $sede?->institucion_id ?? $matriculaModel->ofertaAcademica?->institucion_id;
         $regionId = $matriculaModel->ofertaAcademica?->institucion?->region_id;
 
+        $tipoDocumento = (string) ($opciones['tipo_documento'] ?? 'certificado');
+        $subsistemaClave = $this->tiposDocumento->resolveSubsistemaClaveFromMatricula($matriculaModel);
+        if ($subsistemaClave === null) {
+            throw ValidationException::withMessages([
+                'subsistema' => ['No fue posible determinar el subsistema académico para este documento.'],
+            ]);
+        }
+        $this->tiposDocumento->validarTipoParaSubsistema($tipoDocumento, $subsistemaClave);
+
+        $metadata = $this->tiposDocumento->fusionarMetadataConCapacidades(
+            $this->solicitudActiva->marcarSolicitudControlEscolar([
+                'origen' => 'control_escolar',
+                'fecha_ultima_sincronizacion' => now()->toIso8601String(),
+            ]),
+            $tipoDocumento,
+            $subsistemaClave,
+        );
+
         $documento = DocumentoAcademico::query()->firstOrCreate(
             [
                 'matricula_id' => $matriculaModel->id,
-                'tipo_documento' => $opciones['tipo_documento'] ?? 'certificado',
+                'tipo_documento' => $tipoDocumento,
                 'estado_workflow' => 'borrador',
             ],
             [
@@ -133,10 +155,7 @@ class ControlEscolarSyncService
                 'institucion_id' => $institucionId,
                 'sede_id' => $sede?->id ?? $matriculaModel->ofertaAcademica?->sede_id,
                 'tipo_certificacion' => $opciones['tipo_certificacion'] ?? 'total',
-                'metadata' => [
-                    'origen' => 'control_escolar',
-                    'fecha_ultima_sincronizacion' => now()->toIso8601String(),
-                ],
+                'metadata' => $metadata,
             ],
         );
 

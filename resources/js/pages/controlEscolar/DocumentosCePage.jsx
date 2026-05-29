@@ -90,10 +90,13 @@ export function DocumentosCePage() {
                 <div>
                     <p style={{ margin: 0, fontSize: 14, fontWeight: 600, color: '#1e3a5f' }}>Certificación electrónica (SEP)</p>
                     <p style={{ margin: '4px 0 0', fontSize: 12, color: '#475569' }}>
-                        Borradores, envío a revisión y seguimiento institucional en el módulo operativo.
+                        Control Escolar solo inicia solicitudes con tipos autorizados. Folio, URL short, procesamiento, firma y resultado final son responsabilidad de Educación Superior.
                     </p>
                 </div>
                 <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                    <Link to="/app/certificacion/solicitud" style={{ fontSize: 13, fontWeight: 600, color: '#185FA5', textDecoration: 'none' }}>
+                        Iniciar solicitud documental
+                    </Link>
                     <Link to="/app/documentos/bandejas/borradores" style={{ fontSize: 13, fontWeight: 600, color: '#185FA5', textDecoration: 'none' }}>
                         Bandeja certificados
                     </Link>

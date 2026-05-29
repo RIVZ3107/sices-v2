@@ -20,6 +20,8 @@ use App\Services\Certificacion\DocumentoRevisionInstitucionalService;
 use App\Services\Certificacion\FolioService;
 use App\Services\Certificacion\UrlShortTokenService;
 use App\Services\Certificacion\ValidacionAcademicaDocumentoService;
+use App\Services\DocumentosAcademicos\DocumentoAcademicoSolicitudActivaService;
+use App\Services\DocumentosAcademicos\DocumentoAcademicoTipoService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
@@ -37,6 +39,8 @@ class DocumentoAcademicoProcesoController extends Controller
         protected CertificacionAlcanceService $alcance,
         protected DocumentoRevisionInstitucionalService $revisionInstitucional,
         protected AuditoriaService $auditoria,
+        protected DocumentoAcademicoTipoService $tiposDocumento,
+        protected DocumentoAcademicoSolicitudActivaService $solicitudActiva,
     ) {}
 
     public function store(StoreDocumentoAcademicoCapturaRequest $request): JsonResponse
@@ -67,7 +71,14 @@ class DocumentoAcademicoProcesoController extends Controller
         $subsistemaId = (int) ($matricula->subsistema_id ?? 0);
         if ($subsistemaId <= 0) {
             throw ValidationException::withMessages([
-                'matricula_id' => ['La matrícula no tiene subsistema configurado.'],
+                'matricula_id' => ['No fue posible determinar el subsistema académico para este documento.'],
+            ]);
+        }
+
+        $subsistemaClave = $this->tiposDocumento->resolveSubsistemaClaveFromMatricula($matricula);
+        if ($subsistemaClave === null) {
+            throw ValidationException::withMessages([
+                'subsistema' => ['No fue posible determinar el subsistema académico para este documento.'],
             ]);
         }
 
@@ -76,6 +87,15 @@ class DocumentoAcademicoProcesoController extends Controller
                 'subsistema_id' => ['El subsistema del documento no coincide con el subsistema de la matrícula.'],
             ]);
         }
+
+        $this->tiposDocumento->validarTipoParaSubsistema((string) $data['tipo_documento'], $subsistemaClave);
+
+        $metadata = $this->tiposDocumento->fusionarMetadataConCapacidades(
+            is_array($data['metadata'] ?? null) ? $data['metadata'] : [],
+            (string) $data['tipo_documento'],
+            $subsistemaClave,
+        );
+        $metadata = $this->solicitudActiva->marcarSolicitudControlEscolar($metadata);
 
         $atributos = collect($data)->only([
             'alumno_id',
@@ -86,16 +106,17 @@ class DocumentoAcademicoProcesoController extends Controller
             'sede_id',
             'tipo_documento',
             'tipo_certificacion',
-            'metadata',
         ])->merge([
             'subsistema_id' => $subsistemaId,
             'oferta_academica_id' => $ofertaId,
             'fecha_solicitud' => now(),
+            'metadata' => $metadata,
         ])->all();
 
         $preview = new DocumentoAcademico(array_merge($atributos, [
             'estado_workflow' => EstadoWorkflow::BORRADOR->value,
         ]));
+        $this->solicitudActiva->validarNoDuplicadoActivo($preview);
         $validacionCrear = $this->validacionAcademica->validarParaCrearBorrador($preview, $request->user()?->id);
         if ($validacionCrear['ok'] !== true) {
             throw ValidationException::withMessages([

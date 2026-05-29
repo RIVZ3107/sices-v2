@@ -331,7 +331,7 @@ Route::prefix('v1/catalogos')
         Route::get('sedes', [CatalogoCapturaController::class, 'sedes'])
             ->middleware('permission_or:ver_catalogos|catalogos.ver|dashboard.ver|sedes.ver');
 
-        Route::middleware('permission_or:ver_catalogos|catalogos.ver|certificacion.ver|documentos.ver|dashboard.ver')->group(function () {
+        Route::middleware('permission_or:ver_catalogos|catalogos.ver|certificacion.ver|documentos.ver|documentos.crear|crear_documentos|documentos.crear_borrador|dashboard.ver')->group(function () {
             Route::get('documentos-academicos/tipos', [DocumentoAcademicoTipoController::class, 'index']);
             Route::get('documentos-academicos/tipos/{tipo}', [DocumentoAcademicoTipoController::class, 'show']);
         });

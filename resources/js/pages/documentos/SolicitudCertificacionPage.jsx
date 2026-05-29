@@ -10,6 +10,30 @@ import { SectionCard } from '../../components/ui/SectionCard';
 import { ValidationSummary } from '../../components/academic/ValidationSummary';
 import { AcademicProgressCard } from '../../components/academic/AcademicProgressCard';
 import { DataTable } from '../../components/ui/DataTable';
+import { TipoDocumentalCapacidadesCard } from '../../components/documentos/TipoDocumentalCapacidadesCard';
+import {
+    fetchTiposDocumentosAcademicos,
+    fetchTipoDocumentoAcademico,
+    labelTipoDocumento,
+    normalizarSubsistemaCatalogo,
+} from '../../utils/documentosAcademicosTipos';
+
+const AVISO_CE =
+    'Control Escolar solo inicia la solicitud documental. La validación, folio, procesamiento, firma y resultado final corresponden a las etapas institucionales posteriores (Educación Superior; incidencias técnicas: Sistemas).';
+
+const AYUDA_TIPO =
+    'Selecciona el tipo documental autorizado para tu subsistema y plan académico. El catálogo y sus reglas las administra Sistemas; el sistema aplicará las capacidades en etapas posteriores.';
+
+function resolverTipoDocumentalCatalogo(tipoCert, tipoDocumentoSeleccionado) {
+    if (tipoDocumentoSeleccionado) return tipoDocumentoSeleccionado;
+    if (tipoCert === 'parcial') return 'certificacion_parcial';
+    return 'certificado';
+}
+
+function mensajeErrorDuplicado(texto) {
+    if (!texto) return false;
+    return texto.includes('documento activo') || texto.includes('expediente antes de crear');
+}
 
 export function SolicitudCertificacionPage() {
     const [params] = useSearchParams();
@@ -21,7 +45,16 @@ export function SolicitudCertificacionPage() {
     const [error, setError] = useState('');
     const [msg, setMsg] = useState('');
     const [tipoCert, setTipoCert] = useState(tipoIni);
+    const [tipoDocumento, setTipoDocumento] = useState('');
+    const [tiposCatalogo, setTiposCatalogo] = useState([]);
+    const [catalogoFallback, setCatalogoFallback] = useState(false);
+    const [capacidades, setCapacidades] = useState(null);
     const [resumen, setResumen] = useState(null);
+
+    const subsistemaClave = useMemo(() => {
+        const raw = resumen?.matricula?.subsistema_clave ?? resumen?.refs?.subsistema_clave ?? resumen?.matricula?.subsistema;
+        return normalizarSubsistemaCatalogo(raw);
+    }, [resumen]);
 
     const cargar = useCallback(async (pk) => {
         if (!Number.isFinite(pk) || pk <= 0) {
@@ -45,6 +78,44 @@ export function SolicitudCertificacionPage() {
         void cargar(alumnoIni);
     }, [alumnoIni, cargar]);
 
+    useEffect(() => {
+        if (!subsistemaClave) {
+            setTiposCatalogo([]);
+            return;
+        }
+        let cancel = false;
+        void fetchTiposDocumentosAcademicos(subsistemaClave).then((items) => {
+            if (cancel) return;
+            setTiposCatalogo(items);
+            setCatalogoFallback(items.length > 0 && !items[0]?.capacidades);
+            if (!tipoDocumento && items.length) {
+                const preferido = items.find((t) => t.key === (tipoIni === 'parcial' ? 'certificacion_parcial' : 'certificado'));
+                setTipoDocumento(preferido?.key ?? items[0].key);
+            }
+        });
+        return () => {
+            cancel = true;
+        };
+    }, [subsistemaClave, tipoIni, tipoDocumento]);
+
+    const tipoEfectivo = resolverTipoDocumentalCatalogo(tipoCert, tipoDocumento);
+
+    useEffect(() => {
+        if (!tipoEfectivo || !subsistemaClave) {
+            setCapacidades(null);
+            return;
+        }
+        let cancel = false;
+        void fetchTipoDocumentoAcademico(tipoEfectivo, subsistemaClave).then((def) => {
+            if (!cancel) {
+                setCapacidades(def?.capacidades ?? def?.reglas ?? null);
+            }
+        });
+        return () => {
+            cancel = true;
+        };
+    }, [tipoEfectivo, subsistemaClave]);
+
     const bloqueos = useMemo(() => {
         const errs = [];
         if (!Number.isFinite(alumnoIni) || alumnoIni <= 0) {
@@ -52,6 +123,11 @@ export function SolicitudCertificacionPage() {
         }
         if (!resumen?.refs?.matricula_id) errs.push('Debe registrarse primero una matrícula única institucional.');
         if (!(resumen?.materias_cursadas ?? []).length) errs.push('No hay materias cursadas registradas.');
+        if (!subsistemaClave) errs.push('No fue posible determinar el subsistema académico del alumno.');
+        if (!tipoEfectivo) errs.push('Seleccione un tipo documental del catálogo autorizado.');
+        if (tipoEfectivo && tiposCatalogo.length && !tiposCatalogo.some((t) => t.key === tipoEfectivo)) {
+            errs.push('Este tipo documental no está disponible para el subsistema seleccionado.');
+        }
         if (resumen?.contexto_legacy_normativo?.requiere_atencion) {
             errs.push(
                 `Importación/certificación pendiente de validaciones normativas (legacy): ${resumen.contexto_legacy_normativo.mensaje_operativo ?? 'Regularice ante Educación Superior.'}`,
@@ -59,25 +135,16 @@ export function SolicitudCertificacionPage() {
         }
         const adv = [];
         if (!(resumen?.trayectoria ?? null)) {
-            adv.push('No existe trayectoria consolidada — valide después de cursar/registrar todas las evidencias necesarias antes de cerrar proceso.');
+            adv.push('No existe trayectoria consolidada — valide evidencias antes de enviar a revisión institucional.');
         }
         return { errs, adv };
-    }, [resumen, alumnoIni]);
+    }, [resumen, alumnoIni, subsistemaClave, tipoEfectivo, tiposCatalogo]);
 
     const puedeCrear = bloqueos.errs.length === 0;
-    const motivoBloqueo = !Number.isFinite(alumnoIni) || alumnoIni <= 0
-        ? 'No hay alumno seleccionado.'
-        : !resumen?.refs?.matricula_id
-            ? 'Falta matrícula activa.'
-            : !(resumen?.materias_cursadas ?? []).length
-                ? 'Faltan materias registradas.'
-                : !(resumen?.trayectoria ?? null)
-                    ? 'Falta trayectoria.'
-                    : resumen?.contexto_legacy_normativo?.requiere_atencion
-                        ? 'Hay validación normativa legacy pendiente.'
-                        : '';
+    const motivoBloqueo = bloqueos.errs[0] ?? '';
+    const esDuplicado = mensajeErrorDuplicado(error);
 
-    async function crearBorrador() {
+    async function iniciarSolicitud() {
         const r = resumen?.refs;
         if (!puedeCrear || !r) return;
         setBusy(true);
@@ -93,14 +160,20 @@ export function SolicitudCertificacionPage() {
                 region_id: r.region_id ?? undefined,
                 institucion_id: r.institucion_id ?? undefined,
                 sede_id: r.sede_id ?? undefined,
-                tipo_documento: 'certificado',
+                tipo_documento: tipoEfectivo,
                 tipo_certificacion: tipoCert === 'termino' ? 'total' : 'parcial',
             });
             const id = py?.data?.id;
-            setMsg(`Borrador institucional creado como certificado (${tipoCert === 'termino' ? 'total' : 'parcial'}).`);
+            setMsg(`Solicitud documental iniciada (${labelTipoDocumento(tipoEfectivo)}). Continúe la captura institucional.`);
             if (id) navigate(`/app/documentos/${id}/captura`);
         } catch (e) {
-            setError(e?.message ?? 'No se creó la solicitud. Revise reglas DEL backend u observaciones institucionales.');
+            const det = e?.payload?.errors ?? e?.errors;
+            if (det && typeof det === 'object') {
+                const flat = Object.values(det).flat().join(' ');
+                setError(flat || e?.message || 'No se inició la solicitud.');
+            } else {
+                setError(e?.message ?? 'No se inició la solicitud. Revise observaciones institucionales.');
+            }
         } finally {
             setBusy(false);
         }
@@ -110,6 +183,7 @@ export function SolicitudCertificacionPage() {
     const checklist = [
         { label: 'Alumno seleccionado', ok: Number.isFinite(alumnoIni) && alumnoIni > 0 },
         { label: 'Matrícula activa', ok: Boolean(resumen?.refs?.matricula_id) },
+        { label: 'Subsistema identificado', ok: Boolean(subsistemaClave) },
         { label: 'Plan reconocido', ok: Boolean(resumen?.matricula?.plan_estudios) },
         { label: 'Materias registradas', ok: (resumen?.materias_cursadas ?? []).length > 0 },
         { label: 'Trayectoria consolidada', ok: Boolean(resumen?.trayectoria) },
@@ -119,8 +193,8 @@ export function SolicitudCertificacionPage() {
     return (
         <section className="grid gap-4">
             <PageHeader
-                title="Solicitud institucional de certificación"
-                subtitle="Creación guiada del borrador académico para revisión institucional."
+                title="Solicitud documental (Control Escolar)"
+                subtitle="Inicio de solicitud con tipos autorizados por subsistema — sin folio, firma ni procesamiento técnico."
                 actions={
                     alumnoIni > 0 ? (
                         <Link className="inst-btn inst-btn-secondary text-sm" to={`/app/alumnos/${alumnoIni}/expediente`}>
@@ -130,13 +204,48 @@ export function SolicitudCertificacionPage() {
                 }
             />
 
+            <AlertBox type="info" message={AVISO_CE} />
+
             {!Number.isFinite(alumnoIni) || alumnoIni <= 0 ? (
                 <AlertBox type="danger" message="Seleccione un alumno desde Expediente 360 o desde Trayectoria para iniciar una solicitud válida." />
             ) : null}
 
+            <p className="subtle-help-text" style={{ margin: 0 }}>{AYUDA_TIPO}</p>
+
+            {catalogoFallback ? (
+                <AlertBox
+                    type="info"
+                    message="Catálogo cargado desde configuración local. El endpoint institucional no respondió; las reglas siguen siendo válidas."
+                />
+            ) : null}
+
             <ValidationSummary ok={bloqueos.errs.length === 0} errores={bloqueos.errs} advertencias={bloqueos.adv} />
 
-            <SectionCard title="Tipo solicitado por la escuela">
+            <SectionCard title="Tipo documental autorizado (solo lectura)">
+                <div className="grid gap-3 text-sm">
+                    <label className="grid gap-1">
+                        <span className="font-medium">Tipo documental</span>
+                        <select
+                            className="inst-select"
+                            value={tipoDocumento}
+                            onChange={(e) => setTipoDocumento(e.target.value)}
+                            disabled={!tiposCatalogo.length}
+                        >
+                            <option value="">Seleccione…</option>
+                            {tiposCatalogo.map((t) => (
+                                <option key={t.key} value={t.key}>
+                                    {t.label ?? labelTipoDocumento(t.key)}
+                                </option>
+                            ))}
+                        </select>
+                    </label>
+                    {!tiposCatalogo.length && subsistemaClave ? (
+                        <p className="text-amber-700 text-xs">No hay tipos documentales autorizados para este subsistema.</p>
+                    ) : null}
+                </div>
+            </SectionCard>
+
+            <SectionCard title="Alcance de la certificación escolar">
                 <div className="grid gap-2 text-sm">
                     <label className="flex gap-2">
                         <input type="radio" name="tipo" checked={tipoCert === 'termino'} onChange={() => setTipoCert('termino')} />
@@ -148,17 +257,27 @@ export function SolicitudCertificacionPage() {
                     </label>
                 </div>
             </SectionCard>
+
+            <SectionCard title="Capacidades del tipo (informativo — no ejecutables aquí)">
+                <TipoDocumentalCapacidadesCard
+                    capacidades={capacidades}
+                    pipelineKey={capacidades?.pipeline_key}
+                    plantillaKey={capacidades?.plantilla_key_default}
+                />
+            </SectionCard>
+
             <SectionCard title="Datos para solicitud">
                 <div className="grid gap-2 text-sm md:grid-cols-2">
                     <p><strong>Alumno:</strong> {resumen?.alumno?.nombre_completo ?? 'No seleccionado'}</p>
                     <p><strong>Matrícula:</strong> {resumen?.matricula?.clave_matricula ?? 'Sin matrícula activa'}</p>
-                    <p><strong>Subsistema:</strong> {resumen?.matricula?.subsistema ?? 'No disponible'}</p>
+                    <p><strong>Subsistema:</strong> {resumen?.matricula?.subsistema ?? subsistemaClave ?? 'No disponible'}</p>
                     <p><strong>Plan:</strong> {resumen?.matricula?.plan_estudios ?? 'No disponible'}</p>
-                    <p><strong>Tipo de certificado:</strong> {tipoCert === 'termino' ? 'Total' : 'Parcial'}</p>
+                    <p><strong>Tipo documental:</strong> {labelTipoDocumento(tipoEfectivo) || '—'}</p>
+                    <p><strong>Alcance:</strong> {tipoCert === 'termino' ? 'Total' : 'Parcial'}</p>
                     <p><strong>Materias incluidas:</strong> {tablaMaterias.length}</p>
                 </div>
-                <p className="text-xs text-slate-600 mt-2">La emisión oficial se realizará después de la revisión institucional y validación normativa.</p>
             </SectionCard>
+
             <SectionCard title="Estado de preparación">
                 <ul className="grid gap-2 text-sm">
                     {checklist.map((item) => (
@@ -171,62 +290,49 @@ export function SolicitudCertificacionPage() {
             </SectionCard>
 
             <AcademicProgressCard
-                titulo="Resumen cursado solicitado por certificación"
+                titulo="Resumen cursado"
                 partes={[
-                    {
-                        label: 'Materias activas registradas',
-                        value: tablaMaterias.length,
-                        hint: 'Se enviarán a validación institucional y DEC según ciclo cursado cargado.',
-                    },
-                    {
-                        label: 'Plan reconocido',
-                        value: resumen?.matricula?.plan_estudios ?? '—',
-                        hint: 'La clave institucional de plan no aparece pero queda aplicada desde la oferta asociada en backend.',
-                    },
-                    {
-                        label: 'Promedio acumulado (trayectoria)',
-                        value: resumen?.trayectoria?.promedio ?? '—',
-                        hint: '',
-                    },
+                    { label: 'Materias registradas', value: tablaMaterias.length, hint: 'Se validarán en etapas posteriores.' },
+                    { label: 'Plan', value: resumen?.matricula?.plan_estudios ?? '—', hint: '' },
+                    { label: 'Promedio (trayectoria)', value: resumen?.trayectoria?.promedio ?? '—', hint: '' },
                 ]}
             />
 
-            <SectionCard title="Historial cursado solicitado sin identificadores técnicos internos">
+            <SectionCard title="Historial cursado">
                 <DataTable
                     columns={[
                         { key: 'clave', label: 'Asignatura' },
-                        {
-                            key: 'nombre',
-                            label: 'Denominación',
-                            render: (r) => r.nombre,
-                        },
-                        { key: 'periodo_cursado', label: 'Periodo real cursado' },
-                        {
-                            key: 'flags',
-                            label: '',
-                            render: (r) => (
-                                <span className="text-[11px] text-slate-500">
-                                    {r.dato_congelado_en_certificado ? <span className="rounded bg-slate-200 px-2 py-px">YA en expediente oficial</span> : null}{' '}
-                                    {r.bloque_catalogo ? '' : '(captura abierta)'}{' '}
-                                </span>
-                            ),
-                        },
+                        { key: 'nombre', label: 'Denominación', render: (r) => r.nombre },
+                        { key: 'periodo_cursado', label: 'Periodo' },
                     ]}
                     rows={tablaMaterias}
                     emptyText="Sin materias asociadas a la matrícula."
                 />
             </SectionCard>
 
-            {error ? <ErrorState message={error} /> : null}
+            {error ? (
+                esDuplicado ? (
+                    <AlertBox
+                        type="warning"
+                        message="Ya existe una solicitud/documento activo para este alumno. Abra el expediente para continuar."
+                    />
+                ) : (
+                    <ErrorState message={error} />
+                )
+            ) : null}
             {msg ? <AlertBox type="success" message={msg} /> : null}
 
             <div className="flex flex-wrap gap-2">
-                <ActionButton disabled={!puedeCrear || busy || !resumen?.refs?.matricula_id} onClick={() => void crearBorrador()}>
-                    {busy ? 'Creando solicitud institucional…' : 'Crear borrador y continuar captura'}
+                <ActionButton disabled={!puedeCrear || busy || !resumen?.refs?.matricula_id} onClick={() => void iniciarSolicitud()}>
+                    {busy ? 'Iniciando solicitud…' : 'Iniciar solicitud documental'}
                 </ActionButton>
             </div>
             {!puedeCrear ? <p className="text-xs text-amber-700">Acción bloqueada: {motivoBloqueo}</p> : null}
-            {!puedeCrear ? <p className="subtle-help-text">No se puede crear el borrador hasta resolver los bloqueos.</p> : null}
+            {esDuplicado && alumnoIni > 0 ? (
+                <Link className="inst-btn inst-btn-secondary text-sm" to={`/app/alumnos/${alumnoIni}/expediente`}>
+                    Abrir expediente del alumno
+                </Link>
+            ) : null}
         </section>
     );
 }

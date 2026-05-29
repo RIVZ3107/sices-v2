@@ -10,6 +10,7 @@ use App\Models\MateriaCursada;
 use App\Models\Matricula;
 use App\Models\OfertaAcademica;
 use App\Models\TrayectoriaAcademica;
+use App\Services\DocumentosAcademicos\DocumentoAcademicoSolicitudActivaService;
 use App\Support\Certificacion\Profiles\CertificacionProfileResolver;
 
 class ValidacionAcademicaDocumentoService
@@ -19,6 +20,7 @@ class ValidacionAcademicaDocumentoService
         protected CertificacionImportacionLegacyNormativaGate $legacyNormativaGate,
         protected CertificacionProfileResolver $profileResolver,
         protected AcademicRulesResolver $academicRules,
+        protected DocumentoAcademicoSolicitudActivaService $solicitudActiva,
     ) {}
 
     /**
@@ -363,28 +365,19 @@ class ValidacionAcademicaDocumentoService
      */
     public function validarDocumentoDuplicado(DocumentoAcademico $documento): array
     {
-        $errores = [];
-
-        if ($documento->alumno_id === null || $documento->matricula_id === null || $documento->ciclo_escolar_id === null) {
+        if ($documento->alumno_id === null || $documento->ciclo_escolar_id === null || $documento->tipo_documento === null) {
             return ['ok' => true, 'errores' => [], 'advertencias' => []];
         }
 
-        $query = DocumentoAcademico::query()
-            ->where('alumno_id', $documento->alumno_id)
-            ->where('matricula_id', $documento->matricula_id)
-            ->where('ciclo_escolar_id', $documento->ciclo_escolar_id)
-            ->where('tipo_documento', $documento->tipo_documento)
-            ->where('estado_workflow', '!=', EstadoWorkflow::CANCELADO->value);
-
-        if ($documento->exists) {
-            $query->whereKeyNot($documento->getKey());
+        if ($this->solicitudActiva->existeDocumentoActivoDuplicado($documento)) {
+            return [
+                'ok' => false,
+                'errores' => [DocumentoAcademicoSolicitudActivaService::MENSAJE_DUPLICADO_ACTIVO],
+                'advertencias' => [],
+            ];
         }
 
-        if ($query->exists()) {
-            $errores[] = 'Ya existe un documento académico no cancelado con el mismo alumno, matrícula, ciclo y tipo.';
-        }
-
-        return ['ok' => $errores === [], 'errores' => $errores, 'advertencias' => []];
+        return ['ok' => true, 'errores' => [], 'advertencias' => []];
     }
 
     /**

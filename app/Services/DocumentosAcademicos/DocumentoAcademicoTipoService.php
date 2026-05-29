@@ -117,6 +117,128 @@ class DocumentoAcademicoTipoService
     }
 
     /**
+     * @throws ValidationException
+     */
+    public function validarTipoParaSubsistema(string $tipo, string $subsistema): void
+    {
+        if (! $this->existeEnCatalogo($tipo)) {
+            throw ValidationException::withMessages([
+                'tipo_documento' => ['El tipo documental no está registrado en el catálogo institucional.'],
+            ]);
+        }
+
+        $subsistemaNorm = $this->normalizarSubsistema($subsistema);
+        if ($subsistemaNorm === null) {
+            throw ValidationException::withMessages([
+                'subsistema' => ['No fue posible determinar el subsistema académico para este documento.'],
+            ]);
+        }
+
+        if (! $this->permitidoParaSubsistema($tipo, $subsistemaNorm)) {
+            throw ValidationException::withMessages([
+                'tipo_documento' => ['El tipo documental seleccionado no está permitido para este subsistema.'],
+            ]);
+        }
+    }
+
+    public function resolveSubsistemaClaveFromMatricula(Matricula $matricula): ?string
+    {
+        if ($matricula->relationLoaded('subsistema') && $matricula->subsistema) {
+            return $this->normalizarSubsistema($matricula->subsistema->clave);
+        }
+
+        if ($matricula->subsistema_id) {
+            $clave = Subsistema::query()->whereKey($matricula->subsistema_id)->value('clave');
+
+            return $this->normalizarSubsistema(is_string($clave) ? $clave : null);
+        }
+
+        return null;
+    }
+
+    public function resolveSubsistemaClaveFromDocumento(DocumentoAcademico $documento): ?string
+    {
+        if ($documento->matricula_id) {
+            $matricula = $documento->relationLoaded('matricula')
+                ? $documento->matricula
+                : Matricula::query()->with('subsistema')->find($documento->matricula_id);
+
+            if ($matricula) {
+                return $this->resolveSubsistemaClaveFromMatricula($matricula);
+            }
+        }
+
+        if ($documento->subsistema_id) {
+            $clave = Subsistema::query()->whereKey($documento->subsistema_id)->value('clave');
+
+            return $this->normalizarSubsistema(is_string($clave) ? $clave : null);
+        }
+
+        return null;
+    }
+
+    /**
+     * @param  array<string, mixed>  $metadata
+     * @return array<string, mixed>
+     */
+    public function fusionarMetadataConCapacidades(array $metadata, string $tipo, string $subsistema): array
+    {
+        $subsistemaNorm = $this->normalizarSubsistema($subsistema);
+        if ($subsistemaNorm === null) {
+            throw ValidationException::withMessages([
+                'subsistema' => ['No fue posible determinar el subsistema académico para este documento.'],
+            ]);
+        }
+
+        $this->validarTipoParaSubsistema($tipo, $subsistemaNorm);
+        $cap = $this->capacidadesParaRespuesta($tipo, $subsistemaNorm);
+
+        return array_merge($metadata, [
+            'tipo_documental_catalogo' => $tipo,
+            'subsistema_catalogo' => $subsistemaNorm,
+            'capacidades_documento' => $cap,
+            'capacidades_registradas_en' => now()->toIso8601String(),
+        ]);
+    }
+
+    /**
+     * Payload de capacidades para API (sin metadatos internos).
+     *
+     * @return array<string, mixed>
+     */
+    public function capacidadesParaRespuesta(string $tipo, string $subsistema): array
+    {
+        $cap = $this->capacidades($tipo, $subsistema);
+        unset($cap['tipo'], $cap['subsistema']);
+
+        return $cap;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function capacidadesDesdeDocumento(DocumentoAcademico $documento): array
+    {
+        $meta = $documento->metadata ?? [];
+        if (is_array($meta['capacidades_documento'] ?? null) && ($meta['tipo_documental_catalogo'] ?? $documento->tipo_documento)) {
+            return $meta['capacidades_documento'];
+        }
+
+        $sub = $this->resolveSubsistemaClaveFromDocumento($documento);
+        $tipo = (string) ($documento->tipo_documento ?? '');
+        if ($sub === null || $tipo === '' || ! $this->permitidoParaSubsistema($tipo, $sub)) {
+            return [];
+        }
+
+        return $this->capacidadesParaRespuesta($tipo, $sub);
+    }
+
+    public function documentoPermiteCambioTipoDocumento(DocumentoAcademico $documento): bool
+    {
+        return $documento->estado_workflow === 'borrador';
+    }
+
+    /**
      * @return array<string, mixed>|null
      */
     public function reglas(string $tipo, string $subsistema): ?array

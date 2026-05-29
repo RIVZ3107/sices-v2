@@ -1,29 +1,27 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Requests\Certificacion;
 
-use Illuminate\Contracts\Validation\ValidationRule;
+use App\Rules\TipoDocumentoAcademicoCatalogoRule;
 use Illuminate\Foundation\Http\FormRequest;
 
+/** Alias de captura — usar StoreDocumentoAcademicoCapturaRequest en el flujo activo. */
 class StoreDocumentoAcademicoRequest extends FormRequest
 {
-    /**
-     * Determine if the user is authorized to make this request.
-     */
     public function authorize(): bool
     {
-        return false;
+        return true;
     }
 
     /**
-     * Get the validation rules that apply to the request.
-     *
-     * @return array<string, ValidationRule|array<mixed>|string>
+     * @return array<string, mixed>
      */
     public function rules(): array
     {
         return [
-            //
+            'tipo_documento' => ['required', 'string', 'max:64', new TipoDocumentoAcademicoCatalogoRule()],
         ];
     }
 }
