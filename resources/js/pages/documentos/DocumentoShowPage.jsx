@@ -12,7 +12,16 @@ import { ValidacionResumenCard } from '../../components/ValidacionResumenCard';
 import { SectionCard } from '../../components/ui/SectionCard';
 import { Timeline } from '../../components/ui/Timeline';
 import { AlertBox } from '../../components/ui/AlertBox';
-import { userCan, userCanAny } from '../../utils/userPermissions';
+import { InstitutionalRoleBanner } from '../../components/ui/InstitutionalRoleBanner';
+import { userCanAny } from '../../utils/userPermissions';
+import {
+    uxCanVerDetalleTecnico,
+    uxEsControlEscolarOperativo,
+    uxLinkIncidenciaTecnica,
+    uxPuedeAsignarFolioOficial,
+    uxPuedeEmitirConsultaPublica,
+    uxPuedeProcesarCertificacion,
+} from '../../utils/uxInstitucional';
 import { EstadoSepLegacyPanel } from '../expedientes/components/EstadoSepLegacyPanel';
 
 export function DocumentoShowPage() {
@@ -24,6 +33,10 @@ export function DocumentoShowPage() {
     const [msg, setMsg] = useState('');
     const [error, setError] = useState('');
     const [runningAction, setRunningAction] = useState(null);
+    const [intentadoAccion, setIntentadoAccion] = useState(false);
+
+    const esCe = uxEsControlEscolarOperativo();
+    const verTecnico = uxCanVerDetalleTecnico();
 
     const canEnviar = userCanAny(['enviar_revision', 'documentos.enviar_revision']);
     const canAprobar = userCanAny([
@@ -40,23 +53,9 @@ export function DocumentoShowPage() {
         'documentos.rechazar_institucionalmente',
         'validaciones_normativas.rechazar',
     ]);
-    const canProcesarCertificacion = userCanAny([
-        'certificacion.procesar',
-        'certificacion.enviar_a_proceso_tecnico',
-        'preparar_documento_firma',
-        'documentos.liberar_proceso_tecnico',
-    ]);
-    const canVerIncidencia = userCanAny([
-        'certificacion.enviar_incidencia_sistemas',
-        'logs.ver',
-        'integraciones.ver',
-    ]);
-    const canTokenPublico = userCanAny([
-        'consulta_publica.emitir_token',
-        'consulta_publica.configurar',
-        'preparar_documento_firma',
-        'documentos.liberar_proceso_tecnico',
-    ]);
+    const canProcesar = uxPuedeProcesarCertificacion() && !esCe;
+    const canTokenPublico = uxPuedeEmitirConsultaPublica() && !esCe;
+    const canVerIncidencia = userCanAny(['certificacion.enviar_incidencia_sistemas', 'logs.ver', 'integraciones.ver']);
 
     async function refresh() {
         const [d, o] = await Promise.all([
@@ -66,124 +65,181 @@ export function DocumentoShowPage() {
         setDoc(d.data);
         setObs(o.data);
         setVal(d?.data?.validacion_resumen ?? null);
-        try {
-            const v = await documentosAcademicosApi.validar(id);
-            if (v?.data?.resumen) setVal(v.data.resumen);
-        } catch {
-            /* resumen opcional al cargar */
-        }
     }
 
     useEffect(() => {
         refresh().catch(() => setDoc(false));
     }, [id]);
 
-    if (doc === null) return <LoadingState text="Cargando documento..." />;
+    if (doc === null) return <LoadingState text="Cargando documento…" />;
     if (doc === false) return <ErrorState message="No se pudo cargar el documento." />;
 
     async function runAction(action) {
         if (runningAction) return;
-
+        setIntentadoAccion(true);
         setRunningAction(action);
         setError('');
         setMsg('');
         try {
-            if (action === 'enviar') await documentosAcademicosApi.enviarRevision(id, { motivo: 'Enviado desde frontend.' });
-            if (action === 'aprobar') await documentosAcademicosApi.aprobar(id, { motivo: 'Aprobacion desde frontend.' });
-            if (action === 'rechazar') await documentosAcademicosApi.rechazar(id, { motivo: 'Rechazo desde frontend.' });
+            if (action === 'enviar') {
+                await documentosAcademicosApi.enviarRevision(id, { motivo: 'Enviado a revisión del certificador.' });
+            }
+            if (action === 'aprobar') {
+                await documentosAcademicosApi.aprobar(id, { motivo: 'Aprobación institucional.' });
+            }
+            if (action === 'rechazar') {
+                await documentosAcademicosApi.rechazar(id, { motivo: 'Devolución con observaciones.' });
+            }
             if (action === 'preparar') {
                 await documentosAcademicosApi.marcarListoParaFirma(id, {
-                    motivo: 'Inicio de procesamiento automático de certificación.',
+                    motivo: 'Inicio de procesamiento de certificación.',
                 });
             }
-            if (action === 'token') await documentosAcademicosApi.emitirTokenConsulta(id, {});
+            if (action === 'token') {
+                await documentosAcademicosApi.emitirTokenConsulta(id, {});
+            }
             if (action === 'validar') {
                 const res = await documentosAcademicosApi.validar(id);
                 setVal(res?.data?.resumen ?? null);
             }
             await refresh();
-            setMsg('Operacion ejecutada correctamente.');
+            setMsg('Operación registrada correctamente.');
         } catch (err) {
-            setError(err?.message ?? 'No se pudo ejecutar la acción. Intenta nuevamente.');
+            setError(err?.message ?? 'No se pudo completar la acción.');
         } finally {
             setRunningAction(null);
         }
     }
 
     const timelineSteps = [
-        { key: 'borrador', label: 'Borrador', done: ['borrador', 'en_revision', 'aprobado', 'rechazado', 'listo_para_firma'].includes(doc.estado_workflow) },
-        { key: 'en_revision', label: 'En revision', done: ['en_revision', 'aprobado', 'rechazado', 'listo_para_firma'].includes(doc.estado_workflow) },
-        { key: 'rechazado', label: 'Devuelto', done: doc.estado_workflow === 'rechazado' },
+        { key: 'borrador', label: 'Captura', done: ['borrador', 'en_revision', 'aprobado', 'rechazado', 'listo_para_firma'].includes(doc.estado_workflow) },
+        { key: 'en_revision', label: 'En revisión', done: ['en_revision', 'aprobado', 'rechazado', 'listo_para_firma'].includes(doc.estado_workflow) },
+        { key: 'rechazado', label: 'Observado', done: doc.estado_workflow === 'rechazado' },
         { key: 'aprobado', label: 'Aprobado', done: ['aprobado', 'listo_para_firma'].includes(doc.estado_workflow) },
         { key: 'listo_para_firma', label: 'En procesamiento', done: doc.listo_para_firma },
-        { key: 'firmado', label: 'Firmado', done: doc.estado_firma === 'firmado' },
+        { key: 'firmado', label: 'Resultado final', done: doc.estado_firma === 'firmado' },
     ];
 
     const actionBusy = Boolean(runningAction);
+    const tituloDoc = doc.folio_interno ? `Documento ${doc.folio_interno}` : `Solicitud documental #${doc.id}`;
 
     return (
         <section className="grid gap-4 lg:grid-cols-[1fr_280px]">
             <PageHeader
-                title={`Documento #${doc.id}`}
-                subtitle="Detalle documental según permisos del usuario."
+                title={tituloDoc}
+                subtitle={esCe ? 'Seguimiento de su solicitud' : 'Detalle del documento académico'}
                 actions={(
                     <div className="flex flex-wrap gap-2">
-                        <ActionButton variant="secondary" onClick={() => navigate(`/app/documentos/${id}/captura`)}>Captura</ActionButton>
-                        <ActionButton variant="secondary" onClick={() => navigate(`/app/documentos/${id}/observaciones`)}>Observaciones</ActionButton>
-                        <ActionButton variant="secondary" onClick={() => navigate(`/app/documentos/${id}/validacion`)}>Validacion</ActionButton>
+                        <ActionButton variant="secondary" onClick={() => navigate(`/app/documentos/${id}/captura`)}>
+                            {esCe ? 'Completar captura' : 'Captura'}
+                        </ActionButton>
+                        {!esCe ? (
+                            <ActionButton variant="secondary" onClick={() => navigate(`/app/documentos/${id}/observaciones`)}>
+                                Observaciones
+                            </ActionButton>
+                        ) : null}
                     </div>
                 )}
             />
-            {error ? <ErrorState message={error} /> : null}
+
+            <InstitutionalRoleBanner />
+
+            {intentadoAccion && error ? <ErrorState message={error} /> : null}
             {msg ? <AlertBox type="success" message={msg} /> : null}
+
             <div className="grid gap-4">
-                <SectionCard title="Encabezado documental" subtitle="Estado actual del flujo de certificación y datos principales.">
-                    <div className="flex items-center justify-between">
-                        <h2 className="text-base font-semibold">Folio: {doc.folio_interno ?? `Doc #${doc.id}`}</h2>
+                <SectionCard title="Resumen" subtitle="Información principal del documento.">
+                    <div className="flex items-center justify-between flex-wrap gap-2">
+                        <h2 className="text-base font-semibold">{doc.alumno?.nombre ?? 'Alumno'}</h2>
                         <EstadoBadge estado={doc.estado_workflow} />
                     </div>
-                    <p className="mt-2 text-sm text-slate-600">Alumno: {doc.alumno?.nombre ?? 'N/A'} | CURP: {doc.alumno?.curp ?? '-'}</p>
-                    <p className="mt-1 text-sm text-slate-600">Matricula ID: {doc.matricula_id ?? '-'} | Institucion/Sede: {doc.institucion_id ?? '-'} / {doc.sede_id ?? '-'}</p>
-                    <p className="mt-1 text-sm text-slate-600">Tipo documento: {doc.tipo_documento ?? '-'} | Estado firma: {doc.estado_firma ?? '-'}</p>
+                    <p className="mt-2 text-sm text-slate-600">CURP: {doc.alumno?.curp ?? '—'}</p>
+                    <p className="mt-1 text-sm text-slate-600">Tipo: {doc.tipo_documento ?? '—'}</p>
+                    {verTecnico ? (
+                        <p className="mt-1 text-sm text-slate-500">
+                            Referencia interna: matrícula {doc.matricula_id ?? '—'} · institución {doc.institucion_id ?? '—'}
+                        </p>
+                    ) : null}
                 </SectionCard>
-                <SectionCard title="Timeline del proceso de certificación">
+
+                <SectionCard title="Avance del trámite">
                     <Timeline steps={timelineSteps} current={doc.estado_workflow} />
                 </SectionCard>
-                <ValidacionResumenCard resumen={val} />
-                <EstadoSepLegacyPanel
-                    alumnoId={doc.alumno_id ?? doc.alumno?.id}
-                    documentoId={doc.id}
-                    curp={doc.alumno?.curp}
-                />
+
+                {!esCe ? <ValidacionResumenCard resumen={val} /> : null}
+
+                {verTecnico ? (
+                    <EstadoSepLegacyPanel
+                        alumnoId={doc.alumno_id ?? doc.alumno?.id}
+                        documentoId={doc.id}
+                        curp={doc.alumno?.curp}
+                    />
+                ) : null}
+
                 <ObservacionesPanel items={obs} />
-                <SectionCard title="Secciones de documento">
-                    <p>Materias, trayectoria y detalles extendidos dependen de endpoints de consulta detallada backend.</p>
-                    <Link to="/app/documentos/bandejas" className="mt-2 inline-block text-blue-700 hover:underline">Volver a bandejas</Link>
-                </SectionCard>
+
+                <Link to="/app/documentos/bandejas" className="text-sm text-blue-700 hover:underline">
+                    Volver a bandejas
+                </Link>
             </div>
+
             <aside className="inst-surface grid h-max gap-3 p-4">
-                <h3 className="inst-title text-sm">Acciones disponibles</h3>
-                <ActionButton variant="secondary" disabled={actionBusy} onClick={() => runAction('validar')}>Ver validación</ActionButton>
-                {canEnviar ? <ActionButton disabled={actionBusy} onClick={() => runAction('enviar')}>Enviar a revision</ActionButton> : null}
-                {canRechazar ? <ActionButton variant="danger" disabled={actionBusy} onClick={() => runAction('rechazar')}>Rechazar / devolver</ActionButton> : null}
-                {canAprobar ? <ActionButton disabled={actionBusy} onClick={() => runAction('aprobar')}>Aprobar</ActionButton> : null}
-                {canProcesarCertificacion ? (
-                    <ActionButton variant="warning" disabled={actionBusy} onClick={() => runAction('preparar')}>
-                        Procesar certificación
-                    </ActionButton>
-                ) : null}
-                {canTokenPublico ? <ActionButton variant="secondary" disabled={actionBusy} onClick={() => runAction('token')}>Emitir token consulta pública</ActionButton> : null}
-                {canVerIncidencia && doc.estado_firma === 'error_firma' ? (
-                    <ActionButton
-                        variant="secondary"
-                        onClick={() => navigate(`/app/sistemas/documento-proceso-tecnico/${id}`)}
-                    >
-                        Ver incidencia técnica
-                    </ActionButton>
-                ) : null}
-                <p className="inst-muted text-xs">
-                    Educación Superior procesa el flujo automatizado. Sistemas atiende incidencias si falla.
-                </p>
+                <h3 className="inst-title text-sm">Acciones</h3>
+
+                {esCe ? (
+                    <>
+                        <ActionButton disabled={actionBusy} onClick={() => runAction('validar')}>
+                            Ver validaciones
+                        </ActionButton>
+                        {canEnviar ? (
+                            <ActionButton disabled={actionBusy} onClick={() => runAction('enviar')}>
+                                Enviar a validación
+                            </ActionButton>
+                        ) : null}
+                        <p className="inst-muted text-xs">
+                            No puede procesar, firmar ni asignar folio desde Control Escolar.
+                        </p>
+                    </>
+                ) : (
+                    <>
+                        <ActionButton variant="secondary" disabled={actionBusy} onClick={() => runAction('validar')}>
+                            Validar información
+                        </ActionButton>
+                        {canEnviar ? (
+                            <ActionButton disabled={actionBusy} onClick={() => runAction('enviar')}>
+                                Enviar a revisión
+                            </ActionButton>
+                        ) : null}
+                        {canRechazar ? (
+                            <ActionButton variant="danger" disabled={actionBusy} onClick={() => runAction('rechazar')}>
+                                Devolver con observaciones
+                            </ActionButton>
+                        ) : null}
+                        {canAprobar ? (
+                            <ActionButton disabled={actionBusy} onClick={() => runAction('aprobar')}>
+                                Aprobar
+                            </ActionButton>
+                        ) : null}
+                        {canProcesar ? (
+                            <ActionButton variant="warning" disabled={actionBusy} onClick={() => runAction('preparar')}>
+                                Procesar certificación
+                            </ActionButton>
+                        ) : null}
+                        {canTokenPublico && uxPuedeAsignarFolioOficial() ? (
+                            <ActionButton variant="secondary" disabled={actionBusy} onClick={() => runAction('token')}>
+                                Consulta pública
+                            </ActionButton>
+                        ) : null}
+                        {canVerIncidencia && doc.estado_firma === 'error_firma' ? (
+                            <ActionButton
+                                variant="secondary"
+                                onClick={() => navigate(uxLinkIncidenciaTecnica(id))}
+                            >
+                                Incidencia técnica
+                            </ActionButton>
+                        ) : null}
+                    </>
+                )}
             </aside>
         </section>
     );

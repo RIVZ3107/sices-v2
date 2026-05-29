@@ -4,7 +4,6 @@ import {
     CertFilterField,
     CertificacionFilters,
     CertificacionPageHeader,
-    CertificacionPlaceholder,
     CertificacionTable,
     CertTableLink,
     certInputStyle,
@@ -13,6 +12,8 @@ import {
 import { useCertificacionBandeja } from '../../hooks/useCertificacionBandeja';
 import { CERT_PERM } from '../../utils/certificacionPermissions';
 import { userCanAny } from '../../utils/userPermissions';
+import { InstitutionalRoleBanner } from '../../components/ui/InstitutionalRoleBanner';
+import { uxLinkIncidenciaTecnica } from '../../utils/uxInstitucional';
 
 export function GeneracionDocumentosPage() {
     const [filters, setFilters] = useState({ q: '' });
@@ -25,8 +26,9 @@ export function GeneracionDocumentosPage() {
         <div style={certTheme.pageShell}>
             <CertificacionPageHeader
                 title="Generación de documentos"
-                subtitle="Preparación y seguimiento documental. El procesamiento automático y la firma se ejecutan desde Educación Superior; Sistemas atiende incidencias si falla."
+                subtitle="Seguimiento del resultado documental institucional."
             />
+            <InstitutionalRoleBanner />
 
             <CertificacionFilters onReset={() => setFilters({ q: '' })}>
                 <CertFilterField label="Buscar documento" width={280}>
@@ -74,18 +76,14 @@ export function GeneracionDocumentosPage() {
                             </span>
                         ) : null}
                         {canIncidencia && row.estado_firma === 'error_firma' ? (
-                            <CertTableLink to={`/app/sistemas/documento-proceso-tecnico/${row.id}`}>
-                                Ver incidencia
+                            <CertTableLink to={uxLinkIncidenciaTecnica(row.id)}>
+                                Incidencia técnica
                             </CertTableLink>
                         ) : null}
                     </>
                 )}
             />
 
-            <CertificacionPlaceholder
-                title="Vista previa documental"
-                detail="El PDF final se consulta con certificacion.obtener_resultado_final. Cadena, XML y preflight no se exponen como botones separados: forman parte del procesamiento automático."
-            />
         </div>
     );
 }

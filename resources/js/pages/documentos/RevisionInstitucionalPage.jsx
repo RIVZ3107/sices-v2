@@ -16,6 +16,13 @@ import { EstadoSepLegacyPanel } from '../expedientes/components/EstadoSepLegacyP
 import { ejecutarProcesoCertificacion } from '../../lib/ejecutarProcesoCertificacion';
 import { canRevision, REV_PERM } from '../../utils/revisionInstitucionalPermissions';
 import { revisionInstitucionalBasePath } from '../../utils/certificacionRoutes';
+import { InstitutionalRoleBanner } from '../../components/ui/InstitutionalRoleBanner';
+import {
+    uxCanVerDetalleTecnico,
+    uxEsCertificadorOperativo,
+    uxPuedeAsignarFolioOficial,
+    uxPuedeProcesarCertificacion,
+} from '../../utils/uxInstitucional';
 
 const SECCION_TIPO = {
     alumno: 'datos_alumno',
@@ -192,11 +199,15 @@ export function RevisionInstitucionalPage() {
                         />
                     ) : null}
 
+                    <InstitutionalRoleBanner />
+
                     <SectionCard title="Documento solicitado">
                         <div className="flex flex-wrap items-center gap-3">
                             <EstadoBadge estado={doc?.estado_workflow} />
-                            <span className="text-sm">Firma: {doc?.estado_firma ?? 'no_firmado'}</span>
                             {doc?.listo_para_firma ? <span className="inst-badge inst-badge-success">En procesamiento</span> : null}
+                            {doc?.estado_firma === 'firmado' ? (
+                                <span className="inst-badge inst-badge-success">Resultado final</span>
+                            ) : null}
                         </div>
                         <p className="text-sm text-slate-600 mt-2">
                             Folio: {doc?.folio_interno ?? 'Sin asignar'} · Tipo: {doc?.tipo_documento} ({doc?.tipo_certificacion})
@@ -268,11 +279,13 @@ export function RevisionInstitucionalPage() {
                         advertencias={validacion?.resumen?.advertencias ?? []}
                     />
 
-                    <EstadoSepLegacyPanel
-                        alumnoId={data.alumno?.id}
-                        documentoId={doc?.id}
-                        curp={data.alumno?.curp}
-                    />
+                    {uxCanVerDetalleTecnico() ? (
+                        <EstadoSepLegacyPanel
+                            alumnoId={data.alumno?.id}
+                            documentoId={doc?.id}
+                            curp={data.alumno?.curp}
+                        />
+                    ) : null}
 
                     {error ? <ErrorState message={error} /> : null}
                     {msg ? <AlertBox type="success" message={msg} /> : null}
@@ -347,7 +360,7 @@ export function RevisionInstitucionalPage() {
 
                     {canRevision('validar') ? (
                         <ActionButton variant="secondary" disabled={busy} onClick={() => void ejecutar('validar')}>
-                            Validar expediente
+                            Validar información
                         </ActionButton>
                     ) : null}
 
@@ -402,22 +415,22 @@ export function RevisionInstitucionalPage() {
                         </>
                     ) : null}
 
-                    {canRevision('folio') ? (
+                    {canRevision('folio') && uxPuedeAsignarFolioOficial() && !uxEsCertificadorOperativo() ? (
                         <ActionButton
                             variant="secondary"
                             disabled={busy || doc?.estado_workflow !== 'aprobado'}
                             onClick={() => void ejecutar('folio')}
                         >
-                            Asignar folio interno
+                            Asignar folio
                         </ActionButton>
                     ) : null}
 
-                    {canRevision('procesar') ? (
+                    {canRevision('procesar') && uxPuedeProcesarCertificacion() ? (
                         <ActionButton
                             variant="warning"
                             disabled={busy || bloqueosProcesar.length > 0}
                             onClick={() => {
-                                if (!window.confirm('¿Ejecutar procesamiento automático de la certificación?')) return;
+                                if (!window.confirm('¿Procesar certificación y obtener resultado final?')) return;
                                 void ejecutar('procesar');
                             }}
                         >
@@ -425,13 +438,19 @@ export function RevisionInstitucionalPage() {
                         </ActionButton>
                     ) : null}
 
-                    {bloqueosProcesar.length > 0 && canRevision('procesar') ? (
-                        <p className="text-xs text-amber-700">{bloqueosProcesar.join(' ')}</p>
+                    {bloqueosProcesar.length > 0 && canRevision('procesar') && uxPuedeProcesarCertificacion() ? (
+                        <p className="text-xs text-amber-700">Pendiente por corregir antes de procesar.</p>
                     ) : null}
 
-                    <p className="text-xs text-slate-400 mt-2 border-t pt-2">
-                        Educación Superior procesa el flujo normal automatizado. Sistemas atiende incidencias técnicas si falla.
-                    </p>
+                    {uxEsCertificadorOperativo() ? (
+                        <p className="text-xs text-slate-500 mt-2 border-t pt-2">
+                            El certificador valida información académica. No ejecuta firma ni procesamiento técnico.
+                        </p>
+                    ) : (
+                        <p className="text-xs text-slate-400 mt-2 border-t pt-2">
+                            Educación Superior procesa el flujo institucional. Sistemas atiende incidencias técnicas si falla.
+                        </p>
+                    )}
                 </aside>
             </section>
         </RequirePermission>

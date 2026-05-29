@@ -11,6 +11,7 @@ import { useCertificacionResumen } from '../../hooks/useCertificacionBandeja';
 import { useDashboardResumen } from '../dashboard/useDashboardResumen';
 import { LoadingState } from '../../components/LoadingState';
 import { ESTADOS_FLUJO } from '../../utils/certificacionEstadosInstitucionales';
+import { InstitutionalRoleBanner } from '../../components/ui/InstitutionalRoleBanner';
 
 export function DashboardCertificacionPage() {
     const { resumen: bandejaResumen, loading: loadingB, error: errB } = useCertificacionResumen();
@@ -33,17 +34,19 @@ export function DashboardCertificacionPage() {
     return (
         <div style={certTheme.pageShell}>
             <CertificacionPageHeader
-                title="Dashboard de Certificación"
-                subtitle="Monitoreo de solicitudes, documentos, procesamiento automático y entrega. Educación Superior completa el flujo normal; Sistemas atiende incidencias técnicas."
+                title="Dashboard de certificación"
+                subtitle="Indicadores del flujo documental institucional."
             />
+
+            <InstitutionalRoleBanner />
 
             <div style={certTheme.card}>
                 <h3 style={{ margin: '0 0 8px', fontSize: 15, fontWeight: 600 }}>Flujo institucional</h3>
                 <ol style={{ margin: 0, paddingLeft: 20, fontSize: 13, color: '#64748b', lineHeight: 1.6 }}>
-                    <li>Control Escolar captura o integra datos académicos.</li>
-                    <li>El certificador valida que la información sea correcta (sin firma ni operaciones técnicas).</li>
-                    <li>Educación Superior aprueba, asigna folio y procesa la certificación (cadena, XML, preflight, firma automática).</li>
-                    <li>Si hay error técnico, se genera incidencia para Sistemas (diagnóstico y reintento).</li>
+                    <li>Control Escolar inicia la solicitud documental.</li>
+                    <li>El certificador valida la información académica.</li>
+                    <li>Educación Superior aprueba, procesa y obtiene el resultado final.</li>
+                    <li>Sistemas atiende incidencias técnicas cuando el procesamiento falla.</li>
                 </ol>
             </div>
 
@@ -113,7 +116,7 @@ export function DashboardCertificacionPage() {
                 </div>
 
                 <div style={certTheme.card}>
-                    <h3 style={{ margin: '0 0 12px', fontSize: 15, fontWeight: 600 }}>Documentos por etapa técnica</h3>
+                    <h3 style={{ margin: '0 0 12px', fontSize: 15, fontWeight: 600 }}>Documentos por etapa institucional</h3>
                     <ul style={{ margin: 0, padding: 0, listStyle: 'none', fontSize: 13 }}>
                         <li style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #f1f5f9' }}>
                             <span>En procesamiento / listos</span>

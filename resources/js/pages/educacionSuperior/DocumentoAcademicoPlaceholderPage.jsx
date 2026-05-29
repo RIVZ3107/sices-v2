@@ -5,23 +5,16 @@ import {
     fetchTipoDocumentoAcademico,
     labelTipoDocumento,
     normalizarSubsistemaCatalogo,
-    permiteEditorPlantilla,
-    permiteInformix,
-    permiteJasper,
     requiereConsultaPublica,
-    requiereFirma,
-    requiereFirmaLocal,
-    requiereFirmaSep,
     requiereFolio,
     requierePdf,
-    requiereUrlShort,
-    requiereXmlSep,
     SUBSISTEMAS_DOCUMENTO,
 } from '../../utils/documentosAcademicosTipos';
 import {
     NORMALES_CERTIFICACION_PATH,
     UPN_CERTIFICACION_PATH,
 } from '../../utils/certificacionRoutes';
+import { uxCanVerDetalleTecnico } from '../../utils/uxInstitucional';
 
 function CapacidadRow({ label, value, nota }) {
     return (
@@ -89,43 +82,25 @@ export function DocumentoAcademicoPlaceholderPage({
 
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 12 }}>
                     <p style={{ margin: 0 }}>
-                        <strong>Subsistema:</strong> {subMeta.label} ({subKey})
+                        <strong>Subsistema:</strong> {subMeta.label}
                     </p>
                     <p style={{ margin: 0 }}>
-                        <strong>Tipo:</strong> {labelTipoDocumento(tipoDocumento)} ({tipoDocumento})
-                    </p>
-                    <p style={{ margin: 0 }}>
-                        <strong>Pipeline (referencia):</strong>{' '}
-                        {loading ? '…' : cap.pipeline_key ?? '—'}
-                    </p>
-                    <p style={{ margin: 0 }}>
-                        <strong>Plantilla default:</strong>{' '}
-                        {loading ? '…' : cap.plantilla_key_default ?? 'Por definir'}
+                        <strong>Tipo documental:</strong> {labelTipoDocumento(tipoDocumento)}
                     </p>
                 </div>
 
-                {loading ? (
-                    <p style={{ margin: 0, color: '#64748b' }}>Cargando reglas del catálogo…</p>
-                ) : (
-                    <ul style={{ margin: 0, padding: 0, listStyle: 'none' }}>
-                        <CapacidadRow label="Payload JSON (auditoría)" value={cap.requiere_payload_json !== false} />
-                        <CapacidadRow label="XML SEP obligatorio" value={requiereXmlSep({ capacidades: cap })} />
-                        <CapacidadRow label="Firma SEP" value={requiereFirmaSep({ capacidades: cap })} />
-                        <CapacidadRow label="Firma local" value={requiereFirmaLocal({ capacidades: cap })} />
-                        <CapacidadRow label="Requiere firma (cualquier canal)" value={requiereFirma({ capacidades: cap })} />
-                        <CapacidadRow label="PDF" value={requierePdf({ capacidades: cap })} />
-                        <CapacidadRow label="Folio de control" value={requiereFolio({ capacidades: cap })} />
-                        <CapacidadRow label="URL short" value={requiereUrlShort({ capacidades: cap })} />
-                        <CapacidadRow label="Consulta pública" value={requiereConsultaPublica({ capacidades: cap })} />
-                        <CapacidadRow label="Editor de plantilla (futuro)" value={permiteEditorPlantilla({ capacidades: cap })} />
-                        <CapacidadRow label="Jasper fallback temporal" value={permiteJasper({ capacidades: cap })} />
-                        <CapacidadRow
-                            label="Puente Informix (futuro/diagnóstico)"
-                            value={permiteInformix({ capacidades: cap })}
-                            nota="No es operación principal"
-                        />
-                    </ul>
-                )}
+                {uxCanVerDetalleTecnico() && !loading ? (
+                    <>
+                        <p style={{ margin: '8px 0 0', fontSize: 12, color: '#64748b' }}>
+                            Detalle técnico del catálogo (solo administración / Sistemas).
+                        </p>
+                        <ul style={{ margin: 0, padding: 0, listStyle: 'none' }}>
+                            <CapacidadRow label="Genera PDF" value={requierePdf({ capacidades: cap })} />
+                            <CapacidadRow label="Requiere folio institucional" value={requiereFolio({ capacidades: cap })} />
+                            <CapacidadRow label="Consulta pública" value={requiereConsultaPublica({ capacidades: cap })} />
+                        </ul>
+                    </>
+                ) : null}
 
                 <p style={{ margin: 0, fontSize: 12, color: '#64748b' }}>
                     Control Escolar captura datos · Certificador valida · Educación Superior aprueba y procesa · Sistemas

@@ -5,7 +5,6 @@ import {
     CertFilterField,
     CertificacionFilters,
     CertificacionPageHeader,
-    CertificacionPlaceholder,
     CertificacionTable,
     CertTableLink,
     certInputStyle,
@@ -14,6 +13,8 @@ import {
 import { useCertificacionBandeja } from '../../hooks/useCertificacionBandeja';
 import { CERT_PERM } from '../../utils/certificacionPermissions';
 import { userCanAny } from '../../utils/userPermissions';
+import { InstitutionalRoleBanner } from '../../components/ui/InstitutionalRoleBanner';
+import { uxEsCertificadorOperativo, uxPuedeProcesarCertificacion, uxLinkIncidenciaTecnica } from '../../utils/uxInstitucional';
 
 const TABS = [
     { key: 'aprobados', label: 'Aprobados' },
@@ -53,10 +54,17 @@ export function DocumentosACertificarPage() {
         <div style={certTheme.pageShell}>
             <CertificacionPageHeader
                 title="Documentos a certificar"
-                subtitle="Gestión institucional hacia emisión. Educación Superior procesa el flujo normal automatizado; Sistemas atiende incidencias si falla."
+                subtitle="Seguimiento institucional de documentos en trámite."
             />
 
+            <InstitutionalRoleBanner />
+
             {msg ? <p style={{ fontSize: 13, color: '#0F6E56', margin: 0 }}>{msg}</p> : null}
+            {uxEsCertificadorOperativo() ? (
+                <p style={{ fontSize: 12, color: '#64748b', margin: 0 }}>
+                    Como certificador, valide la información en cada expediente. El procesamiento y la firma corresponden a Educación Superior.
+                </p>
+            ) : null}
 
             <div className="cert-tabs">
                 {TABS.map((t) => (
@@ -120,18 +128,14 @@ export function DocumentosACertificarPage() {
                             </button>
                         ) : null}
                         {canIncidencia && row.estado_firma === 'error_firma' ? (
-                            <CertTableLink to={`/app/sistemas/documento-proceso-tecnico/${row.id}`}>
-                                Ver incidencia
+                            <CertTableLink to={uxLinkIncidenciaTecnica(row.id)}>
+                                Incidencia técnica
                             </CertTableLink>
                         ) : null}
                     </>
                 )}
             />
 
-            <CertificacionPlaceholder
-                title="Alcance funcional"
-                detail="El procesamiento (cadena, XML, preflight y firma) se ejecuta de forma automática con certificacion.procesar y certificacion.firmar. Si hay fallo técnico, Sistemas recibe la incidencia para diagnóstico y reintento."
-            />
         </div>
     );
 }

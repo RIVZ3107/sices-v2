@@ -26,6 +26,7 @@ import {
     revisionInstitucionalBasePath,
     revisionInstitucionalDetallePath,
 } from '../../utils/certificacionRoutes';
+import { InstitutionalRoleBanner } from '../../components/ui/InstitutionalRoleBanner';
 
 const COPY_NORMALES = {
     breadcrumb: 'Certificación Normales',
@@ -95,7 +96,7 @@ export function EsCertificacionPage({ subsistema = 'normales' }) {
             ...esMetricTones.purple,
             title: 'En procesamiento',
             value: kpis.enProcesamiento ?? kpis.listosProcesoTecnico,
-            description: 'Cadena, XML, PDF y preflight automáticos.',
+            description: 'Emisión automatizada en curso.',
         },
         {
             key: 'firm',
@@ -148,9 +149,7 @@ export function EsCertificacionPage({ subsistema = 'normales' }) {
 
     async function handleProcesar(item) {
         if (!esCan('procesar')) return;
-        const ok = window.confirm(
-            'Se ejecutará el procesamiento automático (cadena, XML, preflight y firma cuando aplique).\n\n¿Procesar certificación?',
-        );
+        const ok = window.confirm('¿Procesar certificación y continuar con el resultado final?');
         if (!ok) return;
         setBusyId(item.id);
         setActionMsg('Procesando certificación…');
@@ -261,7 +260,7 @@ export function EsCertificacionPage({ subsistema = 'normales' }) {
                 />
             }
         >
-            <p style={{ margin: '0 0 12px', fontSize: 12, color: '#64748b' }}>{copy.aviso}</p>
+            <InstitutionalRoleBanner message={copy.aviso} />
 
             {actionMsg ? <p style={{ margin: '0 0 12px', fontSize: 13, color: '#0F6E56' }}>{actionMsg}</p> : null}
 
