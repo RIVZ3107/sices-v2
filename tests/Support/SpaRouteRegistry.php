@@ -51,7 +51,13 @@ final class SpaRouteRegistry
         $paths[] = '/app';
         $paths[] = '/app/dashboard';
         $paths[] = '/app/educacion-superior/normales/certificacion';
+        $paths[] = '/app/educacion-superior/normales/titulos';
+        $paths[] = '/app/educacion-superior/normales/grados-academicos';
+        $paths[] = '/app/educacion-superior/normales/constancias';
         $paths[] = '/app/educacion-superior/upn/certificacion';
+        $paths[] = '/app/educacion-superior/upn/titulos';
+        $paths[] = '/app/educacion-superior/upn/grados-academicos';
+        $paths[] = '/app/educacion-superior/upn/constancias';
         $paths[] = '/app/educacion-superior/certificacion';
         $paths[] = '/app/educacion-superior/upn-certificacion';
         $paths[] = '/app/educacion-superior/revision';

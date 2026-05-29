@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\V1\Admin\MenuAdminController;
 use App\Http\Controllers\Api\V1\Admin\RoleManagementController;
 use App\Http\Controllers\Api\V1\Admin\UserManagementController;
 use App\Http\Controllers\Api\V1\Certificacion\AlumnoCapturaController;
+use App\Http\Controllers\Api\Catalogos\DocumentoAcademicoTipoController;
 use App\Http\Controllers\Api\V1\Certificacion\CatalogoCapturaController;
 use App\Http\Controllers\Api\V1\Certificacion\DocumentoAcademicoProcesoController;
 use App\Http\Controllers\Api\V1\Certificacion\DocumentoCertificadoVistaController;
@@ -329,6 +330,11 @@ Route::prefix('v1/catalogos')
     ->group(function () {
         Route::get('sedes', [CatalogoCapturaController::class, 'sedes'])
             ->middleware('permission_or:ver_catalogos|catalogos.ver|dashboard.ver|sedes.ver');
+
+        Route::middleware('permission_or:ver_catalogos|catalogos.ver|certificacion.ver|documentos.ver|dashboard.ver')->group(function () {
+            Route::get('documentos-academicos/tipos', [DocumentoAcademicoTipoController::class, 'index']);
+            Route::get('documentos-academicos/tipos/{tipo}', [DocumentoAcademicoTipoController::class, 'show']);
+        });
     });
 
 Route::prefix('v1/sices-legacy')

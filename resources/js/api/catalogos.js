@@ -12,4 +12,8 @@ export const catalogosApi = {
         apiGet("/certificacion/catalogos/planes-estudio", { params }),
     ofertasAcademicas: (params = {}) =>
         apiGet("/certificacion/catalogos/ofertas-academicas", { params }),
+    tiposDocumentosAcademicos: (params = {}) =>
+        apiGet("/catalogos/documentos-academicos/tipos", { params }),
+    tipoDocumentoAcademico: (tipo, params = {}) =>
+        apiGet(`/catalogos/documentos-academicos/tipos/${tipo}`, { params }),
 };

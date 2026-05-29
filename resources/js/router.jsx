@@ -69,7 +69,7 @@ import { EsPlanesPage } from './pages/educacionSuperior/EsPlanesPage';
 import { EsValidacionesNormativasPage } from './pages/educacionSuperior/EsValidacionesNormativasPage';
 import { NormalesCertificacionPage } from './pages/educacionSuperior/NormalesCertificacionPage';
 import { NormalesCertificadoDetallePage } from './pages/educacionSuperior/NormalesCertificadoDetallePage';
-import { EsSubsistemaPlaceholderPage } from './pages/educacionSuperior/EsSubsistemaPlaceholderPage';
+import { DocumentoAcademicoPlaceholderPage } from './pages/educacionSuperior/DocumentoAcademicoPlaceholderPage';
 import { UpnCertificacionPage } from './pages/educacionSuperior/UpnCertificacionPage';
 import { UpnCertificadoDetallePage } from './pages/educacionSuperior/UpnCertificadoDetallePage';
 import { EsReportesOficialesPage } from './pages/educacionSuperior/EsReportesOficialesPage';
@@ -402,11 +402,7 @@ export const router = createBrowserRouter([
                                         path: 'titulos',
                                         element: (
                                             <Guard anyOf={PERM.educacionSuperior}>
-                                                <EsSubsistemaPlaceholderPage
-                                                    subsistema="normales"
-                                                    modulo="Títulos"
-                                                    descripcion="Emisión y seguimiento de títulos de Escuelas Normales (ruta preparada)."
-                                                />
+                                                <DocumentoAcademicoPlaceholderPage subsistema="normales" tipoDocumento="titulo" />
                                             </Guard>
                                         ),
                                     },
@@ -414,10 +410,9 @@ export const router = createBrowserRouter([
                                         path: 'grados-academicos',
                                         element: (
                                             <Guard anyOf={PERM.educacionSuperior}>
-                                                <EsSubsistemaPlaceholderPage
+                                                <DocumentoAcademicoPlaceholderPage
                                                     subsistema="normales"
-                                                    modulo="Grados académicos"
-                                                    descripcion="Grados académicos de Escuelas Normales (ruta preparada)."
+                                                    tipoDocumento="grado_academico"
                                                 />
                                             </Guard>
                                         ),
@@ -426,11 +421,7 @@ export const router = createBrowserRouter([
                                         path: 'constancias',
                                         element: (
                                             <Guard anyOf={PERM.educacionSuperior}>
-                                                <EsSubsistemaPlaceholderPage
-                                                    subsistema="normales"
-                                                    modulo="Constancias"
-                                                    descripcion="Constancias de Escuelas Normales (ruta preparada)."
-                                                />
+                                                <DocumentoAcademicoPlaceholderPage subsistema="normales" tipoDocumento="constancia" />
                                             </Guard>
                                         ),
                                     },
@@ -464,11 +455,7 @@ export const router = createBrowserRouter([
                                         path: 'titulos',
                                         element: (
                                             <Guard anyOf={PERM.educacionSuperior}>
-                                                <EsSubsistemaPlaceholderPage
-                                                    subsistema="upn"
-                                                    modulo="Títulos"
-                                                    descripcion="Emisión y seguimiento de títulos UPN (ruta preparada)."
-                                                />
+                                                <DocumentoAcademicoPlaceholderPage subsistema="upn" tipoDocumento="titulo" />
                                             </Guard>
                                         ),
                                     },
@@ -476,11 +463,7 @@ export const router = createBrowserRouter([
                                         path: 'grados-academicos',
                                         element: (
                                             <Guard anyOf={PERM.educacionSuperior}>
-                                                <EsSubsistemaPlaceholderPage
-                                                    subsistema="upn"
-                                                    modulo="Grados académicos"
-                                                    descripcion="Grados académicos UPN (ruta preparada)."
-                                                />
+                                                <DocumentoAcademicoPlaceholderPage subsistema="upn" tipoDocumento="grado_academico" />
                                             </Guard>
                                         ),
                                     },
@@ -488,11 +471,7 @@ export const router = createBrowserRouter([
                                         path: 'constancias',
                                         element: (
                                             <Guard anyOf={PERM.educacionSuperior}>
-                                                <EsSubsistemaPlaceholderPage
-                                                    subsistema="upn"
-                                                    modulo="Constancias"
-                                                    descripcion="Constancias UPN (ruta preparada)."
-                                                />
+                                                <DocumentoAcademicoPlaceholderPage subsistema="upn" tipoDocumento="constancia" />
                                             </Guard>
                                         ),
                                     },
