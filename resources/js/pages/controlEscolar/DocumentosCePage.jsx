@@ -132,8 +132,8 @@ export function DocumentosCePage() {
                     icon={CeIcons.file}
                     iconBg="#EEEDFE"
                     iconColor="#534AB7"
-                    title="Solicitudes documentales"
-                    value={loading && !payload ? '…' : formatCeNum(totalListado)}
+                    title="Solicitudes en captura"
+                    value={loading && !payload ? '…' : formatCeNum(metricas.solicitudes_en_captura ?? 0)}
                     trend="En su alcance territorial"
                     trendColor="#64748b"
                 />
@@ -141,28 +141,28 @@ export function DocumentosCePage() {
                     icon={CeIcons.checkCircle}
                     iconBg="#FEF3C7"
                     iconColor="#BA7517"
-                    title="Pendientes de revisión"
-                    value={loading && !payload ? '…' : formatCeNum(metricas.pendientes_revision)}
-                    trend="En revisión del certificador"
+                    title="Enviadas a validación"
+                    value={loading && !payload ? '…' : formatCeNum(metricas.enviadas_validacion ?? 0)}
+                    trend="Con el certificador"
                     trendColor="#BA7517"
                 />
                 <CeMetricCard
                     icon={CeIcons.upload}
                     iconBg="#DBEAFE"
                     iconColor="#185FA5"
-                    title="Consultas públicas activas"
-                    value={loading && !payload ? '…' : formatCeNum(metricas.consultas_publicas)}
-                    trend="Documentos con consulta habilitada"
+                    title="Observadas"
+                    value={loading && !payload ? '…' : formatCeNum(metricas.observadas ?? 0)}
+                    trend="Requieren corrección"
                     trendColor="#185FA5"
                 />
                 <CeMetricCard
                     icon={CeIcons.file}
                     iconBg="#DCFCE7"
                     iconColor="#0F6E56"
-                    title="Documentos emitidos"
-                    value={loading && !payload ? '…' : formatCeNum(metricas.listos_descarga)}
-                    trend={metricas.listos_descarga_trend ?? 'Con PDF disponible'}
-                    trendColor={metricas.listos_descarga_trend_color ?? '#0F6E56'}
+                    title="Rechazadas / canceladas"
+                    value={loading && !payload ? '…' : formatCeNum(metricas.rechazadas_canceladas ?? 0)}
+                    trend="Cierre institucional"
+                    trendColor="#0F6E56"
                 />
             </div>
 
@@ -203,7 +203,7 @@ export function DocumentosCePage() {
                     <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                         <thead>
                             <tr>
-                                {['Tipo', 'Alumno', 'Fecha', 'Estatus', 'Acción'].map((h) => (
+                                {['Tipo', 'Alumno', 'Etapa', 'Siguiente acción', 'Último mov.', 'Acción'].map((h) => (
                                     <th
                                         key={h}
                                         style={{
@@ -223,15 +223,15 @@ export function DocumentosCePage() {
                         <tbody>
                             {loading && rows.length === 0 ? (
                                 <tr>
-                                    <td colSpan={5} style={{ padding: 24, textAlign: 'center', color: '#64748b', fontSize: 13 }}>
+                                    <td colSpan={6} style={{ padding: 24, textAlign: 'center', color: '#64748b', fontSize: 13 }}>
                                         Cargando…
                                     </td>
                                 </tr>
                             ) : null}
                             {!loading && rows.length === 0 ? (
                                 <tr>
-                                    <td colSpan={5} style={{ padding: 24, textAlign: 'center', color: '#64748b', fontSize: 13 }}>
-                                        No hay documentos en su alcance. Use «Iniciar solicitud documental» para comenzar.
+                                    <td colSpan={6} style={{ padding: 24, textAlign: 'center', color: '#64748b', fontSize: 13 }}>
+                                        No hay solicitudes documentales en tu alcance.
                                     </td>
                                 </tr>
                             ) : null}
@@ -243,15 +243,21 @@ export function DocumentosCePage() {
                                         <div style={{ fontSize: 11, color: '#64748b' }}>{r.matricula}</div>
                                     </td>
                                     <td style={{ padding: '12px 10px', fontSize: 12, color: '#475569' }}>{r.fecha}</td>
-                                    <td style={{ padding: '12px 10px' }}>
+                                    <td style={{ padding: '12px 10px', fontSize: 12 }}>
                                         <CeStatusBadge>{r.estatus}</CeStatusBadge>
+                                    </td>
+                                    <td style={{ padding: '12px 10px', fontSize: 12, color: '#475569' }}>
+                                        {r.siguiente_accion ?? '—'}
+                                    </td>
+                                    <td style={{ padding: '12px 10px', fontSize: 11, color: '#64748b' }}>
+                                        {r.fecha} {r.hora}
                                     </td>
                                     <td style={{ padding: '12px 10px' }}>
                                         <Link
                                             to={r.detalle_url ?? '#'}
                                             style={{ fontSize: 12, fontWeight: 600, color: '#185FA5', textDecoration: 'none' }}
                                         >
-                                            Ver detalle
+                                            Ver solicitud
                                         </Link>
                                     </td>
                                 </tr>

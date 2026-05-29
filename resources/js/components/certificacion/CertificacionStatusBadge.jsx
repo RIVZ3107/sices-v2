@@ -33,7 +33,32 @@ export function CertificacionStatusBadge({ estado, label }) {
     );
 }
 
-export function CertificacionWorkflowBadge({ workflow, estadoFirma }) {
+const ETAPA_LABELS = {
+    solicitado_control_escolar: 'Solicitud CE',
+    en_validacion_certificador: 'En validación',
+    observado_por_certificador: 'Observado',
+    validado_por_certificador: 'Validado',
+    aprobado_educacion_superior: 'Aprobado ES',
+    folio_asignado: 'Folio asignado',
+    en_procesamiento: 'En procesamiento',
+    pendiente_firma: 'Pendiente firma',
+    firmado_timbrado: 'Firmado',
+    finalizado: 'Finalizado',
+    incidencia_tecnica: 'Incidencia técnica',
+    en_revision_sistemas: 'Revisión Sistemas',
+    reintentado: 'Reintentado',
+};
+
+export function CertificacionWorkflowBadge({ etapa, workflow, estadoFirma, label }) {
+    if (label) {
+        return <CertificacionStatusBadge estado={etapa ?? workflow} label={label} />;
+    }
+    if (etapa && ETAPA_LABELS[etapa]) {
+        return <CertificacionStatusBadge estado={etapa} label={ETAPA_LABELS[etapa]} />;
+    }
+    if (estadoFirma === 'error_firma') {
+        return <CertificacionStatusBadge estado="incidencia_tecnica" label="Incidencia técnica" />;
+    }
     if (estadoFirma === 'firmado' || estadoFirma === 'firmando') {
         return <CertificacionStatusBadge estado={estadoFirma} />;
     }

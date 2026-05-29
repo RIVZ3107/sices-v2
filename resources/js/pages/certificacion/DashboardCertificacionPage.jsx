@@ -24,10 +24,17 @@ export function DashboardCertificacionPage() {
         return <LoadingState text="Cargando indicadores de certificación…" />;
     }
 
-    const recibidas = (r.en_revision ?? 0) + (r.pendientes_revision ?? 0);
-    const enProceso = r.aprobados ?? 0;
-    const generados = r.listos_para_firma ?? 0;
-    const entregados = r.firmados ?? 0;
+    const recibidas =
+        (r['en-validacion-certificador'] ?? 0) +
+        (r.en_revision ?? 0) +
+        (r.pendientes_revision ?? 0);
+    const validados = r['validado-por-certificador'] ?? 0;
+    const enProceso =
+        (r['en-procesamiento'] ?? 0) +
+        (r['pendiente-firma'] ?? 0) +
+        (r.listos_para_firma ?? 0);
+    const entregados = (r['firmado-timbrado'] ?? 0) + (r.firmados ?? 0) + (r.finalizado ?? 0);
+    const incidencias = r['incidencia-tecnica'] ?? r.error_firma ?? 0;
 
     const movimientos = extras?.movimientos?.items ?? extras?.movimientos ?? [];
 
@@ -60,22 +67,22 @@ export function DashboardCertificacionPage() {
 
             <div className="cert-grid-4">
                 <CertificacionMetricCard
-                    title="Solicitudes recibidas"
+                    title="En validación"
                     value={recibidas}
                     icon={CertIcons.inbox}
-                    to="/app/certificacion/solicitudes"
+                    to="/app/certificacion/documentos-a-certificar"
                     tone="primary"
                 />
                 <CertificacionMetricCard
-                    title="En proceso"
-                    value={enProceso}
+                    title="Validados por certificador"
+                    value={validados}
                     icon={CertIcons.docs}
-                    to="/app/certificacion/documentos-a-certificar"
-                    tone="warn"
+                    to="/app/educacion-superior/normales/certificacion"
+                    tone="info"
                 />
                 <CertificacionMetricCard
-                    title="Certificados generados"
-                    value={generados}
+                    title="En procesamiento"
+                    value={enProceso}
                     icon={CertIcons.file}
                     to="/app/certificacion/generacion-documentos"
                     tone="info"

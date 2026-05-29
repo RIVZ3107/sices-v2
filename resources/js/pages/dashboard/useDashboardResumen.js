@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { bandejasApi } from '../../api/bandejas';
 import { fetchDashboard } from '../../api/dashboard';
+import { sanitizeInstitutionalMessage } from '../../utils/uxInstitucional';
 
 /**
  * Resumen unificado vía GET /api/v1/dashboard con respaldo a bandejas.
@@ -76,7 +77,12 @@ export function useDashboardResumen() {
                             setResumen({});
                             setFullPayload(null);
                             setExtras(null);
-                            setError(err?.message ?? 'No se pudo cargar el resumen de indicadores.');
+                            setError(
+                                sanitizeInstitutionalMessage(
+                                    err?.message,
+                                    'No se pudo cargar el resumen de indicadores.',
+                                ),
+                            );
                         }
                     });
             });

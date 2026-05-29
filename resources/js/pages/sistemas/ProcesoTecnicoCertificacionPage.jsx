@@ -8,6 +8,8 @@ import { withTimeout } from '../../lib/withTimeout';
 import { documentoProcesoTecnicoDetallePath } from '../../utils/certificacionRoutes';
 import { BANDEJAS_INCIDENCIAS, mapFilaIncidencia } from '../../utils/incidenciasTecnicas';
 import { PROC_TEC_PERM } from '../../utils/procesoTecnicoPermissions';
+import { InstitutionalBandejaActions, ejecutarAccionBandeja } from '../../components/bandeja/InstitutionalBandejaActions';
+import { EMPTY_BANDEJA } from '../../utils/bandejaWorkflow';
 
 const TABS = Object.values(BANDEJAS_INCIDENCIAS);
 const CARGA_TIMEOUT_MS = 22000;
@@ -19,6 +21,7 @@ export function ProcesoTecnicoCertificacionPage() {
     const [rows, setRows] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
+    const [busyId, setBusyId] = useState(null);
 
     useEffect(() => {
         setTab(searchParams.get('tab') ?? 'abiertas');
@@ -34,13 +37,7 @@ export function ProcesoTecnicoCertificacionPage() {
                 CARGA_TIMEOUT_MS,
                 'No fue posible cargar la bandeja técnica.',
             );
-            let data = Array.isArray(res?.data) ? res.data : [];
-            if (tab === 'abiertas') {
-                data = data.filter((r) => r.estado_firma === 'error_firma' || r.estado_workflow === 'rechazado');
-            }
-            if (tab === 'corregidas') {
-                data = data.filter((r) => r.listo_para_firma && r.estado_firma !== 'firmado');
-            }
+            const data = Array.isArray(res?.data) ? res.data : [];
             setRows(data.map(mapFilaIncidencia));
         } catch (e) {
             setRows([]);
@@ -100,10 +97,7 @@ export function ProcesoTecnicoCertificacionPage() {
                 {!loading && !error && rows.length === 0 ? (
                     <div className="inst-surface p-8 text-center grid gap-2">
                         <h2 className="text-base font-semibold text-slate-900">Sin incidencias en esta bandeja</h2>
-                        <p className="text-sm text-slate-600 max-w-lg mx-auto">
-                            Cuando el procesamiento automático falle, las incidencias aparecerán aquí para diagnóstico y
-                            reintento. Los certificados exitosos no requieren intervención de Sistemas.
-                        </p>
+                        <p className="text-sm text-slate-600 max-w-lg mx-auto">{EMPTY_BANDEJA.sistemas}</p>
                     </div>
                 ) : null}
 
@@ -139,17 +133,48 @@ export function ProcesoTecnicoCertificacionPage() {
                                             {row.ultimoIntento ? new Date(row.ultimoIntento).toLocaleString('es-MX') : '—'}
                                         </td>
                                         <td className="px-3 py-2 whitespace-nowrap">
+                                            <InstitutionalBandejaActions
+                                                row={{
+                                                    id: row.id,
+                                                    workflow_resumen: row.workflow_resumen,
+                                                    ultimo_movimiento: row.ultimoIntento,
+                                                }}
+                                                busy={busyId === row.id}
+                                                onAccion={async (accion) => {
+                                                    if (accion.requiere_motivo) {
+                                                        const motivo = window.prompt(`Motivo:`, '');
+                                                        if (motivo === null || !motivo.trim()) return;
+                                                        setBusyId(row.id);
+                                                        try {
+                                                            await ejecutarAccionBandeja(
+                                                                accion.accion,
+                                                                row.id,
+                                                                motivo.trim(),
+                                                            );
+                                                            await cargar();
+                                                        } finally {
+                                                            setBusyId(null);
+                                                        }
+                                                        return;
+                                                    }
+                                                    setBusyId(row.id);
+                                                    try {
+                                                        await ejecutarAccionBandeja(
+                                                            accion.accion,
+                                                            row.id,
+                                                            accion.label,
+                                                        );
+                                                        await cargar();
+                                                    } finally {
+                                                        setBusyId(null);
+                                                    }
+                                                }}
+                                            />
                                             <Link
                                                 to={documentoProcesoTecnicoDetallePath(row.id)}
-                                                className="inst-btn inst-btn-primary text-xs mr-1"
+                                                className="inst-btn inst-btn-primary text-xs ml-1"
                                             >
-                                                Ver diagnóstico
-                                            </Link>
-                                            <Link
-                                                to={`${documentoProcesoTecnicoDetallePath(row.id)}#logs`}
-                                                className="inst-btn inst-btn-secondary text-xs"
-                                            >
-                                                Logs
+                                                Diagnóstico
                                             </Link>
                                         </td>
                                     </tr>

@@ -627,7 +627,7 @@ class ControlEscolarDashboardService
             $conteos[$clave] = (int) $total;
         }
 
-        return $this->armarSegmentosDistribucion($conteos, 'escenario_demo', self::ESCENARIO_DEMO_VISUAL);
+        return $this->armarSegmentosDistribucion($conteos, 'situacion_academica', self::ESCENARIO_DEMO_VISUAL);
     }
 
     private function expresionEscenarioDemoSql(): string

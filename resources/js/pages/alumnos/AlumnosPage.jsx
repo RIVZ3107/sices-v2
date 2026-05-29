@@ -86,7 +86,7 @@ export function AlumnosPage() {
                                     Ver trayectoria
                                 </Link>
                                 <Link className="text-slate-600 text-xs underline" to={`/app/certificacion/solicitud?alumno=${r.id}`}>
-                                    Solicitar certificado
+                                    Solicitar documento
                                 </Link>
                             </div>
                         ),

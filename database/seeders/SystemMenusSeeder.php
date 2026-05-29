@@ -162,7 +162,7 @@ class SystemMenusSeeder extends Seeder
         $mk(null, 'ce_cal', 'Calificaciones', '/app/control-escolar/calificaciones', 'materias', 7, 'OPERACION', 'calificaciones.ver', ['control_escolar_escuela']);
         $mk(null, 'ce_doc', 'Documentos', '/app/control-escolar/documentos', 'docs', 8, 'OPERACION', 'documentos.ver', ['control_escolar_escuela']);
         $mk(null, 'ce_cert', 'Certificación escolar', '#', 'docs', 15, 'OPERACION', 'documentos.crear_borrador', ['control_escolar_escuela'], ['group_heading' => true]);
-        $mk('ce_cert', 'ce_cert_sol', 'Solicitar certificado', '/app/certificacion/solicitud', 'docs', 1, 'OPERACION', 'documentos.crear_borrador', ['control_escolar_escuela']);
+        $mk('ce_cert', 'ce_cert_sol', 'Solicitar documento', '/app/certificacion/solicitud', 'docs', 1, 'OPERACION', 'documentos.crear_borrador', ['control_escolar_escuela']);
         $mk('ce_cert', 'ce_cert_bor', 'Borradores', '/app/documentos/bandejas/borradores', 'docs', 2, 'OPERACION', 'documentos.ver', ['control_escolar_escuela']);
         $mk('ce_cert', 'ce_cert_rev', 'En revisión', '/app/documentos/bandejas/en-revision', 'validate', 3, 'OPERACION', 'documentos.ver', ['control_escolar_escuela']);
         $mk(null, 'ce_baj', 'Bajas y cambios', '/app/control-escolar/bajas-cambios', 'audit', 9, 'OPERACION', 'expedientes.editar', ['control_escolar_escuela']);

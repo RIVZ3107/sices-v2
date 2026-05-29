@@ -13,6 +13,7 @@ import { SectionCard } from '../../components/ui/SectionCard';
 import { Timeline } from '../../components/ui/Timeline';
 import { AlertBox } from '../../components/ui/AlertBox';
 import { InstitutionalRoleBanner } from '../../components/ui/InstitutionalRoleBanner';
+import { docEtapaLabel, docTieneAccion } from '../../utils/documentoWorkflow';
 import { userCanAny } from '../../utils/userPermissions';
 import {
     uxCanVerDetalleTecnico,
@@ -38,21 +39,6 @@ export function DocumentoShowPage() {
     const esCe = uxEsControlEscolarOperativo();
     const verTecnico = uxCanVerDetalleTecnico();
 
-    const canEnviar = userCanAny(['enviar_revision', 'documentos.enviar_revision']);
-    const canAprobar = userCanAny([
-        'aprobar_documentos',
-        'documentos.aprobar',
-        'documentos.aprobar_institucionalmente',
-        'validaciones_normativas.aprobar',
-        'certificacion.autorizar_emision',
-        'certificacion.validar',
-    ]);
-    const canRechazar = userCanAny([
-        'rechazar_documentos',
-        'documentos.rechazar',
-        'documentos.rechazar_institucionalmente',
-        'validaciones_normativas.rechazar',
-    ]);
     const canProcesar = uxPuedeProcesarCertificacion() && !esCe;
     const canTokenPublico = uxPuedeEmitirConsultaPublica() && !esCe;
     const canVerIncidencia = userCanAny(['certificacion.enviar_incidencia_sistemas', 'logs.ver', 'integraciones.ver']);
@@ -82,7 +68,10 @@ export function DocumentoShowPage() {
         setMsg('');
         try {
             if (action === 'enviar') {
-                await documentosAcademicosApi.enviarRevision(id, { motivo: 'Enviado a revisión del certificador.' });
+                await documentosAcademicosApi.enviarRevision(id, { motivo: 'Enviado a validación del certificador.' });
+            }
+            if (action === 'validar_informacion') {
+                await documentosAcademicosApi.validarInformacion(id, { motivo: 'Información académica validada.' });
             }
             if (action === 'aprobar') {
                 await documentosAcademicosApi.aprobar(id, { motivo: 'Aprobación institucional.' });
@@ -90,10 +79,20 @@ export function DocumentoShowPage() {
             if (action === 'rechazar') {
                 await documentosAcademicosApi.rechazar(id, { motivo: 'Devolución con observaciones.' });
             }
-            if (action === 'preparar') {
-                await documentosAcademicosApi.marcarListoParaFirma(id, {
+            if (action === 'procesar') {
+                await documentosAcademicosApi.transicionWorkflow(id, {
+                    accion: 'procesar_certificacion',
                     motivo: 'Inicio de procesamiento de certificación.',
                 });
+            }
+            if (action === 'firmar') {
+                await documentosAcademicosApi.transicionWorkflow(id, {
+                    accion: 'firmar_certificado',
+                    motivo: 'Registro institucional de firma (sin ejecución SEP real).',
+                });
+            }
+            if (action === 'folio') {
+                await documentosAcademicosApi.transicionWorkflow(id, { accion: 'asignar_folio' });
             }
             if (action === 'token') {
                 await documentosAcademicosApi.emitirTokenConsulta(id, {});
@@ -151,7 +150,7 @@ export function DocumentoShowPage() {
                 <SectionCard title="Resumen" subtitle="Información principal del documento.">
                     <div className="flex items-center justify-between flex-wrap gap-2">
                         <h2 className="text-base font-semibold">{doc.alumno?.nombre ?? 'Alumno'}</h2>
-                        <EstadoBadge estado={doc.estado_workflow} />
+                        <EstadoBadge estado={docEtapaLabel(doc)} />
                     </div>
                     <p className="mt-2 text-sm text-slate-600">CURP: {doc.alumno?.curp ?? '—'}</p>
                     <p className="mt-1 text-sm text-slate-600">Tipo: {doc.tipo_documento ?? '—'}</p>
@@ -191,7 +190,7 @@ export function DocumentoShowPage() {
                         <ActionButton disabled={actionBusy} onClick={() => runAction('validar')}>
                             Ver validaciones
                         </ActionButton>
-                        {canEnviar ? (
+                        {docTieneAccion(doc, 'enviar_validacion') ? (
                             <ActionButton disabled={actionBusy} onClick={() => runAction('enviar')}>
                                 Enviar a validación
                             </ActionButton>
@@ -202,27 +201,38 @@ export function DocumentoShowPage() {
                     </>
                 ) : (
                     <>
-                        <ActionButton variant="secondary" disabled={actionBusy} onClick={() => runAction('validar')}>
-                            Validar información
-                        </ActionButton>
-                        {canEnviar ? (
-                            <ActionButton disabled={actionBusy} onClick={() => runAction('enviar')}>
-                                Enviar a revisión
+                        {docTieneAccion(doc, 'validar_informacion') ? (
+                            <ActionButton disabled={actionBusy} onClick={() => runAction('validar_informacion')}>
+                                Validar información
                             </ActionButton>
-                        ) : null}
-                        {canRechazar ? (
+                        ) : (
+                            <ActionButton variant="secondary" disabled={actionBusy} onClick={() => runAction('validar')}>
+                                Revisar validaciones
+                            </ActionButton>
+                        )}
+                        {docTieneAccion(doc, 'devolver_observaciones') ? (
                             <ActionButton variant="danger" disabled={actionBusy} onClick={() => runAction('rechazar')}>
                                 Devolver con observaciones
                             </ActionButton>
                         ) : null}
-                        {canAprobar ? (
+                        {docTieneAccion(doc, 'aprobar_expediente') ? (
                             <ActionButton disabled={actionBusy} onClick={() => runAction('aprobar')}>
-                                Aprobar
+                                Aprobar expediente
                             </ActionButton>
                         ) : null}
-                        {canProcesar ? (
-                            <ActionButton variant="warning" disabled={actionBusy} onClick={() => runAction('preparar')}>
+                        {docTieneAccion(doc, 'asignar_folio') ? (
+                            <ActionButton variant="secondary" disabled={actionBusy} onClick={() => runAction('folio')}>
+                                Asignar folio
+                            </ActionButton>
+                        ) : null}
+                        {docTieneAccion(doc, 'procesar_certificacion') && canProcesar ? (
+                            <ActionButton variant="warning" disabled={actionBusy} onClick={() => runAction('procesar')}>
                                 Procesar certificación
+                            </ActionButton>
+                        ) : null}
+                        {docTieneAccion(doc, 'firmar_certificado') && canProcesar ? (
+                            <ActionButton variant="warning" disabled={actionBusy} onClick={() => runAction('firmar')}>
+                                Firmar certificado
                             </ActionButton>
                         ) : null}
                         {canTokenPublico && uxPuedeAsignarFolioOficial() ? (

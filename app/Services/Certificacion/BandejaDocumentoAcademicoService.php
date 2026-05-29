@@ -7,6 +7,7 @@ namespace App\Services\Certificacion;
 use App\Models\DocumentoAcademico;
 use App\Models\Subsistema;
 use App\Models\User;
+use App\Services\DocumentosAcademicos\BandejaEtapaInstitucionalService;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
@@ -26,18 +27,22 @@ class BandejaDocumentoAcademicoService
     public function __construct(
         protected CertificacionAlcanceService $alcance,
         protected SolicitudMatriculaService $solicitudesMatricula,
+        protected BandejaEtapaInstitucionalService $etapasInstitucionales,
     ) {}
 
     public function listar(Request $request, string $bandeja): LengthAwarePaginator
     {
         $user = $request->user();
         $q = $this->baseQuery($user);
-        if (! in_array($bandeja, $this->bandejasPorRol($user), true)) {
-            $q->whereRaw('1 = 0');
 
-            return $q->paginate(max(1, min(100, (int) $request->integer('per_page', 15))))->withQueryString();
+        if ($bandeja !== '' && ! $this->etapasInstitucionales->usuarioPuedeVerBandeja($user, $bandeja)) {
+            $q->whereRaw('1 = 0');
+        } elseif ($bandeja !== '') {
+            $this->aplicarBandeja($q, $bandeja, $user);
+        } else {
+            $this->etapasInstitucionales->aplicarAlcanceEtapasPorRol($q, $user);
         }
-        $this->aplicarBandeja($q, $bandeja, $user);
+
         $this->aplicarFiltros($q, $request);
         $this->aplicarOrden($q, $request);
 
@@ -52,14 +57,10 @@ class BandejaDocumentoAcademicoService
     public function resumen(Request $request): array
     {
         $user = $request->user();
-        $resumen = [];
+        $base = $this->baseQuery($user);
+        $this->aplicarFiltros($base, $request);
 
-        foreach ($this->bandejasPorRol($user) as $bandeja) {
-            $q = $this->baseQuery($user);
-            $this->aplicarBandeja($q, $bandeja, $user);
-            $this->aplicarFiltros($q, $request);
-            $resumen[$bandeja] = (int) $q->count();
-        }
+        $resumen = $this->etapasInstitucionales->resumenInstitucionalPorRol($base, $user);
 
         if ($user->can('ver_solicitud_matricula') && $user->hasAnyRole(['superadmin', 'admin', 'educacion_superior'])) {
             $resumen = array_merge($resumen, $this->solicitudesMatricula->metricasEducacionSuperior($user));
@@ -73,51 +74,7 @@ class BandejaDocumentoAcademicoService
      */
     public function bandejasPorRol(User $user): array
     {
-        if ($user->hasAnyRole(['superadmin', 'admin'])) {
-            return [
-                'borradores',
-                'por_enviar',
-                'en_revision',
-                'pendientes_revision',
-                'aprobados',
-                'rechazados',
-                'cancelados',
-                'listos_para_firma',
-                'firmados',
-                'error_firma',
-                'pendientes_tecnicos',
-            ];
-        }
-
-        if ($user->hasRole('control_escolar_escuela')) {
-            return ['borradores', 'rechazados', 'en_revision', 'aprobados'];
-        }
-
-        if ($user->hasRole('director_escuela')) {
-            return ['por_enviar', 'en_revision', 'aprobados', 'rechazados'];
-        }
-
-        if ($user->hasRole('educacion_superior')) {
-            return ['en_revision', 'pendientes_revision', 'aprobados', 'rechazados', 'cancelados', 'listos_para_firma'];
-        }
-
-        if ($user->hasRole('sistemas')) {
-            return ['listos_para_firma', 'firmados', 'error_firma', 'pendientes_tecnicos'];
-        }
-
-        if ($user->hasRole('responsable_certificacion_titulacion')) {
-            return ['en_revision', 'pendientes_revision', 'aprobados', 'rechazados', 'cancelados', 'listos_para_firma'];
-        }
-
-        if ($user->hasRole('responsable_evaluacion')) {
-            return ['en_revision', 'aprobados', 'rechazados'];
-        }
-
-        if ($user->hasRole('responsable_admision')) {
-            return ['borradores', 'pendientes_revision', 'aprobados', 'rechazados'];
-        }
-
-        return ['aprobados'];
+        return $this->etapasInstitucionales->bandejasPorRol($user);
     }
 
     protected function baseQuery(User $user): Builder
@@ -131,6 +88,7 @@ class BandejaDocumentoAcademicoService
                 'institucion:id,nombre,clave',
                 'sede:id,nombre,clave',
                 'cicloEscolar:id,nombre,clave',
+                'subsistema:id,clave,nombre,nombre_corto',
                 'ultimaObservacion' => fn ($sub) => $sub->select([
                     'documento_observaciones.id',
                     'documento_observaciones.documento_academico_id',
@@ -157,71 +115,24 @@ class BandejaDocumentoAcademicoService
 
     protected function aplicarBandeja(Builder $q, string $bandeja, User $user): void
     {
-        match ($bandeja) {
-            'borradores' => $q->where('estado_workflow', 'borrador'),
-            'por_enviar' => $q->whereIn('estado_workflow', ['borrador', 'rechazado']),
-            'en_revision', 'pendientes_revision' => $q->whereIn('estado_workflow', ['pendiente', 'en_revision']),
-            'aprobados' => $q->where('estado_workflow', 'aprobado'),
-            'rechazados' => $q->where('estado_workflow', 'rechazado'),
-            'cancelados' => $q->where('estado_workflow', 'cancelado'),
-            'listos_para_firma' => $q
-                ->where('estado_workflow', 'aprobado')
-                ->where('estado_firma', 'no_firmado')
-                ->where('metadata->listo_para_firma', true),
-            'firmados' => $q->where('estado_firma', 'firmado'),
-            'error_firma' => $q->where('estado_firma', 'error_firma'),
-            'pendientes_tecnicos' => $q
-                ->where('estado_workflow', 'aprobado')
-                ->where(function (Builder $sub): void {
-                    $sub->whereNull('folio_interno')
-                        ->orWhereNull('token_consulta_publica')
-                        ->orWhereDoesntHave('payloads', function (Builder $p): void {
-                            $p->where('activo', true);
-                        });
-                }),
-            default => $this->aplicarBandejaPorRol($q, $user),
-        };
-    }
-
-    protected function aplicarBandejaPorRol(Builder $q, User $user): void
-    {
-        if ($user->hasRole('control_escolar_escuela')) {
-            $q->whereIn('estado_workflow', ['borrador', 'pendiente', 'en_revision', 'rechazado', 'aprobado']);
+        $etapa = $this->etapasInstitucionales->resolverEtapaDesdeBandeja($bandeja);
+        if ($etapa !== null) {
+            $this->etapasInstitucionales->aplicarFiltroEtapaInstitucional($q, $etapa);
 
             return;
         }
 
-        if ($user->hasRole('director_escuela')) {
-            $q->whereIn('estado_workflow', ['borrador', 'pendiente', 'en_revision', 'rechazado', 'aprobado']);
-
-            return;
-        }
-
-        if ($user->hasRole('educacion_superior')) {
-            $q->whereIn('estado_workflow', ['pendiente', 'en_revision', 'aprobado', 'rechazado', 'cancelado']);
-
-            return;
-        }
-
-        if ($user->hasRole('sistemas')) {
-            $q->where(function (Builder $sub): void {
-                $sub->where('estado_firma', 'firmado')
-                    ->orWhere('estado_firma', 'error_firma')
-                    ->orWhere(function (Builder $ready): void {
-                        $ready->where('estado_workflow', 'aprobado')
-                            ->where('estado_firma', 'no_firmado')
-                            ->where('metadata->listo_para_firma', true);
-                    });
-            });
-
-            return;
-        }
-
-        $q->where('estado_workflow', 'aprobado');
+        $this->etapasInstitucionales->aplicarAlcanceEtapasPorRol($q, $user);
     }
 
     protected function aplicarFiltros(Builder $q, Request $request): void
     {
+        if ($request->filled('etapa_institucional')) {
+            $this->etapasInstitucionales->aplicarFiltroEtapaInstitucional(
+                $q,
+                $request->string('etapa_institucional')->toString(),
+            );
+        }
         if ($request->filled('estado_workflow')) {
             $q->where('estado_workflow', $request->string('estado_workflow')->toString());
         }
@@ -233,12 +144,6 @@ class BandejaDocumentoAcademicoService
         }
         if ($request->filled('tipo_certificacion')) {
             $q->where('tipo_certificacion', $request->string('tipo_certificacion')->toString());
-        }
-        if ($request->filled('estado_xml')) {
-            $q->where('estado_xml', $request->string('estado_xml')->toString());
-        }
-        if ($request->filled('estado_pdf')) {
-            $q->where('estado_pdf', $request->string('estado_pdf')->toString());
         }
         if ($request->filled('subsistema_id')) {
             $q->where('subsistema_id', $request->integer('subsistema_id'));
@@ -270,12 +175,6 @@ class BandejaDocumentoAcademicoService
         if ($request->filled('folio_interno')) {
             $q->where('folio_interno', 'like', '%'.$request->string('folio_interno')->toString().'%');
         }
-        if ($request->filled('folio_digital_sep')) {
-            $q->where('folio_digital_sep', 'like', '%'.$request->string('folio_digital_sep')->toString().'%');
-        }
-        if ($request->filled('token_consulta_publica')) {
-            $q->where('token_consulta_publica', 'like', '%'.$request->string('token_consulta_publica')->toString().'%');
-        }
         if ($request->filled('curp')) {
             $curp = mb_strtoupper($request->string('curp')->toString());
             $q->whereHas('alumno', fn (Builder $a) => $a->where('curp', 'like', '%'.$curp.'%'));
@@ -286,8 +185,6 @@ class BandejaDocumentoAcademicoService
                 $needleUpper = mb_strtoupper($needle);
                 $q->where(function (Builder $sub) use ($needle, $needleUpper): void {
                     $sub->where('folio_interno', 'like', '%'.$needle.'%')
-                        ->orWhere('folio_digital_sep', 'like', '%'.$needle.'%')
-                        ->orWhere('token_consulta_publica', 'like', '%'.$needle.'%')
                         ->orWhereHas('alumno', function (Builder $a) use ($needle, $needleUpper): void {
                             $a->where('curp', 'like', '%'.$needleUpper.'%')
                                 ->orWhere('nombre', 'like', '%'.$needle.'%')
@@ -308,9 +205,9 @@ class BandejaDocumentoAcademicoService
 
     protected function aplicarOrden(Builder $q, Request $request): void
     {
-        $sort = $request->string('sort', 'created_at')->toString();
+        $sort = $request->string('sort', 'updated_at')->toString();
         if (! in_array($sort, self::SORTS_PERMITIDOS, true)) {
-            $sort = 'created_at';
+            $sort = 'updated_at';
         }
 
         $direction = strtolower($request->string('direction', 'desc')->toString());

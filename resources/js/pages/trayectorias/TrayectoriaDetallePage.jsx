@@ -203,10 +203,10 @@ export function TrayectoriaDetallePage() {
                         {busy ? 'Sincronizando…' : 'Recalcular desde materias'}
                     </ActionButton>
                     <Link className={`inst-btn ${bloqueoCertificacion ? 'inst-btn-secondary blocked-action' : 'inst-btn-success'} text-sm px-4 py-2`} to={`/app/certificacion/solicitud?alumno=${searchParams.get('alumno') ?? sel?.id ?? fixedPk ?? resumen?.refs?.alumno_id ?? ''}`}>
-                        Solicitar certificado total
+                        Solicitud documental (terminación)
                     </Link>
                     <Link className={`inst-btn inst-btn-secondary text-sm px-4 py-2 ${bloqueoCertificacion ? 'blocked-action' : ''}`} to={`/app/certificacion/solicitud?alumno=${searchParams.get('alumno') ?? sel?.id ?? fixedPk ?? resumen?.refs?.alumno_id ?? ''}&tipo=parcial`}>
-                        Solicitar certificado parcial
+                        Solicitud documental (parcial)
                     </Link>
                 </div>
                 {bloqueoCertificacion ? <p className="mt-2 text-xs text-amber-700">Acción bloqueada: {motivoBloqueoCertificacion}</p> : null}

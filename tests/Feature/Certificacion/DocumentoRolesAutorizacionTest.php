@@ -100,6 +100,7 @@ class DocumentoRolesAutorizacionTest extends TestCase
             'sede_id' => $ctx['sede_id'],
             'tipo_documento' => 'certificado',
             'estado_workflow' => 'en_revision',
+            'metadata' => ['etapa_institucional' => 'validado_por_certificador'],
         ]);
     }
 

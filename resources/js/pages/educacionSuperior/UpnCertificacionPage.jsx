@@ -1,6 +1,4 @@
 import { useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { documentosAcademicosApi } from '../../api/documentosAcademicos';
 import {
     EsCard,
     EsHeaderAction,
@@ -16,11 +14,11 @@ import { UpnCertificacionFilters, UpnCertificacionTable, UpnEmptyState, UpnError
 import { useUpnCertificacionBandeja } from '../../hooks/useUpnCertificacionBandeja';
 import { computeUpnKpis } from '../../utils/upnCertificacion';
 import { ejecutarProcesoCertificacion } from '../../lib/ejecutarProcesoCertificacion';
-import { documentoProcesoTecnicoDetallePath } from '../../utils/certificacionRoutes';
 import { upnCan } from '../../utils/upnCertificacionPermissions';
+import { ejecutarAccionBandeja } from '../../components/bandeja/InstitutionalBandejaActions';
+import { EMPTY_BANDEJA } from '../../utils/bandejaWorkflow';
 
 export function UpnCertificacionPage() {
-    const navigate = useNavigate();
     const {
         loading,
         bandejaLoading,
@@ -48,64 +46,48 @@ export function UpnCertificacionPage() {
         { key: 'inc', icon: EsIcons.alert, ...esMetricTones.red, title: 'Incidencias técnicas', value: kpis.incidencias },
     ];
 
-    async function handleAprobar(row) {
-        if (!upnCan('aprobar')) return;
-        if (!window.confirm(`¿Aprobar certificado UPN de ${row.nombre}?`)) return;
-        setBusyId(row.id);
-        setActionMsg('');
-        try {
-            await documentosAcademicosApi.aprobar(row.id, { motivo: 'Aprobación institucional UPN.' });
-            setActionMsg('Certificado aprobado.');
-            await recargar();
-        } catch (e) {
-            setActionMsg(e?.message ?? 'No se pudo aprobar.');
-        } finally {
-            setBusyId(null);
+    async function handleAccionBandeja(accion, row) {
+        if (accion.requiere_motivo) {
+            const motivo = window.prompt(`Motivo para «${accion.label}»:`, '');
+            if (motivo === null || !String(motivo).trim()) return;
+            setBusyId(row.id);
+            try {
+                await ejecutarAccionBandeja(accion.accion, row.id, motivo.trim());
+                setActionMsg('Operación registrada.');
+                await recargar();
+            } catch (e) {
+                setActionMsg(e?.message ?? 'No se pudo completar la acción.');
+            } finally {
+                setBusyId(null);
+            }
+            return;
         }
-    }
 
-    async function handleRechazar(row) {
-        if (!upnCan('rechazar')) return;
-        const motivo = window.prompt('Motivo de rechazo:', '');
-        if (motivo === null || !motivo.trim()) return;
-        setBusyId(row.id);
-        try {
-            await documentosAcademicosApi.rechazar(row.id, { motivo: motivo.trim() });
-            setActionMsg('Certificado rechazado.');
-            await recargar();
-        } catch (e) {
-            setActionMsg(e?.message ?? 'No se pudo rechazar.');
-        } finally {
-            setBusyId(null);
+        if (accion.accion === 'procesar_certificacion') {
+            if (!upnCan('procesar')) return;
+            if (!window.confirm('¿Ejecutar procesamiento automático de la certificación UPN?')) return;
+            setBusyId(row.id);
+            try {
+                const res = await ejecutarProcesoCertificacion(row.id, {
+                    listoParaFirma: Boolean(row.raw?.listo_para_firma),
+                });
+                setActionMsg(res.ok ? res.message ?? 'Procesado.' : res.error ?? 'Incidencia técnica.');
+                await recargar();
+            } catch (e) {
+                setActionMsg(e?.message ?? 'No se pudo procesar.');
+            } finally {
+                setBusyId(null);
+            }
+            return;
         }
-    }
 
-    async function handleProcesar(row) {
-        if (!upnCan('procesar')) return;
-        const ok = window.confirm('¿Ejecutar procesamiento automático de la certificación UPN?');
-        if (!ok) return;
         setBusyId(row.id);
         try {
-            const res = await ejecutarProcesoCertificacion(row.id, { listoParaFirma: Boolean(row.raw?.listo_para_firma) });
-            setActionMsg(res.ok ? (res.message ?? 'Procesado.') : (res.error ?? 'Incidencia técnica.'));
+            await ejecutarAccionBandeja(accion.accion, row.id, `${accion.label} desde bandeja UPN.`);
+            setActionMsg('Operación registrada.');
             await recargar();
         } catch (e) {
-            setActionMsg(e?.message ?? 'No se pudo procesar.');
-        } finally {
-            setBusyId(null);
-        }
-    }
-
-    async function handleFirmar(row) {
-        if (!upnCan('firmar')) return;
-        if (!window.confirm('¿Firmar certificado UPN?')) return;
-        setBusyId(row.id);
-        try {
-            await documentosAcademicosApi.ejecutarFirma(row.id);
-            setActionMsg('Firma ejecutada.');
-            await recargar();
-        } catch (e) {
-            setActionMsg(e?.message ?? 'Error de firma.');
+            setActionMsg(e?.message ?? 'No se pudo completar la acción.');
         } finally {
             setBusyId(null);
         }
@@ -193,13 +175,9 @@ export function UpnCertificacionPage() {
                     ) : (
                         <UpnCertificacionTable
                             rows={rowsFiltradas}
-                            onAprobar={handleAprobar}
-                            onRechazar={handleRechazar}
-                            onProcesar={handleProcesar}
-                            onFirmar={handleFirmar}
-                            onVerError={(row) => navigate(documentoProcesoTecnicoDetallePath(row.id))}
-                            onEnviarSistemas={(row) => navigate(`${documentoProcesoTecnicoDetallePath(row.id)}#logs`)}
+                            onAccion={handleAccionBandeja}
                             busyId={busyId}
+                            emptyMessage={EMPTY_BANDEJA.educacion_superior}
                         />
                     )}
                 </EsCard>

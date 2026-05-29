@@ -64,7 +64,7 @@ export function SistemasDashboardPage() {
                 ))}
             </div>
             <div className="inst-surface p-4">
-                <h3 className="font-semibold text-slate-900">Telemetría simulada (dataset)</h3>
+                <h3 className="font-semibold text-slate-900">Actividad técnica reciente</h3>
                 {Array.isArray(payload?.telemetria_visual?.recientes) && payload.telemetria_visual.recientes.length > 0 ? (
                     <ul className="mt-2 space-y-1 text-sm text-slate-700">
                         {payload.telemetria_visual.recientes.map((e) => (
@@ -76,7 +76,9 @@ export function SistemasDashboardPage() {
                         ))}
                     </ul>
                 ) : (
-                    <p className="mt-2 text-sm text-slate-500">Sin eventos de dataset; ejecute `php artisan sices:seed-dataset-visual-roles` en local.</p>
+                    <p className="mt-2 text-sm text-slate-500">
+                        No hay eventos técnicos recientes registrados en el sistema.
+                    </p>
                 )}
             </div>
             <div className="inst-surface p-4">

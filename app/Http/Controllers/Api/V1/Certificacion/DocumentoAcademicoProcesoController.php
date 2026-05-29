@@ -6,6 +6,7 @@ namespace App\Http\Controllers\Api\V1\Certificacion;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Certificacion\DocumentoAccionCapturaRequest;
+use App\Http\Requests\Certificacion\DocumentoWorkflowTransicionRequest;
 use App\Http\Requests\Certificacion\StoreDocumentoAcademicoCapturaRequest;
 use App\Http\Resources\Certificacion\DocumentoAcademicoCapturaResource;
 use App\Enums\Certificacion\EstadoWorkflow;
@@ -15,7 +16,8 @@ use App\Services\Certificacion\CertificacionAlcanceService;
 use App\Services\Certificacion\AuditoriaService;
 use App\Services\Certificacion\DocumentoAcademicoCapturaService;
 use App\Services\Certificacion\DocumentoAcademicoRequisitosService;
-use App\Services\Certificacion\DocumentoAcademicoWorkflowService;
+use App\Services\Certificacion\DocumentoAcademicoWorkflowService as WorkflowEstadosService;
+use App\Services\DocumentosAcademicos\DocumentoAcademicoWorkflowService;
 use App\Services\Certificacion\DocumentoRevisionInstitucionalService;
 use App\Services\Certificacion\FolioService;
 use App\Services\Certificacion\UrlShortTokenService;
@@ -30,7 +32,8 @@ use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 class DocumentoAcademicoProcesoController extends Controller
 {
     public function __construct(
-        protected DocumentoAcademicoWorkflowService $workflow,
+        protected WorkflowEstadosService $workflowEstados,
+        protected DocumentoAcademicoWorkflowService $workflowInstitucional,
         protected DocumentoAcademicoCapturaService $captura,
         protected DocumentoAcademicoRequisitosService $requisitos,
         protected ValidacionAcademicaDocumentoService $validacionAcademica,
@@ -124,7 +127,7 @@ class DocumentoAcademicoProcesoController extends Controller
             ]);
         }
 
-        $documento = $this->workflow->crearBorrador(
+        $documento = $this->workflowEstados->crearBorrador(
             $atributos,
             $request->user()?->id,
         );
@@ -205,9 +208,32 @@ class DocumentoAcademicoProcesoController extends Controller
     {
         $this->authorize('enviarRevision', $documento);
 
-        $doc = $this->captura->enviarARevision(
+        $user = $request->user();
+        abort_if($user === null, 403);
+
+        $doc = $this->workflowInstitucional->aplicarPorAccion(
             $documento,
-            $request->user()?->id,
+            'enviar_validacion',
+            $user,
+            $request->input('motivo'),
+            $request->ip(),
+            $request->userAgent(),
+        );
+
+        return new DocumentoAcademicoCapturaResource($doc->fresh());
+    }
+
+    public function validarInformacion(DocumentoAccionCapturaRequest $request, DocumentoAcademico $documento): DocumentoAcademicoCapturaResource
+    {
+        $this->authorize('validarInformacion', $documento);
+
+        $user = $request->user();
+        abort_if($user === null, 403);
+
+        $doc = $this->workflowInstitucional->aplicarPorAccion(
+            $documento,
+            'validar_informacion',
+            $user,
             $request->input('motivo'),
             $request->ip(),
             $request->userAgent(),
@@ -220,9 +246,13 @@ class DocumentoAcademicoProcesoController extends Controller
     {
         $this->authorize('aprobar', $documento);
 
-        $doc = $this->captura->aprobar(
+        $user = $request->user();
+        abort_if($user === null, 403);
+
+        $doc = $this->workflowInstitucional->aplicarPorAccion(
             $documento,
-            $request->user()?->id,
+            'aprobar_expediente',
+            $user,
             $request->input('motivo'),
             $request->ip(),
             $request->userAgent(),
@@ -235,13 +265,62 @@ class DocumentoAcademicoProcesoController extends Controller
     {
         $this->authorize('rechazar', $documento);
 
-        $doc = $this->workflow->rechazar(
-            $documento->fresh(),
-            $request->user()?->id,
+        $user = $request->user();
+        abort_if($user === null, 403);
+
+        $etapa = $this->workflowInstitucional->resolverEtapaInstitucional($documento);
+        $accion = in_array($etapa->value, [
+            'en_validacion_certificador',
+            'validado_por_certificador',
+        ], true) ? 'devolver_observaciones' : 'rechazar';
+
+        $doc = $this->workflowInstitucional->aplicarPorAccion(
+            $documento,
+            $accion,
+            $user,
             $request->input('motivo'),
             $request->ip(),
             $request->userAgent(),
         );
+
+        return new DocumentoAcademicoCapturaResource($doc->fresh());
+    }
+
+    public function aplicarTransicionWorkflow(
+        DocumentoWorkflowTransicionRequest $request,
+        DocumentoAcademico $documento,
+    ): DocumentoAcademicoCapturaResource {
+        $this->authorize('transicionWorkflow', $documento);
+
+        $user = $request->user();
+        abort_if($user === null, 403);
+
+        $accion = $request->input('accion');
+        $etapa = $request->input('etapa_institucional');
+
+        if (is_string($accion) && $accion !== '') {
+            $doc = $this->workflowInstitucional->aplicarPorAccion(
+                $documento,
+                $accion,
+                $user,
+                $request->input('motivo'),
+                $request->ip(),
+                $request->userAgent(),
+            );
+        } elseif (is_string($etapa) && $etapa !== '') {
+            $doc = $this->workflowInstitucional->aplicarTransicion(
+                $documento,
+                $etapa,
+                $user,
+                $request->input('motivo'),
+                $request->ip(),
+                $request->userAgent(),
+            );
+        } else {
+            throw ValidationException::withMessages([
+                'accion' => ['Indique la acción o la etapa institucional destino.'],
+            ]);
+        }
 
         return new DocumentoAcademicoCapturaResource($doc->fresh());
     }
@@ -286,7 +365,7 @@ class DocumentoAcademicoProcesoController extends Controller
     {
         $this->authorize('marcarListoParaFirma', $documento);
 
-        $doc = $this->workflow->marcarListoParaFirma(
+        $doc = $this->workflowEstados->marcarListoParaFirma(
             $documento->fresh(),
             $this->requisitos,
             $request->user()?->id,

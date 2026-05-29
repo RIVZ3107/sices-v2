@@ -1,53 +1,23 @@
 import { Link } from 'react-router-dom';
 import { EsTable, esColors, esTheme } from '../educacionSuperior';
-import { CertificationStatusBadge } from './CertificationStatusBadge';
-import { esCan } from '../../utils/esCertificacionPermissions';
-import { documentoProcesoTecnicoDetallePath } from '../../utils/certificacionRoutes';
+import { CertificacionWorkflowBadge } from './CertificacionStatusBadge';
+import { InstitutionalBandejaActions } from '../bandeja/InstitutionalBandejaActions';
+import { fmtUltimoMovimiento } from '../../utils/bandejaWorkflow';
 import { revisionInstitucionalDetallePath } from '../../utils/certificacionRoutes';
+import { uxLinkIncidenciaTecnica } from '../../utils/uxInstitucional';
 
 const HEADERS = [
     'Alumno',
     'CURP',
     'Matrícula',
     'Institución / CCT',
-    'Programa',
-    'Tipo',
-    'Prom.',
-    'Folio',
-    'Expedición',
-    'Estado académico',
-    'Procesamiento',
-    'Firma',
+    'Tipo documental',
+    'Subsistema',
+    'Etapa institucional',
+    'Siguiente acción',
+    'Último movimiento',
     'Acciones',
 ];
-
-function ActionLink({ to, children, onClick, title }) {
-    if (onClick) {
-        return (
-            <button
-                type="button"
-                title={title}
-                onClick={onClick}
-                style={{
-                    background: 'none',
-                    border: 'none',
-                    color: esColors.primary,
-                    fontSize: 12,
-                    fontWeight: 500,
-                    cursor: 'pointer',
-                    padding: '2px 6px',
-                }}
-            >
-                {children}
-            </button>
-        );
-    }
-    return (
-        <Link to={to} title={title} style={{ fontSize: 12, fontWeight: 500, color: esColors.primary, marginRight: 6 }}>
-            {children}
-        </Link>
-    );
-}
 
 function fmtFecha(v) {
     if (!v) return '—';
@@ -58,108 +28,92 @@ function fmtFecha(v) {
     }
 }
 
+function bandejaRowFromItem(item) {
+    const raw = item.raw ?? item;
+    return {
+        id: item.id,
+        workflow_resumen: item.workflowResumen ?? raw.workflow_resumen,
+        updated_at: raw.updated_at ?? item.updated_at,
+        ultimo_movimiento: raw.ultimo_movimiento ?? item.updated_at,
+    };
+}
+
 export function CertificationWorkflowTable({
     rows,
-    onAsignarFolio,
-    onProcesar,
-    onFirmar,
-    onAprobar,
-    onObservar,
-    onVerError,
-    onEnviarSistemas,
+    onAccion,
+    busyId,
     detallePath = revisionInstitucionalDetallePath,
+    emptyMessage = 'No hay documentos listos para operación institucional.',
 }) {
+    if (!rows?.length) {
+        return (
+            <EsTable headers={HEADERS} emptyColSpan={HEADERS.length} emptyMessage={emptyMessage} />
+        );
+    }
+
     return (
         <EsTable headers={HEADERS} emptyColSpan={HEADERS.length} emptyMessage={null}>
-            {rows.map((item) => (
-                <tr key={item.id} style={esTheme.tr}>
-                    <td style={{ ...esTheme.td, fontWeight: 500 }}>{item.alumno}</td>
-                    <td style={{ ...esTheme.td, fontFamily: 'monospace', fontSize: 12 }}>{item.curp || '—'}</td>
-                    <td style={esTheme.td}>{item.matricula || '—'}</td>
-                    <td style={{ ...esTheme.td, color: esColors.muted, maxWidth: 160 }}>{item.institucion}</td>
-                    <td style={esTheme.td}>{item.programa}</td>
-                    <td style={esTheme.td}>
-                        {item.tipoDocumento}
-                        {item.tipoCertificacion ? (
-                            <span style={{ display: 'block', fontSize: 11, color: esColors.muted }}>{item.tipoCertificacion}</span>
-                        ) : null}
-                    </td>
-                    <td style={esTheme.td}>{item.promedio}</td>
-                    <td style={{ ...esTheme.td, fontWeight: 600, color: esColors.primary }}>{item.folio}</td>
-                    <td style={esTheme.td}>{fmtFecha(item.fechaExpedicion)}</td>
-                    <td style={esTheme.td}>
-                        <CertificationStatusBadge badge={item.estadoCertificador?.badge}>
-                            {item.estadoCertificador?.label}
-                        </CertificationStatusBadge>
-                    </td>
-                    <td style={esTheme.td}>
-                        <CertificationStatusBadge badge={item.estadoProcesamiento?.badge}>
-                            {item.estadoProcesamiento?.label}
-                        </CertificationStatusBadge>
-                    </td>
-                    <td style={esTheme.td}>
-                        <CertificationStatusBadge badge={item.estadoFirma?.badge}>
-                            {item.estadoFirma?.label}
-                        </CertificationStatusBadge>
-                    </td>
-                    <td style={{ ...esTheme.td, whiteSpace: 'nowrap', maxWidth: 220 }}>
-                        {esCan('expediente') && item.alumnoId ? (
-                            <ActionLink to={`/app/alumnos/${item.alumnoId}/expediente`} title="Ver expediente">
+            {rows.map((item) => {
+                const wr = item.workflowResumen ?? item.raw?.workflow_resumen ?? {};
+                const etapaLabel = wr.etapa_label ?? item.etapaLabel ?? item.estadoProcesamiento?.label ?? '—';
+                const siguiente = wr.siguiente_accion_principal?.label ?? item.siguienteAccionLabel ?? '—';
+                const bandejaRow = bandejaRowFromItem(item);
+
+                return (
+                    <tr key={item.id} style={esTheme.tr}>
+                        <td style={{ ...esTheme.td, fontWeight: 500 }}>{item.alumno}</td>
+                        <td style={{ ...esTheme.td, fontFamily: 'monospace', fontSize: 12 }}>{item.curp || '—'}</td>
+                        <td style={esTheme.td}>{item.matricula || '—'}</td>
+                        <td style={{ ...esTheme.td, color: esColors.muted, maxWidth: 160 }}>{item.institucion}</td>
+                        <td style={esTheme.td}>
+                            {item.tipoDocumento}
+                            {item.tipoCertificacion ? (
+                                <span style={{ display: 'block', fontSize: 11, color: esColors.muted }}>
+                                    {item.tipoCertificacion}
+                                </span>
+                            ) : null}
+                        </td>
+                        <td style={esTheme.td}>{item.subsistemaLabel ?? item.raw?.subsistema?.clave ?? '—'}</td>
+                        <td style={esTheme.td}>
+                            <CertificacionWorkflowBadge
+                                etapa={wr.etapa ?? item.etapaInstitucional}
+                                label={etapaLabel}
+                            />
+                        </td>
+                        <td style={{ ...esTheme.td, color: esColors.muted, fontSize: 12 }}>{siguiente}</td>
+                        <td style={{ ...esTheme.td, fontSize: 12, color: esColors.muted }}>
+                            {fmtUltimoMovimiento(bandejaRow)}
+                        </td>
+                        <td style={{ ...esTheme.td, whiteSpace: 'nowrap', maxWidth: 260 }}>
+                            <InstitutionalBandejaActions
+                                row={bandejaRow}
+                                busy={busyId === item.id}
+                                onAccion={
+                                    onAccion
+                                        ? (a) => onAccion(a, item)
+                                        : undefined
+                                }
+                            />
+                            {item.tieneIncidencia ? (
+                                <Link
+                                    to={uxLinkIncidenciaTecnica(item.id)}
+                                    style={{ fontSize: 12, fontWeight: 500, color: esColors.primary, marginLeft: 6 }}
+                                >
+                                    Ver incidencia
+                                </Link>
+                            ) : null}
+                            <Link
+                                to={detallePath(item.id)}
+                                style={{ fontSize: 12, fontWeight: 500, color: esColors.muted, marginLeft: 6 }}
+                            >
                                 Expediente
-                            </ActionLink>
-                        ) : null}
-                        {esCan('validar') && item.puedeValidar ? (
-                            <ActionLink to={detallePath(item.id)} title="Validar">
-                                Validar
-                            </ActionLink>
-                        ) : null}
-                        {esCan('validar') && item.puedeAprobar ? (
-                            <ActionLink title="Aprobar" onClick={() => onAprobar?.(item)}>
-                                Aprobar
-                            </ActionLink>
-                        ) : null}
-                        {esCan('observar') ? (
-                            <ActionLink title="Observar" onClick={() => onObservar?.(item)}>
-                                Observar
-                            </ActionLink>
-                        ) : null}
-                        {esCan('folio') && item.puedeAsignarFolio ? (
-                            <ActionLink title="Asignar folio" onClick={() => onAsignarFolio?.(item)}>
-                                Folio
-                            </ActionLink>
-                        ) : null}
-                        {esCan('procesar') && item.puedeProcesar ? (
-                            <ActionLink title="Procesar certificación" onClick={() => onProcesar?.(item)}>
-                                Procesar
-                            </ActionLink>
-                        ) : null}
-                        {esCan('firmar') && item.puedeFirmar ? (
-                            <ActionLink title="Firmar certificado" onClick={() => onFirmar?.(item)}>
-                                Firmar
-                            </ActionLink>
-                        ) : null}
-                        {esCan('obtenerResultadoFinal') && item.estadoFirma?.label === 'Firmado' ? (
-                            <ActionLink to={`/app/documentos/${item.id}`} title="Ver PDF final">
-                                PDF
-                            </ActionLink>
-                        ) : null}
-                        {item.tieneIncidencia ? (
-                            <>
-                                {esCan('enviarIncidenciaSistemas') ? (
-                                    <ActionLink title="Ver error técnico" onClick={() => onVerError?.(item)}>
-                                        Error
-                                    </ActionLink>
-                                ) : null}
-                                {esCan('enviarIncidenciaSistemas') ? (
-                                    <ActionLink title="Incidencia técnica" onClick={() => onEnviarSistemas?.(item)}>
-                                        Sistemas
-                                    </ActionLink>
-                                ) : null}
-                            </>
-                        ) : null}
-                    </td>
-                </tr>
-            ))}
+                            </Link>
+                        </td>
+                    </tr>
+                );
+            })}
         </EsTable>
     );
 }
+
+export { fmtFecha };

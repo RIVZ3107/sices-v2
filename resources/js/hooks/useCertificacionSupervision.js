@@ -12,14 +12,16 @@ import {
 import { fetchEducacionSuperiorMetricas } from '../lib/educacionSuperiorCache';
 import { withTimeout } from '../lib/withTimeout';
 
-/** Bandejas necesarias para KPIs y tabla (evita 7 peticiones paralelas que bloquean la UI). */
+/** Bandejas institucionales para Educación Superior (workflow por etapa). */
 const BANDEJAS_CARGA = [
-    'en-revision',
-    'pendientes-revision',
-    'aprobados',
-    'listos-para-firma',
-    'rechazados',
-    'errores-firma',
+    'validado-por-certificador',
+    'aprobado-educacion-superior',
+    'folio-asignado',
+    'en-procesamiento',
+    'pendiente-firma',
+    'firmado-timbrado',
+    'finalizado',
+    'incidencia-tecnica',
 ];
 
 const PER_PAGE = 30;

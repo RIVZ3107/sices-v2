@@ -4,6 +4,7 @@ import { LoadingState } from '../LoadingState';
 import { certColors } from './certTheme';
 import { CertificacionWorkflowBadge } from './CertificacionStatusBadge';
 import { alumnoNombre } from './certTheme';
+import { bandejaEtapaLabel, bandejaSiguienteAccion } from '../../utils/bandejaWorkflow';
 
 export function CertificacionTable({
     rows = [],
@@ -34,8 +35,22 @@ export function CertificacionTable({
     const cols = columns ?? [
         { key: 'folio', label: 'Folio', render: (r) => r.folio_interno ?? `#${r.id}` },
         { key: 'alumno', label: 'Alumno', render: (r) => alumnoNombre(r) },
-        { key: 'tipo', label: 'Tipo', render: (r) => `${r.tipo_documento ?? '—'} · ${r.tipo_certificacion ?? ''}` },
-        { key: 'estatus', label: 'Estatus', render: (r) => <CertificacionWorkflowBadge workflow={r.estado_workflow} estadoFirma={r.estado_firma} /> },
+        { key: 'curp', label: 'CURP', render: (r) => r.alumno?.curp ?? '—' },
+        { key: 'matricula', label: 'Matrícula', render: (r) => r.matricula?.matricula ?? '—' },
+        { key: 'tipo', label: 'Tipo documental', render: (r) => r.tipo_documento ?? '—' },
+        { key: 'etapa', label: 'Etapa institucional', render: (r) => bandejaEtapaLabel(r) },
+        { key: 'siguiente', label: 'Siguiente acción', render: (r) => bandejaSiguienteAccion(r) },
+        {
+            key: 'estatus',
+            label: 'Estado',
+            render: (r) => (
+                <CertificacionWorkflowBadge
+                    etapa={r.workflow_resumen?.etapa ?? r.etapa_institucional}
+                    workflow={r.estado_workflow}
+                    estadoFirma={r.estado_firma}
+                />
+            ),
+        },
     ];
 
     return (

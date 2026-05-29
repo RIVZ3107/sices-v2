@@ -8,6 +8,10 @@ export const documentosAcademicosApi = {
     validar: (id) => apiPost(`/certificacion/documentos-academicos/${id}/validar`),
     pasarPendiente: (id, payload = {}) => apiPost(`/certificacion/documentos-academicos/${id}/pasar-pendiente`, payload),
     enviarRevision: (id, payload = {}) => apiPost(`/certificacion/documentos-academicos/${id}/enviar-revision`, payload),
+    validarInformacion: (id, payload = {}) =>
+        apiPost(`/certificacion/documentos-academicos/${id}/validar-informacion`, payload),
+    transicionWorkflow: (id, payload = {}) =>
+        apiPost(`/certificacion/documentos-academicos/${id}/workflow/transicion`, payload),
     aprobar: (id, payload = {}) => apiPost(`/certificacion/documentos-academicos/${id}/aprobar`, payload),
     rechazar: (id, payload = {}) => apiPost(`/certificacion/documentos-academicos/${id}/rechazar`, payload),
     asignarFolioInterno: (id, payload = {}) => apiPost(`/certificacion/documentos-academicos/${id}/folio-interno`, payload),

@@ -21,12 +21,13 @@ import { useCertificacionSupervision } from '../../hooks/useCertificacionSupervi
 import { ejecutarProcesoCertificacion } from '../../lib/ejecutarProcesoCertificacion';
 import { esCan } from '../../utils/esCertificacionPermissions';
 import {
-    documentoProcesoTecnicoDetallePath,
     normalesCertificacionDetallePath,
     revisionInstitucionalBasePath,
     revisionInstitucionalDetallePath,
 } from '../../utils/certificacionRoutes';
 import { InstitutionalRoleBanner } from '../../components/ui/InstitutionalRoleBanner';
+import { ejecutarAccionBandeja } from '../../components/bandeja/InstitutionalBandejaActions';
+import { EMPTY_BANDEJA } from '../../utils/bandejaWorkflow';
 
 const COPY_NORMALES = {
     breadcrumb: 'Certificación Normales',
@@ -116,81 +117,67 @@ export function EsCertificacionPage({ subsistema = 'normales' }) {
         },
     ];
 
-    async function handleAsignarFolio(item) {
-        if (!esCan('folio')) return;
-        const folio = window.prompt('Folio interno a asignar:', item.folio.startsWith('DOC-') ? '' : item.folio);
-        if (folio === null || !folio.trim()) return;
-        setBusyId(item.id);
-        try {
-            await documentosAcademicosApi.asignarFolioInterno(item.id, { folio_interno: folio.trim() });
-            setActionMsg('Folio asignado.');
-            await recargar();
-        } catch (e) {
-            setActionMsg(e?.message ?? 'No se pudo asignar el folio.');
-        } finally {
-            setBusyId(null);
-        }
-    }
-
-    async function handleAprobar(item) {
-        if (!esCan('aprobar')) return;
-        if (!window.confirm(`¿Aprobar certificación de ${item.alumno}?`)) return;
-        setBusyId(item.id);
-        try {
-            await documentosAcademicosApi.aprobar(item.id, { motivo: 'Aprobación institucional Educación Superior.' });
-            setActionMsg('Documento aprobado.');
-            await recargar();
-        } catch (e) {
-            setActionMsg(e?.message ?? 'No se pudo aprobar.');
-        } finally {
-            setBusyId(null);
-        }
-    }
-
-    async function handleProcesar(item) {
-        if (!esCan('procesar')) return;
-        const ok = window.confirm('¿Procesar certificación y continuar con el resultado final?');
-        if (!ok) return;
-        setBusyId(item.id);
-        setActionMsg('Procesando certificación…');
-        try {
-            const res = await ejecutarProcesoCertificacion(item.id, {
-                listoParaFirma: Boolean(item.raw?.listo_para_firma),
-            });
-            if (res.ok) {
-                setActionMsg(res.message ?? 'Certificación procesada.');
-            } else {
-                setActionMsg(res.error ?? 'Incidencia técnica. Use «Ver error» o envíe a Sistemas.');
+    async function handleAccionBandeja(accion, item) {
+        if (accion.requiere_motivo) {
+            const motivo = window.prompt(`Motivo para «${accion.label}»:`, '');
+            if (motivo === null || !String(motivo).trim()) return;
+            setBusyId(item.id);
+            try {
+                await ejecutarAccionBandeja(accion.accion, item.id, motivo.trim());
+                setActionMsg('Operación registrada.');
+                await recargar();
+            } catch (e) {
+                setActionMsg(e?.message ?? 'No se pudo completar la acción.');
+            } finally {
+                setBusyId(null);
             }
-            await recargar();
-        } catch (e) {
-            setActionMsg(e?.message ?? 'Error al procesar.');
-        } finally {
-            setBusyId(null);
+            return;
         }
-    }
 
-    async function handleFirmar(item) {
-        if (!esCan('firmar')) return;
-        if (!window.confirm('¿Ejecutar firma / timbrado del certificado?')) return;
+        if (accion.accion === 'asignar_folio') {
+            const folio = window.prompt('Folio interno a asignar:', item.folio.startsWith('DOC-') ? '' : item.folio);
+            if (folio === null || !folio.trim()) return;
+            setBusyId(item.id);
+            try {
+                await documentosAcademicosApi.asignarFolioInterno(item.id, { folio_interno: folio.trim() });
+                setActionMsg('Folio asignado.');
+                await recargar();
+            } catch (e) {
+                setActionMsg(e?.message ?? 'No se pudo asignar el folio.');
+            } finally {
+                setBusyId(null);
+            }
+            return;
+        }
+
+        if (accion.accion === 'procesar_certificacion') {
+            if (!window.confirm('¿Procesar certificación y continuar con el resultado final?')) return;
+            setBusyId(item.id);
+            setActionMsg('Procesando certificación…');
+            try {
+                const res = await ejecutarProcesoCertificacion(item.id, {
+                    listoParaFirma: Boolean(item.raw?.listo_para_firma),
+                });
+                setActionMsg(res.ok ? res.message ?? 'Certificación procesada.' : res.error ?? 'Incidencia técnica.');
+                await recargar();
+            } catch (e) {
+                setActionMsg(e?.message ?? 'Error al procesar.');
+            } finally {
+                setBusyId(null);
+            }
+            return;
+        }
+
         setBusyId(item.id);
         try {
-            const res = await documentosAcademicosApi.ejecutarFirma(item.id);
-            setActionMsg(res?.message ?? 'Firma ejecutada.');
+            await ejecutarAccionBandeja(accion.accion, item.id, `${accion.label} desde bandeja.`);
+            setActionMsg('Operación registrada.');
             await recargar();
         } catch (e) {
-            setActionMsg(e?.message ?? 'Error de firma.');
+            setActionMsg(e?.message ?? 'No se pudo completar la acción.');
         } finally {
             setBusyId(null);
         }
-    }
-
-    function handleVerError(item) {
-        navigate(documentoProcesoTecnicoDetallePath(item.id));
-    }
-
-    function handleEnviarSistemas(item) {
-        navigate(`${documentoProcesoTecnicoDetallePath(item.id)}#logs`);
     }
 
   if (loading) {
@@ -296,14 +283,10 @@ export function EsCertificacionPage({ subsistema = 'normales' }) {
                     <div style={{ opacity: busyId ? 0.6 : 1, pointerEvents: busyId ? 'none' : 'auto' }}>
                         <CertificationWorkflowTable
                             rows={rowsFiltradas}
-                            onAsignarFolio={handleAsignarFolio}
-                            onProcesar={handleProcesar}
-                            onFirmar={handleFirmar}
-                            onAprobar={handleAprobar}
+                            busyId={busyId}
+                            onAccion={handleAccionBandeja}
                             detallePath={detallePath}
-                            onObservar={(item) => navigate(detallePath(item.id))}
-                            onVerError={handleVerError}
-                            onEnviarSistemas={handleEnviarSistemas}
+                            emptyMessage={EMPTY_BANDEJA.educacion_superior}
                         />
                     </div>
                 </EsCard>

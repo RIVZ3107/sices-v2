@@ -164,10 +164,14 @@ Route::prefix('v1/certificacion')
             ->middleware('permission_or:editar_documentos|documentos.editar');
         Route::post('documentos-academicos/{documento}/enviar-revision', [DocumentoAcademicoProcesoController::class, 'enviarRevision'])
             ->middleware('permission_or:enviar_revision|documentos.enviar_revision');
+        Route::post('documentos-academicos/{documento}/validar-informacion', [DocumentoAcademicoProcesoController::class, 'validarInformacion'])
+            ->middleware('permission_or:certificacion.validar|validaciones_normativas.aprobar|documentos.observar');
+        Route::post('documentos-academicos/{documento}/workflow/transicion', [DocumentoAcademicoProcesoController::class, 'aplicarTransicionWorkflow'])
+            ->middleware('permission_or:ver_documentos|documentos.ver|enviar_revision|documentos.enviar_revision|certificacion.validar|aprobar_documentos|documentos.aprobar|certificacion.autorizar_emision|logs.ver|integraciones.ver');
         Route::post('documentos-academicos/{documento}/aprobar', [DocumentoAcademicoProcesoController::class, 'aprobar'])
             ->middleware('permission_or:aprobar_documentos|documentos.aprobar|documentos.aprobar_institucionalmente|validaciones_normativas.aprobar|certificacion.autorizar_emision|certificacion.validar');
         Route::post('documentos-academicos/{documento}/rechazar', [DocumentoAcademicoProcesoController::class, 'rechazar'])
-            ->middleware('permission_or:rechazar_documentos|documentos.rechazar|documentos.rechazar_institucionalmente|validaciones_normativas.rechazar');
+            ->middleware('permission_or:rechazar_documentos|documentos.rechazar|documentos.rechazar_institucionalmente|validaciones_normativas.rechazar|certificacion.validar|documentos.observar');
         Route::post('documentos-academicos/{documento}/folio-interno', [DocumentoAcademicoProcesoController::class, 'asignarFolioInterno'])
             ->middleware('permission_or:preparar_documento_firma|folios.asignar|documentos.liberar_proceso_tecnico|certificacion.autorizar_emision');
         Route::post('documentos-academicos/{documento}/token-consulta-publica', [DocumentoAcademicoProcesoController::class, 'emitirTokenConsultaPublica'])
@@ -239,6 +243,8 @@ Route::prefix('v1/certificacion')
                 Route::get('/errores-firma', [BandejaDocumentoAcademicoController::class, 'erroresFirma']);
                 Route::get('/pendientes-tecnicos', [BandejaDocumentoAcademicoController::class, 'pendientesTecnicos']);
                 Route::get('/resumen', [BandejaDocumentoAcademicoController::class, 'resumen']);
+                Route::get('/{bandeja}', [BandejaDocumentoAcademicoController::class, 'resolverDinamico'])
+                    ->where('bandeja', '[a-z0-9\-]+');
             });
     });
 

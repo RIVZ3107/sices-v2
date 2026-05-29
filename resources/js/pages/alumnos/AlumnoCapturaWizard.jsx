@@ -20,7 +20,7 @@ const ROUTES_ACCIONES = [
     { href: '/app/materias-cursadas', label: '4) Generar carga académica' },
     { href: '/app/importaciones', label: '5) Capturar o importar calificaciones' },
     { href: '/app/trayectorias', label: '6) Recalcular y revisar trayectoria' },
-    { href: '/app/certificacion/solicitud', label: '7) Solicitar certificado' },
+    { href: '/app/certificacion/solicitud', label: '7) Solicitud documental' },
 ];
 
 export function AlumnoCapturaWizard() {

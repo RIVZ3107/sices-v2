@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Resources\Certificacion;
 
 use App\Models\DocumentoAcademico;
+use App\Services\DocumentosAcademicos\DocumentoAcademicoWorkflowService;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -17,31 +18,29 @@ class BandejaDocumentoAcademicoResource extends JsonResource
     public function toArray(Request $request): array
     {
         $meta = $this->metadata ?? [];
-        $obsTotal = $this->observaciones_count ?? $this->observaciones()->count();
-        $obsPend = $this->observaciones_pendientes_count ?? $this->observaciones()->where('estado', 'pendiente')->count();
-        $obsAten = $this->observaciones_atendidas_count ?? $this->observaciones()->where('estado', 'atendida')->count();
-        $obsDesc = $this->observaciones_descartadas_count ?? $this->observaciones()->where('estado', 'descartada')->count();
+        $user = $request->user();
+        $verTecnico = $user?->hasRole('sistemas') || $user?->hasAnyRole(['superadmin', 'admin']);
+
+        $workflowResumen = app(DocumentoAcademicoWorkflowService::class)
+            ->armarWorkflowResumen($this->resource, $user);
+
         $ultima = $this->relationLoaded('ultimaObservacion')
             ? $this->ultimaObservacion
-            : $this->observaciones()->latest()->first();
+            : null;
 
-        return [
+        $base = [
             'id' => $this->id,
             'folio_interno' => $this->folio_interno,
-            'folio_digital_sep' => $this->folio_digital_sep,
-            'subsistema_id' => $this->subsistema_id,
-            'estado_pdf' => $this->estado_pdf,
-            'token_consulta_publica' => $this->token_consulta_publica,
             'tipo_documento' => $this->tipo_documento,
+            'tipo_certificacion' => $this->tipo_certificacion,
             'estado_workflow' => $this->estado_workflow,
-            'estado_cadena' => $this->estado_cadena,
-            'estado_xml' => $this->estado_xml,
-            'estado_firma' => $this->estado_firma,
+            'etapa_institucional' => $workflowResumen['etapa'],
+            'workflow_resumen' => $workflowResumen,
             'fecha_solicitud' => $this->fecha_solicitud?->toIso8601String(),
             'fecha_aprobacion' => $this->fecha_aprobacion?->toIso8601String(),
             'institucion_id' => $this->institucion_id,
             'sede_id' => $this->sede_id,
-            'region_id' => $this->region_id,
+            'subsistema_id' => $this->subsistema_id,
             'institucion' => $this->whenLoaded('institucion', fn () => [
                 'nombre' => $this->institucion?->nombre,
                 'clave' => $this->institucion?->clave,
@@ -50,20 +49,17 @@ class BandejaDocumentoAcademicoResource extends JsonResource
                 'nombre' => $this->sede?->nombre,
                 'clave' => $this->sede?->clave,
             ]),
-            'ciclo_escolar' => $this->whenLoaded('cicloEscolar', fn () => [
-                'nombre' => $this->cicloEscolar?->nombre,
-                'clave' => $this->cicloEscolar?->clave,
+            'subsistema' => $this->whenLoaded('subsistema', fn () => [
+                'id' => $this->subsistema?->id,
+                'clave' => $this->subsistema?->clave,
+                'nombre' => $this->subsistema?->nombre ?? $this->subsistema?->nombre_corto,
             ]),
-            'tipo_certificacion' => $this->tipo_certificacion,
             'matricula' => $this->whenLoaded('matricula', fn () => [
                 'id' => $this->matricula?->id,
                 'matricula' => $this->matricula?->matricula,
             ]),
             'programa' => $this->whenLoaded('ofertaAcademica', fn () => [
                 'nombre' => $this->ofertaAcademica?->programaEstudio?->nombre,
-            ]),
-            'plan' => $this->whenLoaded('ofertaAcademica', fn () => [
-                'nombre' => $this->ofertaAcademica?->planEstudio?->nombre,
             ]),
             'alumno' => $this->whenLoaded('alumno', fn () => [
                 'id' => $this->alumno?->id,
@@ -73,26 +69,26 @@ class BandejaDocumentoAcademicoResource extends JsonResource
                     $this->alumno?->primer_apellido,
                     $this->alumno?->segundo_apellido,
                 ]))),
-                'nombre' => $this->alumno?->nombre,
             ]),
-            'listo_para_firma' => (bool) ($meta['listo_para_firma'] ?? false),
-            'listo_para_firma_marcado_en' => $meta['listo_para_firma_marcado_en'] ?? null,
-            'observaciones_total_count' => (int) $obsTotal,
-            'observaciones_pendientes_count' => (int) $obsPend,
-            'observaciones_atendidas_count' => (int) $obsAten,
-            'observaciones_descartadas_count' => (int) $obsDesc,
+            'ultimo_movimiento' => $this->updated_at?->toIso8601String(),
             'ultima_observacion' => $ultima ? [
-                'id' => $ultima->id,
-                'tipo' => $ultima->tipo,
-                'seccion' => $ultima->seccion,
                 'observacion' => $ultima->observacion,
-                'estado' => $ultima->estado,
-                'prioridad' => $ultima->prioridad,
                 'created_at' => $ultima->created_at?->toIso8601String(),
             ] : null,
-            'tiene_observaciones_pendientes' => (bool) ($obsPend > 0),
+            'tiene_observaciones_pendientes' => (bool) (($this->observaciones_pendientes_count ?? 0) > 0),
             'created_at' => $this->created_at?->toIso8601String(),
             'updated_at' => $this->updated_at?->toIso8601String(),
         ];
+
+        if ($verTecnico) {
+            $base['estado_firma'] = $this->estado_firma;
+            $base['estado_xml'] = $this->estado_xml;
+            $base['estado_cadena'] = $this->estado_cadena;
+            $base['estado_pdf'] = $this->estado_pdf;
+            $base['folio_digital_sep'] = $this->folio_digital_sep;
+            $base['listo_para_firma'] = (bool) ($meta['listo_para_firma'] ?? false);
+        }
+
+        return $base;
     }
 }

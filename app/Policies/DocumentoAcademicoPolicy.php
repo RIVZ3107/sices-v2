@@ -5,9 +5,11 @@ declare(strict_types=1);
 namespace App\Policies;
 
 use App\Enums\Certificacion\EstadoWorkflow;
+use App\Enums\DocumentosAcademicos\EtapaInstitucionalDocumento;
 use App\Models\DocumentoAcademico;
 use App\Models\User;
 use App\Services\Certificacion\CertificacionAlcanceService;
+use App\Services\DocumentosAcademicos\DocumentoAcademicoWorkflowService;
 use App\Support\SicesAuth;
 
 class DocumentoAcademicoPolicy
@@ -90,6 +92,25 @@ class DocumentoAcademicoPolicy
 
     public function aprobar(User $user, DocumentoAcademico $documento): bool
     {
+        if ($user->can('certificacion.validar')
+            && ! SicesAuth::canAny(
+                $user,
+                'aprobar_documentos',
+                'documentos.aprobar',
+                'documentos.aprobar_institucionalmente',
+                'certificacion.autorizar_emision',
+            )
+            && ! $user->hasAnyRole(['superadmin', 'admin', 'educacion_superior'])) {
+            return false;
+        }
+
+        if (! $user->hasAnyRole(['superadmin', 'admin'])) {
+            $etapa = app(DocumentoAcademicoWorkflowService::class)->resolverEtapaInstitucional($documento);
+            if ($etapa !== EtapaInstitucionalDocumento::VALIDADO_POR_CERTIFICADOR) {
+                return false;
+            }
+        }
+
         return (SicesAuth::canAny(
             $user,
             'aprobar_documentos',
@@ -97,21 +118,41 @@ class DocumentoAcademicoPolicy
             'documentos.aprobar_institucionalmente',
         )
             || $user->can('validaciones_normativas.aprobar')
-            || $user->can('certificacion.autorizar_emision')
-            || $user->can('certificacion.validar'))
+            || $user->can('certificacion.autorizar_emision'))
             && $this->alcance->documentoEnAlcance($user, $documento);
+    }
+
+    public function validarInformacion(User $user, DocumentoAcademico $documento): bool
+    {
+        if (! $user->can('certificacion.validar')
+            && ! SicesAuth::canAny($user, 'validaciones_normativas.aprobar', 'documentos.observar')) {
+            return false;
+        }
+
+        if ($this->esSoloEducacionSuperiorSinCertificador($user)) {
+            return false;
+        }
+
+        return $this->alcance->documentoEnAlcance($user, $documento);
+    }
+
+    public function transicionWorkflow(User $user, DocumentoAcademico $documento): bool
+    {
+        return $this->view($user, $documento);
     }
 
     public function rechazar(User $user, DocumentoAcademico $documento): bool
     {
-        return (SicesAuth::canAny(
+        if ($user->can('certificacion.validar') || $user->can('validaciones_normativas.rechazar')) {
+            return $this->alcance->documentoEnAlcance($user, $documento);
+        }
+
+        return SicesAuth::canAny(
             $user,
             'rechazar_documentos',
             'documentos.rechazar',
             'documentos.rechazar_institucionalmente',
-        )
-            || $user->can('validaciones_normativas.rechazar'))
-            && $this->alcance->documentoEnAlcance($user, $documento);
+        ) && $this->alcance->documentoEnAlcance($user, $documento);
     }
 
     public function cancelar(User $user, DocumentoAcademico $documento): bool
@@ -154,6 +195,13 @@ class DocumentoAcademicoPolicy
             'certificacion.enviar_a_proceso_tecnico',
         ))
             && $this->alcance->documentoEnAlcance($user, $documento);
+    }
+
+    protected function esSoloEducacionSuperiorSinCertificador(User $user): bool
+    {
+        return $user->hasRole('educacion_superior')
+            && ! $user->can('certificacion.validar')
+            && ! $user->hasAnyRole(['superadmin', 'admin']);
     }
 
     public function firmar(User $user, DocumentoAcademico $documento): bool

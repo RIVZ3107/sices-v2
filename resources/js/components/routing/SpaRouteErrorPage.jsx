@@ -1,4 +1,6 @@
 import { isRouteErrorResponse, Link, useRouteError } from 'react-router-dom';
+import { InstitutionalAccessDenied } from '../ui/InstitutionalAccessDenied';
+import { MSG_ACCESO_DENEGADO, sanitizeInstitutionalMessage } from '../../utils/uxInstitucional';
 
 export function SpaNotFoundPage() {
     return (
@@ -34,13 +36,21 @@ export function SpaRouteErrorPage() {
         return <SpaNotFoundPage />;
     }
 
-    const message = isRouteErrorResponse(error)
-        ? error.statusText || error.data?.message || 'No se pudo completar la operación.'
-        : error?.message || 'Ocurrió un error inesperado en la aplicación.';
+    if (isRouteErrorResponse(error) && (error.status === 403 || error.status === 401)) {
+        return <InstitutionalAccessDenied message={MSG_ACCESO_DENEGADO} />;
+    }
+
+    const raw = isRouteErrorResponse(error)
+        ? error.statusText || error.data?.message || ''
+        : error?.message || '';
+    const message = sanitizeInstitutionalMessage(
+        raw,
+        'No fue posible mostrar esta sección. Regrese al inicio o intente más tarde.',
+    );
 
     return (
         <section className="inst-surface p-8 max-w-lg mx-auto text-center grid gap-4">
-            <h1 className="inst-title text-lg">Error en la aplicación</h1>
+            <h1 className="inst-title text-lg">No se pudo cargar la sección</h1>
             <p className="inst-muted text-sm">{message}</p>
             <div className="flex flex-wrap justify-center gap-2">
                 <Link to="/app/dashboard" className="inst-btn inst-btn-primary text-sm">

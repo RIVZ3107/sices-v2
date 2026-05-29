@@ -31,25 +31,26 @@ export const UPN_ESTATUS_OPCIONES = [
 
 /** @type {Record<string, string[]>} */
 export const UPN_ESTATUS_BANDEJAS = {
-    pendiente: ['en-revision', 'pendientes-revision'],
-    aprobado: ['aprobados'],
+    pendiente: ['en-validacion-certificador'],
+    aprobado: ['aprobado-educacion-superior', 'validado-por-certificador'],
     rechazado: ['rechazados'],
-    firmado: ['firmados'],
-    listo_proceso_tecnico: ['listos-para-firma'],
-    error_firma: ['errores-firma'],
+    firmado: ['firmado-timbrado', 'finalizado'],
+    listo_proceso_tecnico: ['pendiente-firma', 'en-procesamiento', 'folio-asignado'],
+    error_firma: ['incidencia-tecnica'],
     cancelado: ['cancelados'],
 };
 
 /** Bandejas iniciales (evita 8 peticiones paralelas que dejan la UI en loading). */
 export const UPN_BANDEJAS_DEFAULT = [
-    'en-revision',
-    'pendientes-revision',
-    'aprobados',
-    'rechazados',
-    'listos-para-firma',
+    'validado-por-certificador',
+    'aprobado-educacion-superior',
+    'folio-asignado',
+    'en-procesamiento',
+    'pendiente-firma',
+    'firmado-timbrado',
 ];
 
-export const UPN_BANDEJAS_EXTRA = ['firmados', 'errores-firma', 'cancelados'];
+export const UPN_BANDEJAS_EXTRA = ['finalizado', 'incidencia-tecnica', 'rechazados', 'cancelados'];
 
 /**
  * @param {object} row
@@ -96,31 +97,38 @@ export function mapFilaUpn(row, index = 0) {
     const estadoFirma = resolverEstadoFirma(row);
     const meta = row?.metadata ?? {};
     const trayectoria = meta?.trayectoria_resumen ?? meta?.trayectoria ?? {};
+    const wr = row?.workflow_resumen ?? {};
+    const acciones = (wr.acciones_permitidas ?? []).map((a) => a.accion);
 
     return {
         id: row.id,
         indice: index + 1,
         nombre: row.alumno?.nombre_completo ?? '—',
         curp: row.alumno?.curp ?? '—',
+        matricula: row.matricula?.matricula ?? '—',
         cct: row.sede?.clave ?? row.sede?.nombre ?? '—',
         folio: row.folio_interno ?? `DOC-${row.id}`,
         carrera: row.programa?.nombre ?? row.tipo_certificacion ?? '—',
         tipoCertificado: row.tipo_documento ?? row.tipo_certificacion ?? '—',
+        subsistema: row.subsistema?.clave ?? 'UPN',
+        etapaLabel: wr.etapa_label,
+        siguienteAccion: wr.siguiente_accion_principal?.label,
         promedio: trayectoria?.promedio ?? meta?.promedio ?? meta?.promedio_aprovechamiento ?? '—',
         fechaExpedicion: row.fecha_aprobacion ?? row.fecha_solicitud ?? null,
         estatus,
         estadoCertificador,
         estadoProcesamiento,
         estadoFirma,
+        workflowResumen: wr,
         raw: row,
         alumnoId: row.alumno?.id,
-        puedeProcesar:
-            row.estado_workflow === 'aprobado'
-            && row.folio_interno
-            && !row.listo_para_firma
-            && row.estado_firma !== 'firmado',
-        puedeFirmar: Boolean(row.listo_para_firma) && row.estado_firma !== 'firmado' && row.estado_firma !== 'error_firma',
-        tieneIncidencia: row.estado_firma === 'error_firma' || Boolean(meta?.firma_servicio_34?.last_error),
+        puedeProcesar: acciones.includes('procesar_certificacion'),
+        puedeFirmar: acciones.includes('firmar_certificado'),
+        puedeAprobar: acciones.includes('aprobar_expediente'),
+        tieneIncidencia:
+            wr.etapa === 'incidencia_tecnica'
+            || row.estado_firma === 'error_firma'
+            || Boolean(meta?.firma_servicio_34?.last_error),
     };
 }
 

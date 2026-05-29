@@ -1,17 +1,17 @@
 import { etapaFalloTecnico } from './certificacionEstadosInstitucionales';
 
 export const BANDEJAS_INCIDENCIAS = {
-    abiertas: { key: 'abiertas', label: 'Incidencias abiertas', api: 'errores-firma' },
-    revision: { key: 'revision', label: 'En revisión', api: 'pendientes-tecnicos' },
-    corregidas: { key: 'corregidas', label: 'Corregidas / reintentables', api: 'listos-para-firma' },
-    errores_firma: { key: 'errores_firma', label: 'Errores de firma', api: 'errores-firma' },
-    historial: { key: 'historial', label: 'Historial técnico', api: 'firmados' },
+    abiertas: { key: 'abiertas', label: 'Incidencias abiertas', api: 'incidencia-tecnica' },
+    revision: { key: 'revision', label: 'En revisión Sistemas', api: 'en-revision-sistemas' },
+    corregidas: { key: 'corregidas', label: 'Reintentadas', api: 'reintentado' },
+    errores_firma: { key: 'errores_firma', label: 'Errores de firma', api: 'incidencia-tecnica' },
+    historial: { key: 'historial', label: 'Resueltas', api: 'firmado-timbrado' },
 };
 
 export function mapFilaIncidencia(row) {
     const meta = row?.metadata ?? {};
-    const firmaMeta = meta?.firma_servicio_34 ?? {};
     const alumno = row.alumno?.nombre_completo ?? row.alumno?.nombre ?? '—';
+    const wr = row.workflow_resumen ?? {};
 
     return {
         id: row.id,
@@ -19,10 +19,11 @@ export function mapFilaIncidencia(row) {
         alumno,
         curp: row.alumno?.curp ?? '—',
         institucion: row.institucion?.nombre ?? '—',
-        etapa: etapaFalloTecnico(row),
-        tipoError: firmaMeta.last_error ?? row.estado_firma ?? row.estado_workflow ?? '—',
-        ultimoIntento: firmaMeta.last_attempt_at ?? row.updated_at ?? null,
+        etapa: wr.etapa_label ?? etapaFalloTecnico(row),
+        tipoError: meta.incidencia_motivo ?? 'Incidencia técnica',
+        ultimoIntento: row.ultimo_movimiento ?? row.updated_at ?? null,
         responsable: meta?.incidencia_responsable ?? '—',
+        workflow_resumen: wr,
         raw: row,
     };
 }

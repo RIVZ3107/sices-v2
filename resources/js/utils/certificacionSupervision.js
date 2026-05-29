@@ -109,13 +109,19 @@ export function resolverPrioridad(doc) {
     return { label: 'Baja', badge: 'blue' };
 }
 
+function accionesWorkflow(doc) {
+    return (doc?.workflow_resumen?.acciones_permitidas ?? []).map((a) => a.accion);
+}
+
 export function mapDocumentoSupervisionRow(doc) {
+    const acciones = accionesWorkflow(doc);
     const fase = resolverFase(doc);
     const estatus = resolverEstatus(doc);
     const prioridad = resolverPrioridad(doc);
     const estadoCertificador = resolverEstadoCertificador(doc);
     const estadoProcesamiento = resolverEstadoProcesamiento(doc);
     const estadoFirma = resolverEstadoFirma(doc);
+    const wr = doc?.workflow_resumen ?? {};
     const nombrePartes = [doc.alumno?.nombre, doc.alumno?.primer_apellido, doc.alumno?.segundo_apellido]
         .filter(Boolean)
         .join(' ');
@@ -149,23 +155,17 @@ export function mapDocumentoSupervisionRow(doc) {
         prioridad,
         diasEspera: diasEnEspera(doc),
         raw: doc,
-        puedeAsignarFolio:
-            doc.estado_workflow === 'aprobado' && !doc.folio_interno && !doc.listo_para_firma,
-        puedeProcesar:
-            doc.estado_workflow === 'aprobado'
-            && doc.folio_interno
-            && !doc.listo_para_firma
-            && !doc.tiene_observaciones_pendientes
-            && doc.estado_firma !== 'firmado',
-        puedeLiberar:
-            doc.estado_workflow === 'aprobado'
-            && doc.folio_interno
-            && !doc.listo_para_firma
-            && !doc.tiene_observaciones_pendientes
-            && doc.estado_firma !== 'firmado',
-        puedeAprobar: ['en_revision', 'pendiente'].includes(doc.estado_workflow),
-        puedeValidar: ['en_revision', 'pendiente'].includes(doc.estado_workflow),
-        puedeFirmar: Boolean(doc.listo_para_firma) && doc.estado_firma !== 'firmado' && doc.estado_firma !== 'error_firma',
+        workflowResumen: wr,
+        etapaInstitucional: wr.etapa ?? doc.etapa_institucional,
+        etapaLabel: wr.etapa_label,
+        siguienteAccionLabel: wr.siguiente_accion_principal?.label,
+        subsistemaLabel: doc.subsistema?.clave ?? doc.subsistema?.nombre ?? '—',
+        puedeAsignarFolio: acciones.includes('asignar_folio'),
+        puedeProcesar: acciones.includes('procesar_certificacion'),
+        puedeLiberar: acciones.includes('procesar_certificacion'),
+        puedeAprobar: acciones.includes('aprobar_expediente'),
+        puedeValidar: acciones.includes('validar_informacion'),
+        puedeFirmar: acciones.includes('firmar_certificado'),
         tieneIncidencia: doc.estado_firma === 'error_firma' || Boolean(meta?.firma_servicio_34?.last_error),
         updated_at: doc.updated_at ?? doc.created_at,
     };
@@ -180,6 +180,42 @@ export function mergeDocumentosBandejas(listas) {
 }
 
 export function derivarKpis(resumen, rows) {
+    const tieneResumenApi =
+        resumen
+        && typeof resumen === 'object'
+        && ('validado-por-certificador' in resumen
+            || 'aprobado-educacion-superior' in resumen
+            || 'en-validacion-certificador' in resumen);
+
+    if (tieneResumenApi) {
+        const pendientesValidacion =
+            Number(resumen['en-validacion-certificador'] ?? 0)
+            + Number(resumen['pendientes-revision'] ?? resumen['en-revision'] ?? 0);
+        const validadosCertificador = Number(resumen['validado-por-certificador'] ?? 0);
+        const pendientesFolio =
+            Number(resumen['aprobado-educacion-superior'] ?? resumen.aprobados ?? 0);
+        const enProcesamiento =
+            Number(resumen['folio-asignado'] ?? 0)
+            + Number(resumen['en-procesamiento'] ?? 0)
+            + Number(resumen['pendiente-firma'] ?? resumen['listos-para-firma'] ?? 0);
+        const firmados =
+            Number(resumen['firmado-timbrado'] ?? resumen.firmados ?? 0)
+            + Number(resumen.finalizado ?? 0);
+        const incidencias = Number(resumen['incidencia-tecnica'] ?? resumen['errores-firma'] ?? 0);
+
+        return {
+            candidatos: pendientesValidacion,
+            aprobados: validadosCertificador,
+            pendientesFolio,
+            listosProcesoTecnico: enProcesamiento,
+            firmados,
+            incidencias,
+            pendientesValidacion,
+            validadosCertificador,
+            enProcesamiento,
+        };
+    }
+
     const institucional = derivarKpisInstitucionales(rows);
     return {
         candidatos: institucional.pendientesValidacion,

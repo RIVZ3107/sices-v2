@@ -8,6 +8,14 @@ import {
     ceColors,
     ceTheme,
 } from '../../components/controlEscolar';
+import { InstitutionalEmptyState } from '../../components/ui/InstitutionalEmptyState';
+import {
+    CE_DASHBOARD_EMPTY_ACTIONS,
+    EMPTY_BY_ROLE,
+    MSG_CARGA_TABLERO,
+    institutionalDistribucionTitulo,
+    sanitizeInstitutionalMessage,
+} from '../../utils/uxInstitucional';
 
 function buildDonutGradient(segmentos, total) {
     if (!total || !Array.isArray(segmentos) || segmentos.length === 0) {
@@ -81,9 +89,8 @@ export function ControlEscolarDashboardPage() {
 
     const segmentos = distribucion.segmentos ?? [];
     const totalDonut = Number(distribucion.total ?? 0);
-    const donutTitulo = distribucion.tipo === 'escenario_demo'
-        ? 'Expedientes por escenario (demo)'
-        : 'Alumnos por estatus';
+    const donutTitulo = institutionalDistribucionTitulo(distribucion.tipo);
+    const errorInstitucional = error ? sanitizeInstitutionalMessage(error) : '';
 
         if (loading) {
         return (
@@ -107,11 +114,10 @@ export function ControlEscolarDashboardPage() {
                     {CeIcons.shieldCheck}
                 </div>
                 <div style={ceTheme.surface}>
-                    <p style={{ fontSize: 14, fontWeight: 600, color: '#991B1B' }}>Error de carga</p>
-                    <p style={{ fontSize: 13, color: '#991B1B', marginBottom: 12 }}>{error}</p>
-                    <p style={{ fontSize: 12, color: '#64748b', margin: 0 }}>
-                        Ejecute el seeder demo: <code style={{ fontSize: 11 }}>php artisan db:seed --class=CertificacionControlEscolarDemoSeeder</code>
+                    <p style={{ fontSize: 14, fontWeight: 600, color: '#334155', marginBottom: 8 }}>
+                        No fue posible cargar el tablero
                     </p>
+                    <p style={{ fontSize: 13, color: '#64748b', margin: 0 }}>{errorInstitucional || MSG_CARGA_TABLERO}</p>
                 </div>
             </div>
         );
@@ -146,17 +152,42 @@ export function ControlEscolarDashboardPage() {
                 </div>
             </div>
 
-            {error ? (
+            {errorInstitucional ? (
                 <div style={{ padding: '12px 16px', background: '#FEF3C7', border: '1px solid #FDE68A', borderRadius: 8, fontSize: 13, color: '#92400E', marginBottom: 24 }}>
-                    {error}
+                    {errorInstitucional}
                 </div>
             ) : null}
 
             {totalDonut === 0 ? (
-                <div style={{ padding: '12px 16px', background: '#EFF6FF', border: '1px solid #BFDBFE', borderRadius: 8, fontSize: 13, color: '#1E40AF', marginBottom: 24 }}>
-                    No hay alumnos en alcance. Ejecute{' '}
-                    <code style={{ fontSize: 12 }}>php artisan db:seed --class=CertificacionControlEscolarDemoSeeder</code>{' '}
-                    e inicie sesión como <strong>control.escolar@sices.local</strong>.
+                <div style={{ marginBottom: 24 }}>
+                    <InstitutionalEmptyState
+                        title={EMPTY_BY_ROLE.control_escolar_alumnos.title}
+                        description={EMPTY_BY_ROLE.control_escolar_alumnos.description}
+                        action={
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, justifyContent: 'center' }}>
+                                {CE_DASHBOARD_EMPTY_ACTIONS.map((a) => (
+                                    <Link
+                                        key={a.to}
+                                        to={a.to}
+                                        style={{
+                                            display: 'inline-flex',
+                                            alignItems: 'center',
+                                            height: 36,
+                                            padding: '0 14px',
+                                            borderRadius: 8,
+                                            background: '#185FA5',
+                                            color: '#fff',
+                                            fontSize: 13,
+                                            fontWeight: 600,
+                                            textDecoration: 'none',
+                                        }}
+                                    >
+                                        {a.label}
+                                    </Link>
+                                ))}
+                            </div>
+                        }
+                    />
                 </div>
             ) : null}
 

@@ -110,6 +110,11 @@ class BandejaDocumentoAcademicoController extends Controller
         ]);
     }
 
+    public function resolverDinamico(Request $request, string $bandeja): JsonResponse
+    {
+        return $this->resolver($request, $bandeja);
+    }
+
     protected function resolver(Request $request, string $bandeja): JsonResponse
     {
         $lista = $this->bandejas->listar($request, $bandeja);

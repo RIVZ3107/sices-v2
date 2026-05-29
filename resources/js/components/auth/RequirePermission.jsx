@@ -1,11 +1,11 @@
-import { Navigate } from 'react-router-dom';
 import { userCan, userCanAny } from '../../utils/userPermissions';
+import { InstitutionalAccessDenied } from '../ui/InstitutionalAccessDenied';
 
 export function RequirePermission({ permission, anyOf = [], children }) {
     const ok = permission ? userCan(permission) : userCanAny(anyOf);
 
     if (!ok) {
-        return <Navigate to="/app/dashboard" replace />;
+        return <InstitutionalAccessDenied />;
     }
 
     return children;

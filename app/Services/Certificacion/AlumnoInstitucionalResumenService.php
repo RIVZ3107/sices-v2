@@ -173,6 +173,7 @@ final class AlumnoInstitucionalResumenService
             'clave_matricula' => $m->matricula,
             'estado' => $this->estadoMatriculaLegible((string) ($m->estado ?? '')),
             'subsistema' => $oferta?->institucion?->subsistema?->nombre,
+            'subsistema_clave' => $oferta?->institucion?->subsistema?->clave,
             'ciclo_actual' => $m->cicloEscolar?->nombre ?? $m->cicloEscolar?->clave,
             'institucion' => $oferta?->institucion?->nombre,
             'sede' => $oferta?->sede?->nombre,
@@ -415,6 +416,9 @@ final class AlumnoInstitucionalResumenService
             : 0;
 
         return [
+            'id' => $d->id,
+            'tipo_documento_key' => (string) $d->tipo_documento,
+            'estado_workflow' => (string) $d->estado_workflow,
             'tipo_certificacion' => $d->tipo_certificacion !== null && $d->tipo_certificacion !== ''
                 ? (TipoCertificacion::tryFrom((string) $d->tipo_certificacion)?->label() ?? (string) $d->tipo_certificacion)
                 : null,

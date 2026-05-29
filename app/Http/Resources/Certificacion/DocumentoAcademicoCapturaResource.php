@@ -6,6 +6,7 @@ namespace App\Http\Resources\Certificacion;
 
 use App\Models\DocumentoAcademico;
 use App\Services\DocumentosAcademicos\DocumentoAcademicoTipoService;
+use App\Services\DocumentosAcademicos\DocumentoAcademicoWorkflowService;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -26,6 +27,12 @@ class DocumentoAcademicoCapturaResource extends JsonResource
             ? $this->ultimaObservacion
             : $this->observaciones()->latest()->first();
 
+        $workflow = null;
+        if ($request->user()) {
+            $workflow = app(DocumentoAcademicoWorkflowService::class)
+                ->armarPayloadWorkflow($this->resource, $request->user());
+        }
+
         return [
             'id' => $this->id,
             'alumno_id' => $this->alumno_id,
@@ -42,6 +49,8 @@ class DocumentoAcademicoCapturaResource extends JsonResource
             'folio_digital_sep' => $this->folio_digital_sep,
             'token_consulta_publica' => $this->token_consulta_publica,
             'estado_workflow' => $this->estado_workflow,
+            'etapa_institucional' => $meta['etapa_institucional'] ?? null,
+            'workflow' => $workflow,
             'estado_cadena' => $this->estado_cadena,
             'estado_xml' => $this->estado_xml,
             'estado_firma' => $this->estado_firma,
