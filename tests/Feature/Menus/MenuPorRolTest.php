@@ -122,7 +122,8 @@ class MenuPorRolTest extends TestCase
         $this->assertContains('/app/educacion-superior/programas', $esRoutes);
         $this->assertContains('/app/educacion-superior/planes', $esRoutes);
         $this->assertContains('/app/educacion-superior/validaciones-normativas', $esRoutes);
-        $this->assertContains('/app/educacion-superior/certificacion', $esRoutes);
+        $this->assertContains('/app/educacion-superior/normales/certificacion', $esRoutes);
+        $this->assertContains('/app/educacion-superior/upn/certificacion', $esRoutes);
         $this->assertContains('/app/educacion-superior/reportes-oficiales', $esRoutes);
         $this->assertContains('Validaciones normativas', $esLabels);
         $this->assertContains('Sedes / Subsedes', $esLabels);

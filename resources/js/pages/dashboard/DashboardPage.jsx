@@ -43,7 +43,7 @@ export function DashboardPage() {
     if (resolvedRole === 'admin') return <AdminDashboardPage />;
     if (resolvedRole === 'sistemas') return <SistemasDashboardPage />;
     if (resolvedRole === 'educacion_superior') {
-        return <Navigate to="/app/educacion-superior/certificacion" replace />;
+        return <Navigate to="/app/educacion-superior/normales/certificacion" replace />;
     }
     if (resolvedRole === 'director_escuela') return <DirectorEscuelaDashboardPage />;
     if (resolvedRole === 'control_escolar_escuela') return <ControlEscolarDashboardPage />;

@@ -67,6 +67,7 @@ export function CertificationWorkflowTable({
     onObservar,
     onVerError,
     onEnviarSistemas,
+    detallePath = revisionInstitucionalDetallePath,
 }) {
     return (
         <EsTable headers={HEADERS} emptyColSpan={HEADERS.length} emptyMessage={null}>
@@ -108,7 +109,7 @@ export function CertificationWorkflowTable({
                             </ActionLink>
                         ) : null}
                         {esCan('validar') && item.puedeValidar ? (
-                            <ActionLink to={revisionInstitucionalDetallePath(item.id)} title="Validar">
+                            <ActionLink to={detallePath(item.id)} title="Validar">
                                 Validar
                             </ActionLink>
                         ) : null}

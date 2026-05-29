@@ -1,5 +1,5 @@
 import { CERT_PERM } from './certificacionPermissions';
-import { ES_CERTIFICACION_PATH, UPN_CERTIFICACION_PATH } from './certificacionRoutes';
+import { NORMALES_CERTIFICACION_PATH, UPN_CERTIFICACION_PATH } from './certificacionRoutes';
 
 /** Accesos rápidos en dashboard (tabs/cards horizontales, no sidebar). */
 export const CERT_QUICK_LINKS = [
@@ -20,9 +20,9 @@ export const CERT_QUICK_LINKS = [
         permissions: CERT_PERM.generacion,
     },
     {
-        key: 'revision',
-        label: 'Revisión institucional',
-        to: ES_CERTIFICACION_PATH,
+        key: 'normales',
+        label: 'Certificación Normales',
+        to: NORMALES_CERTIFICACION_PATH,
         icon: 'validate',
         permissions: CERT_PERM.revision,
     },

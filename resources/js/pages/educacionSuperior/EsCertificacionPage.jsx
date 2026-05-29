@@ -22,11 +22,29 @@ import { ejecutarProcesoCertificacion } from '../../lib/ejecutarProcesoCertifica
 import { esCan } from '../../utils/esCertificacionPermissions';
 import {
     documentoProcesoTecnicoDetallePath,
+    normalesCertificacionDetallePath,
     revisionInstitucionalBasePath,
     revisionInstitucionalDetallePath,
 } from '../../utils/certificacionRoutes';
 
-export function EsCertificacionPage() {
+const COPY_NORMALES = {
+    breadcrumb: 'Certificación Normales',
+    title: 'Certificación de Escuelas Normales',
+    subtitle:
+        'Validación, aprobación, procesamiento y seguimiento final de documentos académicos de Escuelas Normales.',
+    loading: 'Cargando certificación de Escuelas Normales…',
+    aviso:
+        'Subsistema Escuelas Normales. El certificador valida datos académicos. Educación Superior aprueba, asigna folio y procesa la certificación de forma automática. Sistemas solo atiende incidencias técnicas.',
+};
+
+/**
+ * @param {{ subsistema?: 'normales' }} props
+ * Bandeja de supervisión/certificación ES. Por defecto Normales (ruta canónica).
+ */
+export function EsCertificacionPage({ subsistema = 'normales' }) {
+    const copy = COPY_NORMALES;
+    const detallePath =
+        subsistema === 'normales' ? normalesCertificacionDetallePath : revisionInstitucionalDetallePath;
     const navigate = useNavigate();
     const {
         loading,
@@ -177,16 +195,16 @@ export function EsCertificacionPage() {
     }
 
   if (loading) {
-        return <EsPageLayout loading loadingText="Cargando certificación de Educación Superior…" title="" />;
+        return <EsPageLayout loading loadingText={copy.loading} title="" />;
     }
 
     const sinDatos = rowsFiltradas.length === 0 && !filters.q && !filters.fase;
 
     return (
         <EsPageLayout
-            breadcrumbCurrent="Certificación"
-            title="Certificación de Educación Superior"
-            subtitle="Validación, aprobación, procesamiento y seguimiento final de certificados académicos."
+            breadcrumbCurrent={copy.breadcrumb}
+            title={copy.title}
+            subtitle={copy.subtitle}
             largeTitle
             metricsWide
             metrics={metricasKpi.map((m) => ({
@@ -243,10 +261,7 @@ export function EsCertificacionPage() {
                 />
             }
         >
-            <p style={{ margin: '0 0 12px', fontSize: 12, color: '#64748b' }}>
-                El certificador valida datos académicos. Educación Superior aprueba, asigna folio y procesa la certificación de
-                forma automática. Sistemas solo atiende incidencias técnicas cuando el procesamiento falla.
-            </p>
+            <p style={{ margin: '0 0 12px', fontSize: 12, color: '#64748b' }}>{copy.aviso}</p>
 
             {actionMsg ? <p style={{ margin: '0 0 12px', fontSize: 13, color: '#0F6E56' }}>{actionMsg}</p> : null}
 
@@ -286,7 +301,8 @@ export function EsCertificacionPage() {
                             onProcesar={handleProcesar}
                             onFirmar={handleFirmar}
                             onAprobar={handleAprobar}
-                            onObservar={(item) => navigate(revisionInstitucionalDetallePath(item.id))}
+                            detallePath={detallePath}
+                            onObservar={(item) => navigate(detallePath(item.id))}
                             onVerError={handleVerError}
                             onEnviarSistemas={handleEnviarSistemas}
                         />

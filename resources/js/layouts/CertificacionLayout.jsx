@@ -1,5 +1,5 @@
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
-import { debeUsarLayoutCertificacionRc } from '../utils/certificacionRoutes';
+import { debeUsarLayoutCertificacionRc, NORMALES_CERTIFICACION_PATH } from '../utils/certificacionRoutes';
 
 /**
  * Wrapper sin navegación lateral: el menú global (SidebarPro) es la única navegación.
@@ -9,7 +9,7 @@ export function CertificacionLayout() {
     const location = useLocation();
 
     if (!debeUsarLayoutCertificacionRc()) {
-        let destino = '/app/educacion-superior/certificacion';
+        let destino = NORMALES_CERTIFICACION_PATH;
         if (location.pathname.includes('/revision')) {
             destino =
                 location.pathname.replace('/app/certificacion', '/app/educacion-superior') + location.search;

@@ -67,7 +67,9 @@ import { EsSedesPage } from './pages/educacionSuperior/EsSedesPage';
 import { EsProgramasPage } from './pages/educacionSuperior/EsProgramasPage';
 import { EsPlanesPage } from './pages/educacionSuperior/EsPlanesPage';
 import { EsValidacionesNormativasPage } from './pages/educacionSuperior/EsValidacionesNormativasPage';
-import { EsCertificacionPage } from './pages/educacionSuperior/EsCertificacionPage';
+import { NormalesCertificacionPage } from './pages/educacionSuperior/NormalesCertificacionPage';
+import { NormalesCertificadoDetallePage } from './pages/educacionSuperior/NormalesCertificadoDetallePage';
+import { EsSubsistemaPlaceholderPage } from './pages/educacionSuperior/EsSubsistemaPlaceholderPage';
 import { UpnCertificacionPage } from './pages/educacionSuperior/UpnCertificacionPage';
 import { UpnCertificadoDetallePage } from './pages/educacionSuperior/UpnCertificadoDetallePage';
 import { EsReportesOficialesPage } from './pages/educacionSuperior/EsReportesOficialesPage';
@@ -86,7 +88,10 @@ import { NotificacionesCertificacionPage } from './pages/certificacion/Notificac
 import { CERT_PERM } from './utils/certificacionPermissions';
 import {
     DOCUMENTO_PROCESO_TECNICO_PATH,
+    ES_CERTIFICACION_LEGACY_PATH,
+    NORMALES_CERTIFICACION_PATH,
     PROCESO_TECNICO_BANDEJA_PATH,
+    UPN_CERTIFICACION_LEGACY_PATH,
     UPN_CERTIFICACION_PATH,
 } from './utils/certificacionRoutes';
 
@@ -370,8 +375,140 @@ export const router = createBrowserRouter([
                                 element: <Guard anyOf={PERM.educacionSuperior}><EsValidacionesNormativasPage /></Guard>,
                             },
                             {
+                                path: 'normales',
+                                children: [
+                                    {
+                                        path: 'certificacion',
+                                        children: [
+                                            {
+                                                index: true,
+                                                element: (
+                                                    <Guard anyOf={PERM.educacionSuperior}>
+                                                        <NormalesCertificacionPage />
+                                                    </Guard>
+                                                ),
+                                            },
+                                            {
+                                                path: ':documentoId',
+                                                element: (
+                                                    <Guard anyOf={PERM.revisionInstitucional}>
+                                                        <NormalesCertificadoDetallePage />
+                                                    </Guard>
+                                                ),
+                                            },
+                                        ],
+                                    },
+                                    {
+                                        path: 'titulos',
+                                        element: (
+                                            <Guard anyOf={PERM.educacionSuperior}>
+                                                <EsSubsistemaPlaceholderPage
+                                                    subsistema="normales"
+                                                    modulo="Títulos"
+                                                    descripcion="Emisión y seguimiento de títulos de Escuelas Normales (ruta preparada)."
+                                                />
+                                            </Guard>
+                                        ),
+                                    },
+                                    {
+                                        path: 'grados-academicos',
+                                        element: (
+                                            <Guard anyOf={PERM.educacionSuperior}>
+                                                <EsSubsistemaPlaceholderPage
+                                                    subsistema="normales"
+                                                    modulo="Grados académicos"
+                                                    descripcion="Grados académicos de Escuelas Normales (ruta preparada)."
+                                                />
+                                            </Guard>
+                                        ),
+                                    },
+                                    {
+                                        path: 'constancias',
+                                        element: (
+                                            <Guard anyOf={PERM.educacionSuperior}>
+                                                <EsSubsistemaPlaceholderPage
+                                                    subsistema="normales"
+                                                    modulo="Constancias"
+                                                    descripcion="Constancias de Escuelas Normales (ruta preparada)."
+                                                />
+                                            </Guard>
+                                        ),
+                                    },
+                                ],
+                            },
+                            {
+                                path: 'upn',
+                                children: [
+                                    {
+                                        path: 'certificacion',
+                                        children: [
+                                            {
+                                                index: true,
+                                                element: (
+                                                    <Guard anyOf={PERM.educacionSuperior}>
+                                                        <UpnCertificacionPage />
+                                                    </Guard>
+                                                ),
+                                            },
+                                            {
+                                                path: ':documentoId',
+                                                element: (
+                                                    <Guard anyOf={PERM.educacionSuperior}>
+                                                        <UpnCertificadoDetallePage />
+                                                    </Guard>
+                                                ),
+                                            },
+                                        ],
+                                    },
+                                    {
+                                        path: 'titulos',
+                                        element: (
+                                            <Guard anyOf={PERM.educacionSuperior}>
+                                                <EsSubsistemaPlaceholderPage
+                                                    subsistema="upn"
+                                                    modulo="Títulos"
+                                                    descripcion="Emisión y seguimiento de títulos UPN (ruta preparada)."
+                                                />
+                                            </Guard>
+                                        ),
+                                    },
+                                    {
+                                        path: 'grados-academicos',
+                                        element: (
+                                            <Guard anyOf={PERM.educacionSuperior}>
+                                                <EsSubsistemaPlaceholderPage
+                                                    subsistema="upn"
+                                                    modulo="Grados académicos"
+                                                    descripcion="Grados académicos UPN (ruta preparada)."
+                                                />
+                                            </Guard>
+                                        ),
+                                    },
+                                    {
+                                        path: 'constancias',
+                                        element: (
+                                            <Guard anyOf={PERM.educacionSuperior}>
+                                                <EsSubsistemaPlaceholderPage
+                                                    subsistema="upn"
+                                                    modulo="Constancias"
+                                                    descripcion="Constancias UPN (ruta preparada)."
+                                                />
+                                            </Guard>
+                                        ),
+                                    },
+                                ],
+                            },
+                            {
                                 path: 'certificacion',
-                                element: <Guard anyOf={PERM.educacionSuperior}><EsCertificacionPage /></Guard>,
+                                element: <Navigate to={NORMALES_CERTIFICACION_PATH} replace />,
+                            },
+                            {
+                                path: 'upn-certificacion',
+                                element: <Navigate to={UPN_CERTIFICACION_PATH} replace />,
+                            },
+                            {
+                                path: 'upn-certificacion/:documentoId',
+                                element: <LegacyDetailRedirect basePath={UPN_CERTIFICACION_PATH} sourceParam="documentoId" />,
                             },
                             {
                                 path: 'revision',
@@ -380,22 +517,6 @@ export const router = createBrowserRouter([
                             {
                                 path: 'revision/:id',
                                 element: <Guard anyOf={PERM.revisionInstitucional}><RevisionInstitucionalPage /></Guard>,
-                            },
-                            {
-                                path: 'upn-certificacion',
-                                element: <Guard anyOf={PERM.educacionSuperior}><UpnCertificacionPage /></Guard>,
-                            },
-                            {
-                                path: 'upn-certificacion/:documentoId',
-                                element: <Guard anyOf={PERM.educacionSuperior}><UpnCertificadoDetallePage /></Guard>,
-                            },
-                            {
-                                path: 'upn/certificacion',
-                                element: <Navigate to={UPN_CERTIFICACION_PATH} replace />,
-                            },
-                            {
-                                path: 'upn/certificacion/:id',
-                                element: <LegacyDetailRedirect basePath={UPN_CERTIFICACION_PATH} />,
                             },
                             {
                                 path: 'reportes-oficiales',

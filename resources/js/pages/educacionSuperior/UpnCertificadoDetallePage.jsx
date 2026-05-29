@@ -158,7 +158,7 @@ export function UpnCertificadoDetallePage() {
                 subtitle="Revisión institucional de certificado de profesionista"
                 actions={
                     <EsHeaderAction
-                        to="/app/educacion-superior/upn-certificacion"
+                        to="/app/educacion-superior/upn/certificacion"
                         label="Volver a bandeja UPN"
                         variant="secondary"
                     />

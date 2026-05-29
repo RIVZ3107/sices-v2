@@ -69,7 +69,11 @@ class SystemMenusIntegrityTest extends TestCase
             ->all();
         $this->assertSame(1, array_count_values($rcLabels)['Inicio'] ?? 0);
         $this->assertSame(0, array_count_values($rcLabels)['Dashboard'] ?? 0);
-        $parent = Menu::query()->where('label', 'Certificación')->first();
+        $parent = Menu::query()
+            ->where('label', 'Certificación')
+            ->where('route', '#')
+            ->whereHas('roles', fn ($q) => $q->where('name', 'responsable_certificacion_titulacion'))
+            ->first();
         $this->assertNotNull($parent);
         $this->assertSame('#', $parent->route);
 
@@ -78,12 +82,13 @@ class SystemMenusIntegrityTest extends TestCase
             ->where('route', '!=', '#')
             ->pluck('route')
             ->all();
-        $this->assertContains('/app/educacion-superior/certificacion', $esRoutes);
+        $this->assertContains('/app/educacion-superior/normales/certificacion', $esRoutes);
+        $this->assertContains('/app/educacion-superior/upn/certificacion', $esRoutes);
         $this->assertSame(
             1,
             Menu::query()
                 ->whereHas('roles', fn ($q) => $q->where('name', 'educacion_superior'))
-                ->where('route', '/app/educacion-superior/certificacion')
+                ->where('route', '/app/educacion-superior/normales/certificacion')
                 ->count(),
         );
 
@@ -94,7 +99,7 @@ class SystemMenusIntegrityTest extends TestCase
         $this->assertSame('/app/sistemas/proceso-tecnico-certificacion', $sysInicio);
         $sysPte = Menu::query()
             ->whereHas('roles', fn ($q) => $q->where('name', 'sistemas'))
-            ->where('label', 'Proceso Técnico de Certificación')
+            ->where('label', 'Incidencias técnicas de certificación')
             ->value('route');
         $this->assertSame('/app/sistemas/proceso-tecnico-certificacion', $sysPte);
 

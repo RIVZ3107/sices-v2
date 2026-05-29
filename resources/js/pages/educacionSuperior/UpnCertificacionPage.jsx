@@ -123,7 +123,7 @@ export function UpnCertificacionPage() {
         <EsPageLayout
             breadcrumbCurrent="Certificación UPN"
             title="Certificación UPN"
-            subtitle="Validación, procesamiento y seguimiento de certificados UPN."
+            subtitle="Validación, aprobación, procesamiento y seguimiento final de documentos académicos UPN."
             metricsWide
             metrics={metricasKpi.map((m) => ({
                 key: m.key,
@@ -150,8 +150,8 @@ export function UpnCertificacionPage() {
             showSplit={false}
         >
             <p style={{ margin: '0 0 12px', fontSize: 12, color: '#64748b' }}>
-                Subsistema UPN. Educación Superior procesa y obtiene el resultado final de forma automática. Sistemas atiende
-                solo incidencias técnicas si el procesamiento falla.
+                Subsistema UPN — flujo propio, separado de Escuelas Normales. Educación Superior procesa y obtiene el
+                resultado final de forma automática. Sistemas atiende solo incidencias técnicas si el procesamiento falla.
             </p>
 
             {actionMsg ? (

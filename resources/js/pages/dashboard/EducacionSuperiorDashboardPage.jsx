@@ -460,7 +460,7 @@ export function EducacionSuperiorDashboardPage() {
                         Validaciones
                     </ActionButton>
 
-                    <ActionButton to="/app/educacion-superior/certificacion">
+                    <ActionButton to="/app/educacion-superior/normales/certificacion">
                         Certificación
                     </ActionButton>
 

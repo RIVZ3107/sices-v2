@@ -45,6 +45,7 @@ export const ES_CERT_PERM = {
         'documentos.aprobar',
         'documentos.aprobar_institucionalmente',
         'certificacion.validar',
+        'certificacion.aprobar',
     ],
     expediente: ['documentos.ver', 'ver_documentos', 'expedientes.ver', 'alumnos.ver'],
     reportes: ['reportes.ver'],

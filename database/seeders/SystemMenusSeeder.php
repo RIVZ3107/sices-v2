@@ -102,7 +102,8 @@ class SystemMenusSeeder extends Seeder
         $mk(null, 'sys_jobs', 'Jobs / colas', '/app/sistemas/dashboard', 'status', 21, 'TECNICO', 'jobs.ver', ['sistemas'], ['technical_only' => true]);
         $mk(null, 'sys_logs', 'Logs técnicos', '/app/sistemas/logs', 'logs', 22, 'TECNICO', 'logs.ver', ['sistemas'], ['technical_only' => true]);
         $mk(null, 'sys_aud', 'Auditoría técnica', '/app/auditoria', 'audit', 23, 'TECNICO', 'auditoria.ver', ['sistemas'], ['technical_only' => true]);
-        $mk(null, 'sys_pte', 'Proceso Técnico de Certificación', '/app/sistemas/proceso-tecnico-certificacion', 'validate', 28, 'TECNICO', 'cadena_original.generar', ['sistemas'], ['technical_only' => true]);
+        $mk(null, 'sys_pte', 'Incidencias técnicas de certificación', '/app/sistemas/proceso-tecnico-certificacion', 'validate', 28, 'TECNICO', 'cadena_original.generar', ['sistemas'], ['technical_only' => true]);
+        $mk(null, 'sys_diag', 'Diagnóstico técnico', '/app/sistemas/documento-proceso-tecnico', 'validate', 29, 'TECNICO', 'firma.ver', ['sistemas'], ['technical_only' => true]);
         $mk('sys_pte', 'sys_pte_list', 'Listos para proceso técnico', '/app/sistemas/proceso-tecnico-certificacion?bandeja=listos-para-firma', 'docs', 1, 'TECNICO', 'firma.ver', ['sistemas'], ['technical_only' => true]);
         $mk('sys_pte', 'sys_pte_pen', 'Pendientes técnicos', '/app/sistemas/proceso-tecnico-certificacion?bandeja=pendientes-tecnicos', 'status', 2, 'TECNICO', 'xml.generar', ['sistemas'], ['technical_only' => true]);
         $mk('sys_pte', 'sys_pte_err', 'Errores de firma', '/app/sistemas/proceso-tecnico-certificacion?bandeja=errores-firma', 'audit', 3, 'TECNICO', 'firma.ver', ['sistemas'], ['technical_only' => true]);
@@ -114,19 +115,28 @@ class SystemMenusSeeder extends Seeder
         $mk('sys_proc', 'sys_cp', 'Consulta pública', '/app/sistemas/configuracion', 'validate', 5, 'TECNICO', 'consulta_publica.configurar', ['sistemas'], ['technical_only' => true]);
         $mk(null, 'sys_err', 'Errores de procesos', '/app/sistemas/dashboard', 'status', 50, 'TECNICO', 'jobs.ver', ['sistemas'], ['technical_only' => true]);
 
-        // ——— Educación Superior (autoridad académica central Normal / UPN; sin administración técnica) ———
-        $mk(null, 'es_ini', 'Supervisión de certificación', '/app/educacion-superior/certificacion', 'home', 1, 'MAIN', 'certificacion.ver', ['educacion_superior']);
+        // ——— Educación Superior (Normales y UPN separados; sin administración técnica) ———
+        $mk(null, 'es_ini', 'Inicio', '/app/dashboard', 'home', 1, 'MAIN', 'dashboard.ver', ['educacion_superior']);
         $mk(null, 'es_inst', 'Instituciones', '/app/educacion-superior/instituciones', 'settings', 2, 'OPERACION', 'instituciones.ver', ['educacion_superior']);
         $mk(null, 'es_sed', 'Sedes / Subsedes', '/app/educacion-superior/sedes', 'settings', 3, 'OPERACION', 'sedes.ver', ['educacion_superior']);
         $mk(null, 'es_pro', 'Programas académicos', '/app/educacion-superior/programas', 'panel', 4, 'OPERACION', 'programas.ver', ['educacion_superior']);
         $mk(null, 'es_plan', 'Planes de estudio', '/app/educacion-superior/planes', 'panel', 5, 'OPERACION', 'planes_estudio.ver', ['educacion_superior']);
         $mk(null, 'es_sol', 'Solicitudes de matrícula', '/app/solicitudes-matricula', 'matriculas', 6, 'OPERACION', 'solicitudes_matricula.ver', ['educacion_superior']);
         $mk(null, 'es_val', 'Validaciones normativas', '/app/educacion-superior/validaciones-normativas', 'validate', 7, 'OPERACION', 'validaciones_normativas.ver', ['educacion_superior']);
-        $mk(null, 'es_upn', 'Certificación UPN', '/app/educacion-superior/upn-certificacion', 'docs', 8, 'OPERACION', 'certificacion.ver', ['educacion_superior']);
-        $mk(null, 'es_cert_rev', 'Revisión por expediente', '/app/educacion-superior/revision', 'validate', 9, 'OPERACION', 'certificacion.validar', ['educacion_superior']);
-        $mk(null, 'es_rep', 'Reportes oficiales', '/app/educacion-superior/reportes-oficiales', 'report', 10, 'OPERACION', 'reportes_oficiales.ver', ['educacion_superior']);
-        $mk(null, 'es_cp', 'Consulta pública', '/app/consulta/documentos', 'validate', 10, 'CONSULTA', 'consulta_publica.ver', ['educacion_superior']);
-        $mk(null, 'es_not', 'Notificaciones', '/app/notificaciones', 'status', 11, 'OPERACION', 'notificaciones.ver', ['educacion_superior']);
+        $mk(null, 'es_norm_grp', 'Normales', '#', 'docs', 8, 'OPERACION', 'certificacion.ver', ['educacion_superior'], ['group_heading' => true]);
+        $mk('es_norm_grp', 'es_norm_cert', 'Certificación', '/app/educacion-superior/normales/certificacion', 'docs', 1, 'OPERACION', 'certificacion.ver', ['educacion_superior']);
+        $mk('es_norm_grp', 'es_norm_tit', 'Títulos', '/app/educacion-superior/normales/titulos', 'docs', 2, 'OPERACION', 'certificacion.ver', ['educacion_superior']);
+        $mk('es_norm_grp', 'es_norm_gra', 'Grados académicos', '/app/educacion-superior/normales/grados-academicos', 'docs', 3, 'OPERACION', 'certificacion.ver', ['educacion_superior']);
+        $mk('es_norm_grp', 'es_norm_con', 'Constancias', '/app/educacion-superior/normales/constancias', 'docs', 4, 'OPERACION', 'certificacion.ver', ['educacion_superior']);
+        $mk(null, 'es_upn_grp', 'UPN', '#', 'docs', 9, 'OPERACION', 'certificacion.ver', ['educacion_superior'], ['group_heading' => true]);
+        $mk('es_upn_grp', 'es_upn_cert', 'Certificación', '/app/educacion-superior/upn/certificacion', 'docs', 1, 'OPERACION', 'certificacion.ver', ['educacion_superior']);
+        $mk('es_upn_grp', 'es_upn_tit', 'Títulos', '/app/educacion-superior/upn/titulos', 'docs', 2, 'OPERACION', 'certificacion.ver', ['educacion_superior']);
+        $mk('es_upn_grp', 'es_upn_gra', 'Grados académicos', '/app/educacion-superior/upn/grados-academicos', 'docs', 3, 'OPERACION', 'certificacion.ver', ['educacion_superior']);
+        $mk('es_upn_grp', 'es_upn_con', 'Constancias', '/app/educacion-superior/upn/constancias', 'docs', 4, 'OPERACION', 'certificacion.ver', ['educacion_superior']);
+        $mk(null, 'es_cert_rev', 'Revisión por expediente', '/app/educacion-superior/revision', 'validate', 10, 'OPERACION', 'certificacion.validar', ['educacion_superior']);
+        $mk(null, 'es_rep', 'Reportes oficiales', '/app/educacion-superior/reportes-oficiales', 'report', 11, 'OPERACION', 'reportes_oficiales.ver', ['educacion_superior']);
+        $mk(null, 'es_cp', 'Consulta pública', '/app/consulta/documentos', 'validate', 12, 'CONSULTA', 'consulta_publica.ver', ['educacion_superior']);
+        $mk(null, 'es_not', 'Notificaciones', '/app/notificaciones', 'status', 13, 'OPERACION', 'notificaciones.ver', ['educacion_superior']);
 
         // ——— Dirección de escuela (supervisión Normal / UPN; sin técnica ni matrícula operativa) ———
         $mk(null, 'dir_ini', 'Dashboard', '/app/dashboard', 'home', 1, 'MAIN', 'dashboard.ver', ['director_escuela']);

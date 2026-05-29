@@ -50,12 +50,14 @@ final class SpaRouteRegistry
 
         $paths[] = '/app';
         $paths[] = '/app/dashboard';
-        $paths[] = '/app/educacion-superior/upn-certificacion';
+        $paths[] = '/app/educacion-superior/normales/certificacion';
+        $paths[] = '/app/educacion-superior/upn/certificacion';
         $paths[] = '/app/educacion-superior/certificacion';
+        $paths[] = '/app/educacion-superior/upn-certificacion';
+        $paths[] = '/app/educacion-superior/revision';
         $paths[] = '/app/sistemas/documento-proceso-tecnico';
         $paths[] = '/app/sistemas/proceso-tecnico-certificacion';
         $paths[] = '/app/certificacion/dashboard';
-        $paths[] = '/app/educacion-superior/revision';
 
         return array_values(array_unique($paths));
     }
@@ -64,7 +66,10 @@ final class SpaRouteRegistry
     private static function pathsFromRouteConstant(string $const): array
     {
         $map = [
-            'UPN_CERTIFICACION_PATH' => '/app/educacion-superior/upn-certificacion',
+            'NORMALES_CERTIFICACION_PATH' => '/app/educacion-superior/normales/certificacion',
+            'UPN_CERTIFICACION_PATH' => '/app/educacion-superior/upn/certificacion',
+            'ES_CERTIFICACION_LEGACY_PATH' => '/app/educacion-superior/certificacion',
+            'UPN_CERTIFICACION_LEGACY_PATH' => '/app/educacion-superior/upn-certificacion',
             'PROCESO_TECNICO_BANDEJA_PATH' => '/app/sistemas/proceso-tecnico-certificacion',
             'DOCUMENTO_PROCESO_TECNICO_PATH' => '/app/sistemas/documento-proceso-tecnico',
         ];
