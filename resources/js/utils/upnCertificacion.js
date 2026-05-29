@@ -1,4 +1,20 @@
+import {
+    derivarKpisInstitucionales,
+    resolverEstadoCertificador,
+    resolverEstadoFirma,
+    resolverEstadoProcesamiento,
+} from './certificacionEstadosInstitucionales';
+
 /** Certificación UPN — mapeo de estados y filas de bandeja. */
+
+import { UPN_CERTIFICACION_PATH, upnCertificacionDetallePath as detallePath } from './certificacionRoutes';
+
+/** @deprecated Usar UPN_CERTIFICACION_PATH */
+export const UPN_CERTIFICACION_BASE = UPN_CERTIFICACION_PATH;
+
+export function upnCertificacionDetallePath(documentoId) {
+    return detallePath(documentoId);
+}
 
 export const UPN_SUBSISTEMA_CLAVE = 'UPN';
 
@@ -68,8 +84,16 @@ export function resolverEstatusUpn(row) {
  * @param {object} row
  * @param {number} index
  */
+/** KPIs institucionales UPN. */
+export function computeUpnKpis(rows = []) {
+    return derivarKpisInstitucionales(rows);
+}
+
 export function mapFilaUpn(row, index = 0) {
     const estatus = resolverEstatusUpn(row);
+    const estadoCertificador = resolverEstadoCertificador(row);
+    const estadoProcesamiento = resolverEstadoProcesamiento(row);
+    const estadoFirma = resolverEstadoFirma(row);
     const meta = row?.metadata ?? {};
     const trayectoria = meta?.trayectoria_resumen ?? meta?.trayectoria ?? {};
 
@@ -85,8 +109,18 @@ export function mapFilaUpn(row, index = 0) {
         promedio: trayectoria?.promedio ?? meta?.promedio ?? meta?.promedio_aprovechamiento ?? '—',
         fechaExpedicion: row.fecha_aprobacion ?? row.fecha_solicitud ?? null,
         estatus,
+        estadoCertificador,
+        estadoProcesamiento,
+        estadoFirma,
         raw: row,
         alumnoId: row.alumno?.id,
+        puedeProcesar:
+            row.estado_workflow === 'aprobado'
+            && row.folio_interno
+            && !row.listo_para_firma
+            && row.estado_firma !== 'firmado',
+        puedeFirmar: Boolean(row.listo_para_firma) && row.estado_firma !== 'firmado' && row.estado_firma !== 'error_firma',
+        tieneIncidencia: row.estado_firma === 'error_firma' || Boolean(meta?.firma_servicio_34?.last_error),
     };
 }
 

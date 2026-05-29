@@ -13,6 +13,7 @@ import { DataTable } from '../../components/ui/DataTable';
 import { SectionCard } from '../../components/ui/SectionCard';
 import { RequirePermission } from '../../components/auth/RequirePermission';
 import { EstadoSepLegacyPanel } from '../expedientes/components/EstadoSepLegacyPanel';
+import { ejecutarProcesoCertificacion } from '../../lib/ejecutarProcesoCertificacion';
 import { canRevision, REV_PERM } from '../../utils/revisionInstitucionalPermissions';
 import { revisionInstitucionalBasePath } from '../../utils/certificacionRoutes';
 
@@ -79,23 +80,23 @@ export function RevisionInstitucionalPage() {
         return errs;
     }, [validacion, obsPendientes, doc]);
 
-    const bloqueosLiberar = useMemo(() => {
+    const bloqueosProcesar = useMemo(() => {
         const errs = [];
         if (doc?.estado_workflow !== 'aprobado') {
-            errs.push('Debe aprobar el documento antes de liberar a proceso técnico.');
+            errs.push('Debe aprobar el documento antes de procesar la certificación.');
         }
         if (!validacion?.valido) {
             errs.push('La validación académica tiene errores críticos.');
             (validacion?.errores ?? []).forEach((e) => errs.push(String(e)));
         }
         if (obsPendientes > 0) {
-            errs.push('No se puede liberar con observaciones pendientes.');
+            errs.push('No se puede procesar con observaciones pendientes.');
         }
-        if (doc?.listo_para_firma) {
-            errs.push('El documento ya está listo para proceso técnico.');
+        if (doc?.estado_firma === 'firmado') {
+            errs.push('El certificado ya está finalizado.');
         }
-        if (['firmado', 'cancelado'].includes(doc?.estado_firma ?? '')) {
-            errs.push('El documento ya fue firmado o está cancelado.');
+        if (doc?.estado_firma === 'cancelado') {
+            errs.push('El documento está cancelado.');
         }
         return errs;
     }, [doc, obsPendientes, validacion]);
@@ -125,9 +126,15 @@ export function RevisionInstitucionalPage() {
                 await documentosAcademicosApi.asignarFolioInterno(id, {});
                 setMsg('Folio interno asignado.');
             }
-            if (accion === 'liberar') {
-                await documentosAcademicosApi.marcarListoParaFirma(id, { motivo: 'Liberado a proceso técnico.' });
-                setMsg('Documento liberado a proceso técnico (Sistemas).');
+            if (accion === 'procesar') {
+                const res = await ejecutarProcesoCertificacion(id, {
+                    listoParaFirma: Boolean(doc?.listo_para_firma),
+                });
+                if (!res.ok) {
+                    setError(res.error ?? 'Incidencia técnica. Sistemas puede atender el diagnóstico.');
+                } else {
+                    setMsg(res.message ?? 'Certificación en procesamiento automático.');
+                }
             }
             if (accion === 'observacion') {
                 await observacionesApi.crear(id, {
@@ -181,7 +188,7 @@ export function RevisionInstitucionalPage() {
                     {obsPendientes > 0 ? (
                         <AlertBox
                             type="warning"
-                            message={`Hay ${obsPendientes} observación(es) pendiente(s). Control Escolar debe atenderlas antes de aprobar o liberar.`}
+                            message={`Hay ${obsPendientes} observación(es) pendiente(s). Control Escolar debe atenderlas antes de aprobar o procesar.`}
                         />
                     ) : null}
 
@@ -189,7 +196,7 @@ export function RevisionInstitucionalPage() {
                         <div className="flex flex-wrap items-center gap-3">
                             <EstadoBadge estado={doc?.estado_workflow} />
                             <span className="text-sm">Firma: {doc?.estado_firma ?? 'no_firmado'}</span>
-                            {doc?.listo_para_firma ? <span className="inst-badge inst-badge-success">Listo proceso técnico</span> : null}
+                            {doc?.listo_para_firma ? <span className="inst-badge inst-badge-success">En procesamiento</span> : null}
                         </div>
                         <p className="text-sm text-slate-600 mt-2">
                             Folio: {doc?.folio_interno ?? 'Sin asignar'} · Tipo: {doc?.tipo_documento} ({doc?.tipo_certificacion})
@@ -405,25 +412,25 @@ export function RevisionInstitucionalPage() {
                         </ActionButton>
                     ) : null}
 
-                    {canRevision('liberar') ? (
+                    {canRevision('procesar') ? (
                         <ActionButton
                             variant="warning"
-                            disabled={busy || bloqueosLiberar.length > 0}
+                            disabled={busy || bloqueosProcesar.length > 0}
                             onClick={() => {
-                                if (!window.confirm('¿Liberar documento a proceso técnico (Sistemas)?')) return;
-                                void ejecutar('liberar');
+                                if (!window.confirm('¿Ejecutar procesamiento automático de la certificación?')) return;
+                                void ejecutar('procesar');
                             }}
                         >
-                            Liberar a proceso técnico
+                            Procesar certificación
                         </ActionButton>
                     ) : null}
 
-                    {bloqueosLiberar.length > 0 && canRevision('liberar') ? (
-                        <p className="text-xs text-amber-700">{bloqueosLiberar.join(' ')}</p>
+                    {bloqueosProcesar.length > 0 && canRevision('procesar') ? (
+                        <p className="text-xs text-amber-700">{bloqueosProcesar.join(' ')}</p>
                     ) : null}
 
                     <p className="text-xs text-slate-400 mt-2 border-t pt-2">
-                        Cadena, XML y firma SEP solo están disponibles para el rol Sistemas.
+                        Educación Superior procesa el flujo normal automatizado. Sistemas atiende incidencias técnicas si falla.
                     </p>
                 </aside>
             </section>

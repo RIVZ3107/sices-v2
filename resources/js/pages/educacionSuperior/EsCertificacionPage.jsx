@@ -18,8 +18,10 @@ import {
     formatEsNum,
 } from '../../components/educacionSuperior';
 import { useCertificacionSupervision } from '../../hooks/useCertificacionSupervision';
+import { ejecutarProcesoCertificacion } from '../../lib/ejecutarProcesoCertificacion';
 import { esCan } from '../../utils/esCertificacionPermissions';
 import {
+    documentoProcesoTecnicoDetallePath,
     revisionInstitucionalBasePath,
     revisionInstitucionalDetallePath,
 } from '../../utils/certificacionRoutes';
@@ -46,24 +48,20 @@ export function EsCertificacionPage() {
 
     const metricasKpi = [
         {
-            key: 'candidatos',
+            key: 'pend_val',
             icon: EsIcons.users,
-            ...esMetricTones.blue,
-            title: 'Candidatos a certificación',
-            value: kpis.candidatos,
-            description: 'Trayectorias consolidadas o listas para iniciar certificación.',
-            quickLink: null,
-            quickFilter: { fase: 'en_revision' },
+            ...esMetricTones.yellow,
+            title: 'Pendientes de validación',
+            value: kpis.pendientesValidacion ?? kpis.candidatos,
+            description: 'Etapa del certificador: verificación de datos académicos.',
         },
         {
-            key: 'aprobados',
-            icon: EsIcons.file,
-            ...esMetricTones.teal,
-            title: 'Expedientes aprobados',
-            value: kpis.aprobados,
-            description: 'Aprobados institucionalmente, pendientes de folio o liberación.',
-            quickLink: null,
-            quickFilter: { fase: 'aprobado' },
+            key: 'val_cert',
+            icon: EsIcons.validate,
+            ...esMetricTones.blue,
+            title: 'Validados por certificador',
+            value: kpis.validadosCertificador ?? kpis.aprobados,
+            description: 'Datos revisados; listos para decisión institucional.',
         },
         {
             key: 'folio',
@@ -71,76 +69,42 @@ export function EsCertificacionPage() {
             ...esMetricTones.yellow,
             title: 'Pendientes de folio',
             value: kpis.pendientesFolio,
-            description: 'Documentos aprobados que requieren folio interno.',
-            quickFilter: { fase: 'pendiente_folio' },
+            description: 'Aprobados sin folio interno.',
         },
         {
-            key: 'listos',
+            key: 'proc',
             icon: EsIcons.code,
             ...esMetricTones.purple,
-            title: 'Listos para proceso técnico',
-            value: kpis.listosProcesoTecnico,
-            description: 'Preparados para cadena, XML y firma (Sistemas).',
-            quickFilter: { fase: 'listo_proceso_tecnico' },
+            title: 'En procesamiento',
+            value: kpis.enProcesamiento ?? kpis.listosProcesoTecnico,
+            description: 'Cadena, XML, PDF y preflight automáticos.',
         },
         {
-            key: 'firmados',
+            key: 'firm',
             icon: EsIcons.sign,
             ...esMetricTones.green,
-            title: 'Documentos firmados',
+            title: 'Firmados / finalizados',
             value: kpis.firmados,
-            description: 'Emitidos o timbrados en el sistema.',
-            quickLink: null,
-            quickFilter: { fase: 'firmado' },
+            description: 'Resultado final disponible.',
         },
         {
-            key: 'incidencias',
+            key: 'inc',
             icon: EsIcons.alert,
             ...esMetricTones.red,
-            title: 'Incidencias',
+            title: 'Incidencias técnicas',
             value: kpis.incidencias,
-            description: 'Observados, rechazados, cancelados o con error.',
-            quickLink: null,
-            quickFilter: { fase: 'incidencia' },
+            description: 'Requieren atención de Sistemas.',
         },
     ];
-
-    function aplicarFiltroRapido(p) {
-        if (p?.institucionNombre) {
-            const inst = catalogos.instituciones.find((i) => i.nombre === p.institucionNombre);
-            setFilters((f) => ({
-                ...f,
-                institucion_id: inst?.id ? String(inst.id) : '',
-                fase: '',
-                prioridad: '',
-            }));
-            setFiltersOpen(true);
-            return;
-        }
-        setFilters((f) => ({
-            ...f,
-            fase: p.fase ?? '',
-            prioridad: p.prioridad ?? '',
-        }));
-        setFiltersOpen(true);
-    }
 
     async function handleAsignarFolio(item) {
         if (!esCan('folio')) return;
         const folio = window.prompt('Folio interno a asignar:', item.folio.startsWith('DOC-') ? '' : item.folio);
-        if (folio === null) return;
-        const valor = folio.trim();
-        if (!valor) {
-            window.alert('Indique un folio interno válido.');
-            return;
-        }
-        if (!window.confirm(`¿Asignar folio interno "${valor}" al documento ${item.id}?`)) return;
-
+        if (folio === null || !folio.trim()) return;
         setBusyId(item.id);
-        setActionMsg('');
         try {
-            await documentosAcademicosApi.asignarFolioInterno(item.id, { folio_interno: valor });
-            setActionMsg('Folio asignado correctamente.');
+            await documentosAcademicosApi.asignarFolioInterno(item.id, { folio_interno: folio.trim() });
+            setActionMsg('Folio asignado.');
             await recargar();
         } catch (e) {
             setActionMsg(e?.message ?? 'No se pudo asignar el folio.');
@@ -149,33 +113,71 @@ export function EsCertificacionPage() {
         }
     }
 
-    async function handleLiberarProceso(item) {
-        if (!esCan('liberar')) return;
-        const ok = window.confirm(
-            'El documento pasará a Sistemas para generación técnica de cadena, XML y firma.\n\n'
-            + '¿Liberar a proceso técnico?',
-        );
-        if (!ok) return;
-
+    async function handleAprobar(item) {
+        if (!esCan('aprobar')) return;
+        if (!window.confirm(`¿Aprobar certificación de ${item.alumno}?`)) return;
         setBusyId(item.id);
-        setActionMsg('');
         try {
-            await documentosAcademicosApi.marcarListoParaFirma(item.id);
-            setActionMsg('Documento liberado a proceso técnico.');
+            await documentosAcademicosApi.aprobar(item.id, { motivo: 'Aprobación institucional Educación Superior.' });
+            setActionMsg('Documento aprobado.');
             await recargar();
         } catch (e) {
-            setActionMsg(e?.message ?? 'No se pudo liberar el documento.');
+            setActionMsg(e?.message ?? 'No se pudo aprobar.');
         } finally {
             setBusyId(null);
         }
     }
 
-    function handleObservar(item) {
-        navigate(revisionInstitucionalDetallePath(item.id));
+    async function handleProcesar(item) {
+        if (!esCan('procesar')) return;
+        const ok = window.confirm(
+            'Se ejecutará el procesamiento automático (cadena, XML, preflight y firma cuando aplique).\n\n¿Procesar certificación?',
+        );
+        if (!ok) return;
+        setBusyId(item.id);
+        setActionMsg('Procesando certificación…');
+        try {
+            const res = await ejecutarProcesoCertificacion(item.id, {
+                listoParaFirma: Boolean(item.raw?.listo_para_firma),
+            });
+            if (res.ok) {
+                setActionMsg(res.message ?? 'Certificación procesada.');
+            } else {
+                setActionMsg(res.error ?? 'Incidencia técnica. Use «Ver error» o envíe a Sistemas.');
+            }
+            await recargar();
+        } catch (e) {
+            setActionMsg(e?.message ?? 'Error al procesar.');
+        } finally {
+            setBusyId(null);
+        }
     }
 
-    if (loading) {
-        return <EsPageLayout loading loadingText="Cargando supervisión de certificación..." title="" />;
+    async function handleFirmar(item) {
+        if (!esCan('firmar')) return;
+        if (!window.confirm('¿Ejecutar firma / timbrado del certificado?')) return;
+        setBusyId(item.id);
+        try {
+            const res = await documentosAcademicosApi.ejecutarFirma(item.id);
+            setActionMsg(res?.message ?? 'Firma ejecutada.');
+            await recargar();
+        } catch (e) {
+            setActionMsg(e?.message ?? 'Error de firma.');
+        } finally {
+            setBusyId(null);
+        }
+    }
+
+    function handleVerError(item) {
+        navigate(documentoProcesoTecnicoDetallePath(item.id));
+    }
+
+    function handleEnviarSistemas(item) {
+        navigate(`${documentoProcesoTecnicoDetallePath(item.id)}#logs`);
+    }
+
+  if (loading) {
+        return <EsPageLayout loading loadingText="Cargando certificación de Educación Superior…" title="" />;
     }
 
     const sinDatos = rowsFiltradas.length === 0 && !filters.q && !filters.fase;
@@ -183,8 +185,8 @@ export function EsCertificacionPage() {
     return (
         <EsPageLayout
             breadcrumbCurrent="Certificación"
-            title="Supervisión de certificación"
-            subtitle="Control institucional de documentos académicos en proceso"
+            title="Certificación de Educación Superior"
+            subtitle="Validación, aprobación, procesamiento y seguimiento final de certificados académicos."
             largeTitle
             metricsWide
             metrics={metricasKpi.map((m) => ({
@@ -196,7 +198,6 @@ export function EsCertificacionPage() {
                 value: m.value,
                 trend: m.description,
                 trendPrefix: '',
-                onClick: m.quickFilter ? () => aplicarFiltroRapido(m.quickFilter) : undefined,
             }))}
             error={error || undefined}
             actions={
@@ -209,41 +210,23 @@ export function EsCertificacionPage() {
                             variant="primary"
                         />
                     ) : null}
+                    {esCan('aprobar') ? (
+                        <EsHeaderAction icon="validate" label="Aprobar" variant="primary" onClick={() => setFilters((f) => ({ ...f, fase: 'aprobado' }))} />
+                    ) : null}
                     {esCan('folio') ? (
-                        <EsHeaderAction
-                            icon="assign"
-                            label="Asignar folio"
-                            variant="primary"
-                            onClick={() => aplicarFiltroRapido({ fase: 'pendiente_folio' })}
-                        />
+                        <EsHeaderAction icon="assign" label="Asignar folio" variant="primary" onClick={() => setFilters((f) => ({ ...f, fase: 'pendiente_folio' }))} />
                     ) : null}
-                    {esCan('liberar') ? (
-                        <EsHeaderAction
-                            icon="send"
-                            label="Liberar a proceso técnico"
-                            variant="primary"
-                            onClick={() => aplicarFiltroRapido({ fase: 'listo_proceso_tecnico' })}
-                        />
+                    {esCan('procesar') ? (
+                        <EsHeaderAction icon="send" label="Procesar certificación" variant="primary" onClick={() => setFilters((f) => ({ ...f, fase: 'listo_proceso_tecnico' }))} />
                     ) : null}
-                    <EsHeaderAction
-                        icon="export"
-                        label="Ver aprobados"
-                        onClick={() => aplicarFiltroRapido({ fase: 'aprobado' })}
-                    />
+                    {esCan('firmar') ? (
+                        <EsHeaderAction icon="sign" label="Firmar certificado" onClick={() => setFilters((f) => ({ ...f, fase: 'firmado' }))} />
+                    ) : null}
+                    <EsHeaderAction icon="export" label="Ver finalizados" onClick={() => setFilters((f) => ({ ...f, fase: 'firmado' }))} />
                     {esCan('reportes') ? (
-                        <EsHeaderAction
-                            to="/app/educacion-superior/reportes-oficiales"
-                            icon="export"
-                            label="Exportar"
-                        />
+                        <EsHeaderAction to="/app/educacion-superior/reportes-oficiales" icon="export" label="Exportar" />
                     ) : (
-                        <EsHeaderAction
-                            icon="export"
-                            label="Exportar"
-                            onClick={() =>
-                                window.alert('Exportación institucional: use Reportes oficiales cuando esté disponible el endpoint dedicado.')
-                            }
-                        />
+                        <EsHeaderAction icon="export" label="Exportar" onClick={() => window.alert('Use Reportes oficiales cuando esté disponible el export dedicado.')} />
                     )}
                     <EsHeaderAction icon="filter" label="Filtros" onClick={() => setFiltersOpen((v) => !v)} />
                 </>
@@ -253,17 +236,19 @@ export function EsCertificacionPage() {
                     distribucion={distribucion}
                     prioridades={prioridades}
                     rezago={rezago}
-                    onFiltroRapido={aplicarFiltroRapido}
+                    onFiltroRapido={(p) => {
+                        if (p?.fase) setFilters((f) => ({ ...f, fase: p.fase }));
+                        setFiltersOpen(true);
+                    }}
                 />
             }
         >
             <p style={{ margin: '0 0 12px', fontSize: 12, color: '#64748b' }}>
-                La firma SEP/SINCE y las operaciones técnicas (cadena, XML, preflight, shadow Informix) se ejecutan únicamente desde el módulo Sistemas.
+                El certificador valida datos académicos. Educación Superior aprueba, asigna folio y procesa la certificación de
+                forma automática. Sistemas solo atiende incidencias técnicas cuando el procesamiento falla.
             </p>
 
-            {actionMsg ? (
-                <p style={{ margin: '0 0 12px', fontSize: 13, color: '#0F6E56' }}>{actionMsg}</p>
-            ) : null}
+            {actionMsg ? <p style={{ margin: '0 0 12px', fontSize: 13, color: '#0F6E56' }}>{actionMsg}</p> : null}
 
             <CertificationFiltersPanel
                 filters={filters}
@@ -282,41 +267,29 @@ export function EsCertificacionPage() {
                 <EsCard overflowHidden>
                     <div style={esTheme.cardHeader}>
                         <div>
-                            <h3 style={esTheme.sectionTitle}>Seguimiento de certificación institucional</h3>
+                            <h3 style={esTheme.sectionTitle}>Certificados en trámite</h3>
                             <p style={{ margin: '4px 0 0', fontSize: 12, color: '#64748b' }}>
-                                {formatEsNum(rowsFiltradas.length)} registros visibles · datos desde bandejas institucionales
+                                {formatEsNum(rowsFiltradas.length)} registro(s)
                             </p>
                         </div>
                         <EsSearchInput
                             value={filters.q}
                             onChange={(e) => setFilters((f) => ({ ...f, q: e.target.value }))}
-                            placeholder="Buscar folio, alumno, CURP, matrícula o institución…"
+                            placeholder="Buscar folio, alumno, CURP, matrícula…"
                             width={320}
                         />
                     </div>
-
                     <div style={{ opacity: busyId ? 0.6 : 1, pointerEvents: busyId ? 'none' : 'auto' }}>
                         <CertificationWorkflowTable
                             rows={rowsFiltradas}
                             onAsignarFolio={handleAsignarFolio}
-                            onLiberarProceso={handleLiberarProceso}
-                            onObservar={handleObservar}
+                            onProcesar={handleProcesar}
+                            onFirmar={handleFirmar}
+                            onAprobar={handleAprobar}
+                            onObservar={(item) => navigate(revisionInstitucionalDetallePath(item.id))}
+                            onVerError={handleVerError}
+                            onEnviarSistemas={handleEnviarSistemas}
                         />
-                    </div>
-
-                    {rowsFiltradas.length === 0 && filters.q ? (
-                        <p style={{ padding: 24, textAlign: 'center', color: '#64748b', fontSize: 13 }}>
-                            Sin resultados para los filtros aplicados.
-                        </p>
-                    ) : null}
-
-                    <div style={esTheme.cardFooterBetween}>
-                        <span>
-                            Mostrando {formatEsNum(rowsFiltradas.length)} registro(s)
-                        </span>
-                        <Link to={revisionInstitucionalBasePath()} style={esTheme.linkAccent}>
-                            Ir a revisión institucional →
-                        </Link>
                     </div>
                 </EsCard>
             )}

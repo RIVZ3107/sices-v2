@@ -25,9 +25,9 @@ export function EsPageHeader({
         >
             <div>
                 {breadcrumbCurrent ? (
-                    <div style={esTheme.breadcrumb}>
-                        Educ. Superior <span style={{ color: esColors.mutedLight }}>›</span> {breadcrumbCurrent}
-                    </div>
+                    <p style={{ margin: '0 0 4px', fontSize: 12, color: esColors.muted, fontWeight: 500 }}>
+                        {breadcrumbCurrent}
+                    </p>
                 ) : null}
                 <h1 style={largeTitle ? esTheme.titleLg : esTheme.title}>{title}</h1>
                 {subtitle ? <p style={esTheme.subtitle}>{subtitle}</p> : null}

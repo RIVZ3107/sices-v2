@@ -1,20 +1,23 @@
 import { Link } from 'react-router-dom';
 import { EsTable, esColors, esTheme } from '../educacionSuperior';
-import { CertificationPriorityBadge } from './CertificationPriorityBadge';
 import { CertificationStatusBadge } from './CertificationStatusBadge';
 import { esCan } from '../../utils/esCertificacionPermissions';
+import { documentoProcesoTecnicoDetallePath } from '../../utils/certificacionRoutes';
 import { revisionInstitucionalDetallePath } from '../../utils/certificacionRoutes';
 
 const HEADERS = [
-    'Folio',
     'Alumno',
-    'Institución',
+    'CURP',
+    'Matrícula',
+    'Institución / CCT',
     'Programa',
     'Tipo',
-    'Fase',
-    'Días',
-    'Prioridad',
-    'Estatus',
+    'Prom.',
+    'Folio',
+    'Expedición',
+    'Estado académico',
+    'Procesamiento',
+    'Firma',
     'Acciones',
 ];
 
@@ -46,48 +49,76 @@ function ActionLink({ to, children, onClick, title }) {
     );
 }
 
+function fmtFecha(v) {
+    if (!v) return '—';
+    try {
+        return new Date(v).toLocaleDateString('es-MX');
+    } catch {
+        return '—';
+    }
+}
+
 export function CertificationWorkflowTable({
     rows,
     onAsignarFolio,
-    onLiberarProceso,
+    onProcesar,
+    onFirmar,
+    onAprobar,
     onObservar,
+    onVerError,
+    onEnviarSistemas,
 }) {
     return (
         <EsTable headers={HEADERS} emptyColSpan={HEADERS.length} emptyMessage={null}>
             {rows.map((item) => (
                 <tr key={item.id} style={esTheme.tr}>
-                    <td style={{ ...esTheme.td, fontWeight: 600, color: esColors.primary }}>{item.folio}</td>
                     <td style={{ ...esTheme.td, fontWeight: 500 }}>{item.alumno}</td>
-                    <td style={{ ...esTheme.td, color: esColors.muted }}>{item.institucion}</td>
-                    <td style={{ ...esTheme.td, color: esColors.muted }}>{item.programa}</td>
-                    <td style={esTheme.td}>{item.tipoDocumento}</td>
+                    <td style={{ ...esTheme.td, fontFamily: 'monospace', fontSize: 12 }}>{item.curp || '—'}</td>
+                    <td style={esTheme.td}>{item.matricula || '—'}</td>
+                    <td style={{ ...esTheme.td, color: esColors.muted, maxWidth: 160 }}>{item.institucion}</td>
+                    <td style={esTheme.td}>{item.programa}</td>
                     <td style={esTheme.td}>
-                        <CertificationStatusBadge badge={item.fase.badge}>{item.fase.label}</CertificationStatusBadge>
+                        {item.tipoDocumento}
+                        {item.tipoCertificacion ? (
+                            <span style={{ display: 'block', fontSize: 11, color: esColors.muted }}>{item.tipoCertificacion}</span>
+                        ) : null}
                     </td>
-                    <td style={{ ...esTheme.td, textAlign: 'center' }}>{item.diasEspera}</td>
+                    <td style={esTheme.td}>{item.promedio}</td>
+                    <td style={{ ...esTheme.td, fontWeight: 600, color: esColors.primary }}>{item.folio}</td>
+                    <td style={esTheme.td}>{fmtFecha(item.fechaExpedicion)}</td>
                     <td style={esTheme.td}>
-                        <CertificationPriorityBadge badge={item.prioridad.badge} label={item.prioridad.label} />
+                        <CertificationStatusBadge badge={item.estadoCertificador?.badge}>
+                            {item.estadoCertificador?.label}
+                        </CertificationStatusBadge>
                     </td>
                     <td style={esTheme.td}>
-                        <CertificationStatusBadge badge={item.estatus.badge}>{item.estatus.label}</CertificationStatusBadge>
+                        <CertificationStatusBadge badge={item.estadoProcesamiento?.badge}>
+                            {item.estadoProcesamiento?.label}
+                        </CertificationStatusBadge>
                     </td>
-                    <td style={{ ...esTheme.td, whiteSpace: 'nowrap' }}>
+                    <td style={esTheme.td}>
+                        <CertificationStatusBadge badge={item.estadoFirma?.badge}>
+                            {item.estadoFirma?.label}
+                        </CertificationStatusBadge>
+                    </td>
+                    <td style={{ ...esTheme.td, whiteSpace: 'nowrap', maxWidth: 220 }}>
                         {esCan('expediente') && item.alumnoId ? (
                             <ActionLink to={`/app/alumnos/${item.alumnoId}/expediente`} title="Ver expediente">
                                 Expediente
                             </ActionLink>
                         ) : null}
-                        {esCan('validar') ? (
+                        {esCan('validar') && item.puedeValidar ? (
                             <ActionLink to={revisionInstitucionalDetallePath(item.id)} title="Validar">
                                 Validar
                             </ActionLink>
                         ) : null}
+                        {esCan('validar') && item.puedeAprobar ? (
+                            <ActionLink title="Aprobar" onClick={() => onAprobar?.(item)}>
+                                Aprobar
+                            </ActionLink>
+                        ) : null}
                         {esCan('observar') ? (
-                            <ActionLink
-                                to={onObservar ? undefined : revisionInstitucionalDetallePath(item.id)}
-                                title="Observar"
-                                onClick={onObservar ? () => onObservar(item) : undefined}
-                            >
+                            <ActionLink title="Observar" onClick={() => onObservar?.(item)}>
                                 Observar
                             </ActionLink>
                         ) : null}
@@ -96,15 +127,34 @@ export function CertificationWorkflowTable({
                                 Folio
                             </ActionLink>
                         ) : null}
-                        {esCan('liberar') && item.puedeLiberar ? (
-                            <ActionLink title="Liberar a proceso técnico" onClick={() => onLiberarProceso?.(item)}>
-                                Liberar
+                        {esCan('procesar') && item.puedeProcesar ? (
+                            <ActionLink title="Procesar certificación" onClick={() => onProcesar?.(item)}>
+                                Procesar
                             </ActionLink>
                         ) : null}
-                        {esCan('ver') ? (
-                            <ActionLink to={`/app/documentos/${item.id}`} title="Historial / detalle">
-                                Historial
+                        {esCan('firmar') && item.puedeFirmar ? (
+                            <ActionLink title="Firmar certificado" onClick={() => onFirmar?.(item)}>
+                                Firmar
                             </ActionLink>
+                        ) : null}
+                        {esCan('obtenerResultadoFinal') && item.estadoFirma?.label === 'Firmado' ? (
+                            <ActionLink to={`/app/documentos/${item.id}`} title="Ver PDF final">
+                                PDF
+                            </ActionLink>
+                        ) : null}
+                        {item.tieneIncidencia ? (
+                            <>
+                                {esCan('enviarIncidenciaSistemas') ? (
+                                    <ActionLink title="Ver error técnico" onClick={() => onVerError?.(item)}>
+                                        Error
+                                    </ActionLink>
+                                ) : null}
+                                {esCan('enviarIncidenciaSistemas') ? (
+                                    <ActionLink title="Incidencia técnica" onClick={() => onEnviarSistemas?.(item)}>
+                                        Sistemas
+                                    </ActionLink>
+                                ) : null}
+                            </>
                         ) : null}
                     </td>
                 </tr>

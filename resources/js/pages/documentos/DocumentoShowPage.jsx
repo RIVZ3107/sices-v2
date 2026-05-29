@@ -40,14 +40,17 @@ export function DocumentoShowPage() {
         'documentos.rechazar_institucionalmente',
         'validaciones_normativas.rechazar',
     ]);
-    const canLiberarProcesoTecnico = userCanAny([
-        'documentos.liberar_proceso_tecnico',
-        'preparar_documento_firma',
+    const canProcesarCertificacion = userCanAny([
+        'certificacion.procesar',
         'certificacion.enviar_a_proceso_tecnico',
+        'preparar_documento_firma',
+        'documentos.liberar_proceso_tecnico',
     ]);
-    const canGenerarCadena = userCanAny(['generar_cadena', 'cadena_original.generar']);
-    const canGenerarXml = userCanAny(['generar_xml', 'xml.generar']);
-    const canIrProcesoTecnico = userCan('firma.ejecutar');
+    const canVerIncidencia = userCanAny([
+        'certificacion.enviar_incidencia_sistemas',
+        'logs.ver',
+        'integraciones.ver',
+    ]);
     const canTokenPublico = userCanAny([
         'consulta_publica.emitir_token',
         'consulta_publica.configurar',
@@ -88,7 +91,11 @@ export function DocumentoShowPage() {
             if (action === 'enviar') await documentosAcademicosApi.enviarRevision(id, { motivo: 'Enviado desde frontend.' });
             if (action === 'aprobar') await documentosAcademicosApi.aprobar(id, { motivo: 'Aprobacion desde frontend.' });
             if (action === 'rechazar') await documentosAcademicosApi.rechazar(id, { motivo: 'Rechazo desde frontend.' });
-            if (action === 'preparar') await documentosAcademicosApi.marcarListoParaFirma(id, { motivo: 'Liberar a proceso técnico.' });
+            if (action === 'preparar') {
+                await documentosAcademicosApi.marcarListoParaFirma(id, {
+                    motivo: 'Inicio de procesamiento automático de certificación.',
+                });
+            }
             if (action === 'token') await documentosAcademicosApi.emitirTokenConsulta(id, {});
             if (action === 'validar') {
                 const res = await documentosAcademicosApi.validar(id);
@@ -108,7 +115,7 @@ export function DocumentoShowPage() {
         { key: 'en_revision', label: 'En revision', done: ['en_revision', 'aprobado', 'rechazado', 'listo_para_firma'].includes(doc.estado_workflow) },
         { key: 'rechazado', label: 'Devuelto', done: doc.estado_workflow === 'rechazado' },
         { key: 'aprobado', label: 'Aprobado', done: ['aprobado', 'listo_para_firma'].includes(doc.estado_workflow) },
-        { key: 'listo_para_firma', label: 'Proceso técnico', done: doc.listo_para_firma },
+        { key: 'listo_para_firma', label: 'En procesamiento', done: doc.listo_para_firma },
         { key: 'firmado', label: 'Firmado', done: doc.estado_firma === 'firmado' },
     ];
 
@@ -160,22 +167,23 @@ export function DocumentoShowPage() {
                 {canEnviar ? <ActionButton disabled={actionBusy} onClick={() => runAction('enviar')}>Enviar a revision</ActionButton> : null}
                 {canRechazar ? <ActionButton variant="danger" disabled={actionBusy} onClick={() => runAction('rechazar')}>Rechazar / devolver</ActionButton> : null}
                 {canAprobar ? <ActionButton disabled={actionBusy} onClick={() => runAction('aprobar')}>Aprobar</ActionButton> : null}
-                {canLiberarProcesoTecnico ? (
+                {canProcesarCertificacion ? (
                     <ActionButton variant="warning" disabled={actionBusy} onClick={() => runAction('preparar')}>
-                        Liberar a proceso técnico
+                        Procesar certificación
                     </ActionButton>
                 ) : null}
                 {canTokenPublico ? <ActionButton variant="secondary" disabled={actionBusy} onClick={() => runAction('token')}>Emitir token consulta pública</ActionButton> : null}
-                {canGenerarCadena ? <p className="inst-muted text-xs">Cadena/XML: usar panel técnico Sistemas o API.</p> : null}
-                {canGenerarXml ? null : null}
-                {canIrProcesoTecnico ? (
+                {canVerIncidencia && doc.estado_firma === 'error_firma' ? (
                     <ActionButton
-                        variant="warning"
-                        onClick={() => navigate(`/app/sistemas/proceso-tecnico-certificacion/${id}`)}
+                        variant="secondary"
+                        onClick={() => navigate(`/app/sistemas/documento-proceso-tecnico/${id}`)}
                     >
-                        Ir a proceso técnico
+                        Ver incidencia técnica
                     </ActionButton>
                 ) : null}
+                <p className="inst-muted text-xs">
+                    Educación Superior procesa el flujo automatizado. Sistemas atiende incidencias si falla.
+                </p>
             </aside>
         </section>
     );

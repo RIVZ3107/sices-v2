@@ -44,6 +44,35 @@ function roleLabel(role) {
     return labels[role] ?? role ?? 'Sin rol';
 }
 
+const BREADCRUMB_LABELS = {
+    certificacion: 'Certificación',
+    dashboard: 'Dashboard',
+    solicitudes: 'Solicitudes',
+    'documentos-a-certificar': 'Documentos a certificar',
+    'generacion-documentos': 'Generación de documentos',
+    'firma-electronica': 'Firma electrónica',
+    'entrega-seguimiento': 'Entrega y seguimiento',
+    reportes: 'Reportes',
+    configuracion: 'Configuración',
+    notificaciones: 'Notificaciones',
+    revision: 'Revisión institucional',
+    'educacion-superior': 'Educación Superior',
+    'upn-certificacion': 'Certificación UPN',
+    sistemas: 'Sistemas',
+    'proceso-tecnico-certificacion': 'Proceso técnico',
+    'documento-proceso-tecnico': 'Detalle técnico',
+    instituciones: 'Instituciones',
+    sedes: 'Sedes',
+    programas: 'Programas',
+    planes: 'Planes',
+    'validaciones-normativas': 'Validaciones normativas',
+    'reportes-oficiales': 'Reportes oficiales',
+};
+
+function breadcrumbLabel(segment) {
+    return BREADCRUMB_LABELS[segment] ?? segment.replaceAll('-', ' ');
+}
+
 export function AppLayout() {
     const { theme, refreshTheme } = useSicesTheme();
     const user = getUser();
@@ -65,36 +94,11 @@ export function AppLayout() {
         .slice(0, 2)
         .map((part) => part[0]?.toUpperCase())
         .join('');
-    const isEducacionSuperiorModule = location.pathname.startsWith('/app/educacion-superior');
-    const isEducacionSuperiorRole = (user?.roles ?? []).includes('educacion_superior');
 
     const breadcrumb = useMemo(() => {
-        const path = location.pathname.replace('/app/', '');
-        return path.split('/').filter(Boolean).map((part) => part.replaceAll('-', ' '));
+        const path = location.pathname.replace(/^\/app\/?/, '');
+        return path.split('/').filter(Boolean);
     }, [location.pathname]);
-
-    const esSectionTitles = {
-        certificacion: 'Supervisión de certificación',
-        instituciones: 'Instituciones',
-        sedes: 'Sedes / Subsedes',
-        programas: 'Programas académicos',
-        planes: 'Planes de estudio',
-        'validaciones-normativas': 'Validaciones normativas',
-        revision: 'Revisión por expediente',
-        'reportes-oficiales': 'Reportes oficiales',
-        upn: 'Certificación UPN',
-    };
-
-    const currentSection = useMemo(() => {
-        if (!isEducacionSuperiorModule) {
-            return breadcrumb[breadcrumb.length - 1] ?? 'dashboard';
-        }
-        const slug = breadcrumb[breadcrumb.length - 1];
-        if (slug === 'upn' && breadcrumb.includes('certificacion')) {
-            return 'Certificación UPN';
-        }
-        return esSectionTitles[slug] ?? slug?.replaceAll('-', ' ') ?? 'Educación Superior';
-    }, [breadcrumb, isEducacionSuperiorModule]);
 
     useEffect(() => {
         document.body.classList.toggle('theme-dark', darkMode);
@@ -113,10 +117,8 @@ export function AppLayout() {
         }
     }
 
-    const useEsShell = isEducacionSuperiorModule || isEducacionSuperiorRole;
-
     return (
-        <div className={`admin-layout${useEsShell ? ' admin-layout--es' : ''}`}>
+        <div className="admin-layout">
             <SidebarPro
                 user={user}
                 open={false}
@@ -129,18 +131,13 @@ export function AppLayout() {
 
             <main className="admin-main">
                 <header className="admin-topbar">
-                    {/* Izquierda: título + sección actual */}
                     <div className="admin-topbar-left">
                         <div>
-                            <p className="admin-topbar-title">{theme?.app_name ?? 'SICES v2'}</p>
-                            <p className="admin-topbar-subtitle capitalize">{currentSection}</p>
-                            {theme?.app_subtitle ? (
-                                <p className="mt-1 text-[11px] font-medium text-slate-500">{theme.app_subtitle}</p>
-                            ) : null}
+                            <p className="admin-topbar-title">SICES v2</p>
+                            <p className="admin-topbar-subtitle">Panel institucional</p>
                         </div>
                     </div>
 
-                    {/* Derecha: búsqueda + acciones + usuario */}
                     <div className="admin-topbar-actions">
                         {institutionalShell ? (
                             <label className="hidden shrink-0 items-center gap-2 text-xs text-slate-600 lg:flex">
@@ -151,7 +148,6 @@ export function AppLayout() {
                                 </select>
                             </label>
                         ) : null}
-                        {/* Search */}
                         <div className="relative flex min-w-0 flex-1 items-center">
                             <div className="absolute left-3 text-slate-400">
                                 <Icon name="search" />
@@ -167,7 +163,6 @@ export function AppLayout() {
                             />
                         </div>
 
-                        {/* Notificaciones */}
                         <div className="relative shrink-0">
                             <button
                                 className="admin-icon-btn"
@@ -184,7 +179,6 @@ export function AppLayout() {
                             )}
                         </div>
 
-                        {/* Tema */}
                         <button
                             className="admin-icon-btn"
                             onClick={() => setDarkMode((v) => !v)}
@@ -193,7 +187,6 @@ export function AppLayout() {
                             <Icon name={darkMode ? 'sun' : 'moon'} />
                         </button>
 
-                        {/* Usuario — sin role pill duplicado */}
                         <div className="admin-userbox">
                             <span className="admin-user-avatar">{initials || 'US'}</span>
                             <div className="flex flex-col">
@@ -205,14 +198,12 @@ export function AppLayout() {
                 </header>
 
                 <section className="admin-content">
-                    {!useEsShell ? (
-                        <div className="admin-breadcrumb">
-                            <span>Inicio</span>
-                            {breadcrumb.map((part) => (
-                                <span key={part}>/ {part}</span>
-                            ))}
-                        </div>
-                    ) : null}
+                    <div className="admin-breadcrumb">
+                        <span>Inicio</span>
+                        {breadcrumb.map((part) => (
+                            <span key={part}>/ {breadcrumbLabel(part)}</span>
+                        ))}
+                    </div>
                     <Outlet />
                 </section>
             </main>

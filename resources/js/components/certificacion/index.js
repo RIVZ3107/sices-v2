@@ -12,3 +12,4 @@ export { CertificacionStatusBadge, CertificacionWorkflowBadge } from './Certific
 export { CertificacionTable, CertTableLink } from './CertificacionTable';
 export { CertificacionFilters, CertFilterField, certInputStyle } from './CertificacionFilters';
 export { CertificacionPageHeader, CertificacionPlaceholder } from './CertificacionPageHeader';
+export { CertificacionQuickLinks } from './CertificacionQuickLinks';

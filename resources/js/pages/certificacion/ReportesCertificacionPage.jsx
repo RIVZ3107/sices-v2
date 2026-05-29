@@ -28,8 +28,8 @@ export function ReportesCertificacionPage() {
 
             <CertificacionPlaceholder
                 type="info"
-                title="Firma electrónica en este módulo"
-                detail="La pantalla Firma electrónica es solo seguimiento: no hay botón «Firmar SEP» ni ejecución del servicio 34. La firma oficial y el proceso técnico (cadena, XML, preflight, shadow) viven en Sistemas → Proceso técnico de certificación, con permisos técnicos."
+                title="Flujo de certificación"
+                detail="Educación Superior procesa el flujo normal automatizado (certificacion.procesar y certificacion.firmar). Sistemas atiende incidencias técnicas, diagnóstico y reintentos cuando el procesamiento falla."
             />
 
             <CertificacionFilters>
@@ -71,7 +71,7 @@ export function ReportesCertificacionPage() {
                 <div className="cert-grid-2" style={{ fontSize: 14 }}>
                     <p>Pendientes revisión: <strong>{resumen?.pendientes_revision ?? 0}</strong></p>
                     <p>Aprobados: <strong>{resumen?.aprobados ?? 0}</strong></p>
-                    <p>Listos proceso técnico: <strong>{resumen?.listos_para_firma ?? 0}</strong></p>
+                    <p>En procesamiento: <strong>{resumen?.listos_para_firma ?? 0}</strong></p>
                     <p>Firmados: <strong>{resumen?.firmados ?? 0}</strong></p>
                     <p>Rechazados: <strong>{resumen?.rechazados ?? 0}</strong></p>
                     <p>Cancelados: <strong>{resumen?.cancelados ?? 0}</strong></p>

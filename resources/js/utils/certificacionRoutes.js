@@ -24,3 +24,21 @@ export function debeUsarLayoutCertificacionRc() {
     }
     return roles.includes('responsable_certificacion_titulacion');
 }
+
+export const CERTIFICACION_BASE = '/app/certificacion';
+export const CERTIFICACION_DASHBOARD_PATH = '/app/certificacion/dashboard';
+export const ES_CERTIFICACION_PATH = '/app/educacion-superior/certificacion';
+export const UPN_CERTIFICACION_PATH = '/app/educacion-superior/upn-certificacion';
+export const PROCESO_TECNICO_BANDEJA_PATH = '/app/sistemas/proceso-tecnico-certificacion';
+export const DOCUMENTO_PROCESO_TECNICO_PATH = '/app/sistemas/documento-proceso-tecnico';
+
+/** Rutas legacy → canónicas (menús y bookmarks antiguos). */
+export const LEGACY_UPN_CERTIFICACION_PATH = '/app/educacion-superior/upn/certificacion';
+
+export function upnCertificacionDetallePath(documentoId) {
+    return `${UPN_CERTIFICACION_PATH}/${documentoId}`;
+}
+
+export function documentoProcesoTecnicoDetallePath(documentoId) {
+    return `${DOCUMENTO_PROCESO_TECNICO_PATH}/${documentoId}`;
+}

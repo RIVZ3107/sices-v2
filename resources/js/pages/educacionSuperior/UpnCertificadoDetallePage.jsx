@@ -9,7 +9,9 @@ import { SectionCard } from '../../components/ui/SectionCard';
 import { RequirePermission } from '../../components/auth/RequirePermission';
 import { EsHeaderAction, EsPageLayout } from '../../components/educacionSuperior';
 import { UpnCertificadoSummaryCard, UpnCertificateDetailSections } from '../../components/upn';
-import { upnCan, upnCanProcesoTecnico, UPN_PERM } from '../../utils/upnCertificacionPermissions';
+import { ejecutarProcesoCertificacion } from '../../lib/ejecutarProcesoCertificacion';
+import { documentoProcesoTecnicoDetallePath } from '../../utils/certificacionRoutes';
+import { upnCan, upnCanVerDiagnosticoSistemas, UPN_PERM } from '../../utils/upnCertificacionPermissions';
 
 const SECCION_TIPO = {
     alumno: 'datos_alumno',
@@ -21,7 +23,8 @@ const SECCION_TIPO = {
 };
 
 export function UpnCertificadoDetallePage() {
-    const { id } = useParams();
+    const { documentoId, id: legacyId } = useParams();
+    const id = documentoId ?? legacyId;
     const [data, setData] = useState(null);
     const [docShow, setDocShow] = useState(null);
     const [busy, setBusy] = useState(false);
@@ -69,11 +72,11 @@ export function UpnCertificadoDetallePage() {
         return errs;
     }, [validacion, obsPendientes, doc]);
 
-    const bloqueosLiberar = useMemo(() => {
+    const bloqueosProcesar = useMemo(() => {
         const errs = [];
-        if (doc?.estado_workflow !== 'aprobado') errs.push('Debe aprobar antes de liberar.');
+        if (doc?.estado_workflow !== 'aprobado') errs.push('Debe aprobar antes de procesar.');
         if (obsPendientes > 0) errs.push('Observaciones pendientes.');
-        if (doc?.listo_para_firma) errs.push('Ya liberado a proceso técnico.');
+        if (doc?.estado_firma === 'firmado') errs.push('Ya finalizado.');
         return errs;
     }, [doc, obsPendientes]);
 
@@ -97,10 +100,18 @@ export function UpnCertificadoDetallePage() {
                 if (folio === null || !folio.trim()) return;
                 await documentosAcademicosApi.asignarFolioInterno(id, { folio_interno: folio.trim() });
             }
-            if (accion === 'liberar') {
-                await documentosAcademicosApi.marcarListoParaFirma(id, {
-                    motivo: 'Liberado a proceso técnico UPN.',
+            if (accion === 'procesar') {
+                const res = await ejecutarProcesoCertificacion(id, {
+                    listoParaFirma: Boolean(doc?.listo_para_firma),
                 });
+                if (!res.ok) {
+                    setError(res.error ?? 'Incidencia técnica durante el procesamiento.');
+                } else {
+                    setMsg(res.message ?? 'Certificación procesada.');
+                }
+            }
+            if (accion === 'firmar') {
+                await documentosAcademicosApi.ejecutarFirma(id);
             }
             if (accion === 'observacion') {
                 await observacionesApi.crear(id, {
@@ -147,7 +158,7 @@ export function UpnCertificadoDetallePage() {
                 subtitle="Revisión institucional de certificado de profesionista"
                 actions={
                     <EsHeaderAction
-                        to="/app/educacion-superior/upn/certificacion"
+                        to="/app/educacion-superior/upn-certificacion"
                         label="Volver a bandeja UPN"
                         variant="secondary"
                     />
@@ -274,36 +285,49 @@ export function UpnCertificadoDetallePage() {
                             </ActionButton>
                         ) : null}
 
-                        {upnCan('liberar') ? (
+                        {upnCan('procesar') ? (
                             <ActionButton
                                 variant="warning"
-                                disabled={busy || bloqueosLiberar.length > 0}
+                                disabled={busy || bloqueosProcesar.length > 0}
                                 onClick={() => {
-                                    if (!window.confirm('¿Liberar a proceso técnico (Sistemas)?')) return;
-                                    void ejecutar('liberar');
+                                    if (!window.confirm('¿Ejecutar procesamiento automático de la certificación UPN?')) return;
+                                    void ejecutar('procesar');
                                 }}
                             >
-                                Liberar a proceso técnico
+                                Procesar certificación
                             </ActionButton>
                         ) : null}
 
-                        {upnCan('pdf') ? (
+                        {upnCan('firmar') && doc?.listo_para_firma && doc?.estado_firma !== 'firmado' ? (
+                            <ActionButton
+                                variant="primary"
+                                disabled={busy}
+                                onClick={() => {
+                                    if (!window.confirm('¿Firmar certificado UPN?')) return;
+                                    void ejecutar('firmar');
+                                }}
+                            >
+                                Firmar certificado
+                            </ActionButton>
+                        ) : null}
+
+                        {upnCan('obtenerResultadoFinal') ? (
                             <Link to={`/app/documentos/${id}`} className="inst-btn inst-btn-secondary text-sm text-center">
                                 Ver documento / PDF
                             </Link>
                         ) : null}
 
-                        {upnCanProcesoTecnico() ? (
+                        {doc?.estado_firma === 'error_firma' && upnCanVerDiagnosticoSistemas() ? (
                             <Link
-                                to={`/app/sistemas/proceso-tecnico-certificacion/${id}`}
+                                to={documentoProcesoTecnicoDetallePath(id)}
                                 className="inst-btn inst-btn-secondary text-sm text-center"
                             >
-                                Proceso técnico (Sistemas)
+                                Ver error técnico
                             </Link>
                         ) : null}
 
-                        {bloqueosLiberar.length > 0 && upnCan('liberar') ? (
-                            <p style={{ fontSize: 11, color: '#BA7517', margin: 0 }}>{bloqueosLiberar.join(' ')}</p>
+                        {bloqueosProcesar.length > 0 && upnCan('procesar') ? (
+                            <p style={{ fontSize: 11, color: '#BA7517', margin: 0 }}>{bloqueosProcesar.join(' ')}</p>
                         ) : null}
                     </aside>
                 </div>

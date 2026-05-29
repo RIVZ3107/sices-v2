@@ -19,6 +19,7 @@ const BANDEJAS_CARGA = [
     'aprobados',
     'listos-para-firma',
     'rechazados',
+    'errores-firma',
 ];
 
 const PER_PAGE = 30;
@@ -101,9 +102,9 @@ export function useCertificacionSupervision() {
         const vencidos = rows.filter((r) => r.diasEspera >= 30 && r.fase.key !== 'firmado').length;
 
         return [
-            { titulo: 'Expedientes con incidencia', total: inc, fase: 'incidencia' },
+            { titulo: 'Incidencias técnicas abiertas', total: inc, fase: 'incidencia' },
             { titulo: 'Pendientes de asignar folio', total: sinFolio, fase: 'pendiente_folio' },
-            { titulo: 'Pendientes de proceso técnico', total: listos, fase: 'listo_proceso_tecnico' },
+            { titulo: 'En procesamiento automático', total: listos, fase: 'listo_proceso_tecnico' },
             { titulo: 'Documentos vencidos (+30 días)', total: vencidos, fase: '', prioridad: 'Alta' },
         ];
     }, [rows]);

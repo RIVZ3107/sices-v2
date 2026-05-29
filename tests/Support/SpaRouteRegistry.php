@@ -17,8 +17,22 @@ final class SpaRouteRegistry
         $paths = [];
 
         if (preg_match_all("/path:\s*'([^']+)'/", $content, $matches)) {
-            foreach ($matches[1] as $segment) {
-                $paths[] = self::toAppPath($segment);
+            $stack = [];
+            $lines = explode("\n", $content);
+            foreach ($lines as $line) {
+                if (preg_match("/path:\s*'([^']+)'/", $line, $m)) {
+                    $segment = $m[1];
+                    if ($segment === '*' || str_contains($segment, ':')) {
+                        continue;
+                    }
+                    $depth = (int) floor((strlen($line) - strlen(ltrim($line))) / 4);
+                    $stack = array_slice($stack, 0, $depth);
+                    $stack[$depth] = $segment;
+                    $full = implode('/', array_filter($stack));
+                    if ($full !== '') {
+                        $paths[] = self::toAppPath($full);
+                    }
+                }
             }
         }
 
@@ -28,12 +42,34 @@ final class SpaRouteRegistry
             }
         }
 
+        if (preg_match_all('/to=\{([A-Z_]+)\}/', $content, $constMatches)) {
+            foreach ($constMatches[1] as $const) {
+                $paths = array_merge($paths, self::pathsFromRouteConstant($const));
+            }
+        }
+
         $paths[] = '/app';
         $paths[] = '/app/dashboard';
-        $paths[] = '/app/educacion-superior/upn/certificacion';
+        $paths[] = '/app/educacion-superior/upn-certificacion';
+        $paths[] = '/app/educacion-superior/certificacion';
+        $paths[] = '/app/sistemas/documento-proceso-tecnico';
+        $paths[] = '/app/sistemas/proceso-tecnico-certificacion';
+        $paths[] = '/app/certificacion/dashboard';
         $paths[] = '/app/educacion-superior/revision';
 
         return array_values(array_unique($paths));
+    }
+
+    /** @return list<string> */
+    private static function pathsFromRouteConstant(string $const): array
+    {
+        $map = [
+            'UPN_CERTIFICACION_PATH' => '/app/educacion-superior/upn-certificacion',
+            'PROCESO_TECNICO_BANDEJA_PATH' => '/app/sistemas/proceso-tecnico-certificacion',
+            'DOCUMENTO_PROCESO_TECNICO_PATH' => '/app/sistemas/documento-proceso-tecnico',
+        ];
+
+        return isset($map[$const]) ? [$map[$const]] : [];
     }
 
     public static function toAppPath(string $segment): string

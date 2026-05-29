@@ -32,12 +32,12 @@ export const REV_PERM = {
         'documentos.rechazar_institucionalmente',
         'validaciones_normativas.rechazar',
     ],
-    liberar: [
-        'documentos.liberar_proceso_tecnico',
-        'preparar_documento_firma',
+    procesar: [
+        'certificacion.procesar',
         'certificacion.enviar_a_proceso_tecnico',
+        'preparar_documento_firma',
+        'documentos.liberar_proceso_tecnico',
         'certificacion.autorizar_emision',
-        'folios.asignar',
     ],
     folio: ['folios.asignar', 'preparar_documento_firma', 'certificacion.autorizar_emision'],
 };

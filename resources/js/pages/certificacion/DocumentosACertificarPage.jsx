@@ -17,8 +17,8 @@ import { userCanAny } from '../../utils/userPermissions';
 
 const TABS = [
     { key: 'aprobados', label: 'Aprobados' },
-    { key: 'listos-para-firma', label: 'Listos proceso técnico' },
-    { key: 'pendientes-tecnicos', label: 'Pendientes folio / técnico' },
+    { key: 'listos-para-firma', label: 'En procesamiento' },
+    { key: 'pendientes-tecnicos', label: 'Pendientes folio' },
 ];
 
 export function DocumentosACertificarPage() {
@@ -29,19 +29,21 @@ export function DocumentosACertificarPage() {
 
     const { rows, error, loading, recargar } = useCertificacionBandeja(tab, filters);
 
-    const canLiberar = userCanAny(CERT_PERM.liberarProceso);
-    const canProcesoTecnico = userCanAny(CERT_PERM.procesoTecnico);
+    const canProcesar = userCanAny(CERT_PERM.procesarCertificacion);
+    const canIncidencia = userCanAny(CERT_PERM.enviarIncidenciaSistemas);
 
-    async function liberar(docId) {
-        if (!canLiberar) return;
+    async function procesar(docId) {
+        if (!canProcesar) return;
         setBusyId(docId);
         setMsg('');
         try {
-            await documentosAcademicosApi.marcarListoParaFirma(docId);
-            setMsg('Documento liberado a proceso técnico.');
+            await documentosAcademicosApi.marcarListoParaFirma(docId, {
+                motivo: 'Inicio de procesamiento automático desde Certificación.',
+            });
+            setMsg('Certificación en procesamiento automático. Use la bandeja de Educación Superior para el flujo completo.');
             await recargar();
         } catch (e) {
-            setMsg(e?.message ?? 'No se pudo liberar el documento.');
+            setMsg(e?.message ?? 'No se pudo iniciar el procesamiento.');
         } finally {
             setBusyId(null);
         }
@@ -51,7 +53,7 @@ export function DocumentosACertificarPage() {
         <div style={certTheme.pageShell}>
             <CertificacionPageHeader
                 title="Documentos a certificar"
-                subtitle="Gestión institucional hacia emisión. No incluye generación de cadena, XML ni firma SEP (módulo Sistemas)."
+                subtitle="Gestión institucional hacia emisión. Educación Superior procesa el flujo normal automatizado; Sistemas atiende incidencias si falla."
             />
 
             {msg ? <p style={{ fontSize: 13, color: '#0F6E56', margin: 0 }}>{msg}</p> : null}
@@ -107,19 +109,19 @@ export function DocumentosACertificarPage() {
                             Expediente
                         </CertTableLink>
                         <CertTableLink to={`/app/documentos/${row.id}`}>Ver</CertTableLink>
-                        {canLiberar && tab === 'aprobados' && !row.listo_para_firma ? (
+                        {canProcesar && tab === 'aprobados' && !row.listo_para_firma ? (
                             <button
                                 type="button"
                                 style={{ ...certTheme.btnPrimary, fontSize: 12, padding: '6px 10px' }}
                                 disabled={busyId === row.id}
-                                onClick={() => void liberar(row.id)}
+                                onClick={() => void procesar(row.id)}
                             >
-                                Liberar a proceso técnico
+                                Procesar certificación
                             </button>
                         ) : null}
-                        {canProcesoTecnico && row.listo_para_firma ? (
-                            <CertTableLink to={`/app/sistemas/proceso-tecnico-certificacion/${row.id}`}>
-                                Proceso técnico
+                        {canIncidencia && row.estado_firma === 'error_firma' ? (
+                            <CertTableLink to={`/app/sistemas/documento-proceso-tecnico/${row.id}`}>
+                                Ver incidencia
                             </CertTableLink>
                         ) : null}
                     </>
@@ -128,7 +130,7 @@ export function DocumentosACertificarPage() {
 
             <CertificacionPlaceholder
                 title="Alcance funcional"
-                detail="Estado SEP legacy disponible desde el expediente del alumno o la ficha del documento. Las operaciones técnicas SEP/XML/firma solo en Sistemas."
+                detail="El procesamiento (cadena, XML, preflight y firma) se ejecuta de forma automática con certificacion.procesar y certificacion.firmar. Si hay fallo técnico, Sistemas recibe la incidencia para diagnóstico y reintento."
             />
         </div>
     );

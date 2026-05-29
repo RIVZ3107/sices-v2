@@ -1,19 +1,26 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { documentosAcademicosApi } from '../../api/documentosAcademicos';
 import {
     EsCard,
     EsHeaderAction,
+    EsIcons,
     EsLoadingState,
     EsPageLayout,
     EsSearchInput,
+    esMetricTones,
     esTheme,
     formatEsNum,
 } from '../../components/educacionSuperior';
 import { UpnCertificacionFilters, UpnCertificacionTable, UpnEmptyState, UpnErrorAlert } from '../../components/upn';
 import { useUpnCertificacionBandeja } from '../../hooks/useUpnCertificacionBandeja';
+import { computeUpnKpis } from '../../utils/upnCertificacion';
+import { ejecutarProcesoCertificacion } from '../../lib/ejecutarProcesoCertificacion';
+import { documentoProcesoTecnicoDetallePath } from '../../utils/certificacionRoutes';
 import { upnCan } from '../../utils/upnCertificacionPermissions';
 
 export function UpnCertificacionPage() {
+    const navigate = useNavigate();
     const {
         loading,
         bandejaLoading,
@@ -26,9 +33,20 @@ export function UpnCertificacionPage() {
         limpiarFiltros,
     } = useUpnCertificacionBandeja();
 
-    const [filtersOpen, setFiltersOpen] = useState(true);
+    const [filtersOpen, setFiltersOpen] = useState(false);
     const [busyId, setBusyId] = useState(null);
     const [actionMsg, setActionMsg] = useState('');
+
+    const kpis = useMemo(() => computeUpnKpis(rowsFiltradas), [rowsFiltradas]);
+
+    const metricasKpi = [
+        { key: 'pend', icon: EsIcons.inbox, ...esMetricTones.yellow, title: 'Pendientes de validación', value: kpis.pendientesValidacion },
+        { key: 'val', icon: EsIcons.validate, ...esMetricTones.blue, title: 'Validados por certificador', value: kpis.validadosCertificador },
+        { key: 'folio', icon: EsIcons.assign, ...esMetricTones.yellow, title: 'Pendientes de folio', value: kpis.pendientesFolio },
+        { key: 'proc', icon: EsIcons.code, ...esMetricTones.purple, title: 'En procesamiento', value: kpis.enProcesamiento },
+        { key: 'firm', icon: EsIcons.sign, ...esMetricTones.green, title: 'Firmados / finalizados', value: kpis.firmados },
+        { key: 'inc', icon: EsIcons.alert, ...esMetricTones.red, title: 'Incidencias técnicas', value: kpis.incidencias },
+    ];
 
     async function handleAprobar(row) {
         if (!upnCan('aprobar')) return;
@@ -62,19 +80,32 @@ export function UpnCertificacionPage() {
         }
     }
 
-    async function handleLiberar(row) {
-        if (!upnCan('liberar')) return;
-        const ok = window.confirm(
-            'El documento pasará a Sistemas para cadena, XML y firma SEP.\n\n¿Liberar a proceso técnico?',
-        );
+    async function handleProcesar(row) {
+        if (!upnCan('procesar')) return;
+        const ok = window.confirm('¿Ejecutar procesamiento automático de la certificación UPN?');
         if (!ok) return;
         setBusyId(row.id);
         try {
-            await documentosAcademicosApi.marcarListoParaFirma(row.id);
-            setActionMsg('Liberado a proceso técnico.');
+            const res = await ejecutarProcesoCertificacion(row.id, { listoParaFirma: Boolean(row.raw?.listo_para_firma) });
+            setActionMsg(res.ok ? (res.message ?? 'Procesado.') : (res.error ?? 'Incidencia técnica.'));
             await recargar();
         } catch (e) {
-            setActionMsg(e?.message ?? 'No se pudo liberar.');
+            setActionMsg(e?.message ?? 'No se pudo procesar.');
+        } finally {
+            setBusyId(null);
+        }
+    }
+
+    async function handleFirmar(row) {
+        if (!upnCan('firmar')) return;
+        if (!window.confirm('¿Firmar certificado UPN?')) return;
+        setBusyId(row.id);
+        try {
+            await documentosAcademicosApi.ejecutarFirma(row.id);
+            setActionMsg('Firma ejecutada.');
+            await recargar();
+        } catch (e) {
+            setActionMsg(e?.message ?? 'Error de firma.');
         } finally {
             setBusyId(null);
         }
@@ -84,21 +115,43 @@ export function UpnCertificacionPage() {
     const showEmpty = !loading && !showError && rowsFiltradas.length === 0;
     const showTable = !loading && !showError && rowsFiltradas.length > 0;
 
+    if (loading && rowsFiltradas.length === 0) {
+        return <EsLoadingState text="Cargando certificación UPN…" />;
+    }
+
     return (
         <EsPageLayout
             breadcrumbCurrent="Certificación UPN"
             title="Certificación UPN"
-            subtitle="Supervisión de certificados de profesionistas de escuelas UPN"
+            subtitle="Validación, procesamiento y seguimiento de certificados UPN."
+            metricsWide
+            metrics={metricasKpi.map((m) => ({
+                key: m.key,
+                icon: m.icon,
+                iconBg: m.iconBg,
+                iconColor: m.iconColor,
+                title: m.title,
+                value: m.value,
+                trend: '',
+                trendPrefix: '',
+            }))}
             actions={
                 <>
+                    <EsSearchInput
+                        value={filters.q}
+                        onChange={(e) => setFilters((f) => ({ ...f, q: e.target.value }))}
+                        placeholder="Buscar folio, alumno, CURP…"
+                        width={260}
+                    />
                     <EsHeaderAction icon="filter" label="Filtros" onClick={() => setFiltersOpen((v) => !v)} />
                     <EsHeaderAction label="Actualizar" variant="secondary" onClick={() => void recargar()} />
                 </>
             }
+            showSplit={false}
         >
             <p style={{ margin: '0 0 12px', fontSize: 12, color: '#64748b' }}>
-                Filtro institucional: subsistema UPN. La firma SEP y operaciones técnicas se realizan únicamente en
-                Sistemas → Proceso técnico de certificación.
+                Subsistema UPN. Educación Superior procesa y obtiene el resultado final de forma automática. Sistemas atiende
+                solo incidencias técnicas si el procesamiento falla.
             </p>
 
             {actionMsg ? (
@@ -113,8 +166,6 @@ export function UpnCertificacionPage() {
                 onToggle={() => setFiltersOpen(false)}
                 onLimpiar={limpiarFiltros}
             />
-
-            {loading ? <EsLoadingState text="Cargando certificación UPN…" /> : null}
 
             {showError ? (
                 <UpnErrorAlert
@@ -131,15 +182,9 @@ export function UpnCertificacionPage() {
                         <div>
                             <h3 style={esTheme.sectionTitle}>Certificados UPN</h3>
                             <p style={{ margin: '4px 0 0', fontSize: 12, color: '#64748b' }}>
-                                {formatEsNum(rowsFiltradas.length)} registro(s) · datos desde bandejas institucionales (subsistema UPN)
+                                {formatEsNum(rowsFiltradas.length)} registro(s) · bandejas institucionales (subsistema UPN)
                             </p>
                         </div>
-                        <EsSearchInput
-                            value={filters.q}
-                            onChange={(e) => setFilters((f) => ({ ...f, q: e.target.value }))}
-                            placeholder="Buscar folio, alumno, CURP…"
-                            width={280}
-                        />
                     </div>
                     {bandejaLoading ? (
                         <p style={{ padding: 24, textAlign: 'center', color: '#64748b', fontSize: 13 }}>
@@ -150,17 +195,14 @@ export function UpnCertificacionPage() {
                             rows={rowsFiltradas}
                             onAprobar={handleAprobar}
                             onRechazar={handleRechazar}
-                            onLiberar={handleLiberar}
+                            onProcesar={handleProcesar}
+                            onFirmar={handleFirmar}
+                            onVerError={(row) => navigate(documentoProcesoTecnicoDetallePath(row.id))}
+                            onEnviarSistemas={(row) => navigate(`${documentoProcesoTecnicoDetallePath(row.id)}#logs`)}
                             busyId={busyId}
                         />
                     )}
                 </EsCard>
-            ) : null}
-
-            {!loading && !showError && rowsFiltradas.length === 0 && filters.q ? (
-                <p style={{ textAlign: 'center', fontSize: 13, color: '#64748b', marginTop: 8 }}>
-                    No hay certificados UPN para los filtros seleccionados.
-                </p>
             ) : null}
         </EsPageLayout>
     );

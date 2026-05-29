@@ -18,14 +18,14 @@ export function GeneracionDocumentosPage() {
     const [filters, setFilters] = useState({ q: '' });
     const { rows, error, loading } = useCertificacionBandeja('aprobados', filters);
 
-    const canPdf = userCanAny(['pdf.ver', 'pdf.generar']);
-    const canSistemas = userCanAny(CERT_PERM.procesoTecnico);
+    const canPdf = userCanAny(CERT_PERM.obtenerResultadoFinal);
+    const canIncidencia = userCanAny(CERT_PERM.enviarIncidenciaSistemas);
 
     return (
         <div style={certTheme.pageShell}>
             <CertificacionPageHeader
                 title="Generación de documentos"
-                subtitle="Vista de preparación y seguimiento documental. No ejecuta firma SEP, exportación Informix ni servicio 34."
+                subtitle="Preparación y seguimiento documental. El procesamiento automático y la firma se ejecutan desde Educación Superior; Sistemas atiende incidencias si falla."
             />
 
             <CertificacionFilters onReset={() => setFilters({ q: '' })}>
@@ -73,9 +73,9 @@ export function GeneracionDocumentosPage() {
                                 Vista previa PDF
                             </span>
                         ) : null}
-                        {canSistemas ? (
-                            <CertTableLink to={`/app/sistemas/proceso-tecnico-certificacion/${row.id}`}>
-                                Proceso técnico (Sistemas)
+                        {canIncidencia && row.estado_firma === 'error_firma' ? (
+                            <CertTableLink to={`/app/sistemas/documento-proceso-tecnico/${row.id}`}>
+                                Ver incidencia
                             </CertTableLink>
                         ) : null}
                     </>
@@ -84,7 +84,7 @@ export function GeneracionDocumentosPage() {
 
             <CertificacionPlaceholder
                 title="Vista previa documental"
-                detail="La generación de PDF oficial y plantillas productivas se conectarán cuando el backend exponga el endpoint. Use la ficha del documento para validar payload y estados."
+                detail="El PDF final se consulta con certificacion.obtener_resultado_final. Cadena, XML y preflight no se exponen como botones separados: forman parte del procesamiento automático."
             />
         </div>
     );

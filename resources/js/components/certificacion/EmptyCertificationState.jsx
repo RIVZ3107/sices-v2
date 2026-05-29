@@ -18,7 +18,7 @@ export function EmptyCertificationState({ onVerAprobados, onVerSolicitudes }) {
                 No hay documentos en proceso de certificación
             </h3>
             <p style={{ margin: '0 0 20px', fontSize: 14, color: esColors.muted, maxWidth: 480, marginLeft: 'auto', marginRight: 'auto' }}>
-                Cuando las instituciones envíen expedientes validados, aparecerán aquí para seguimiento institucional.
+                Cuando existan certificados en trámite, aparecerán aquí para validación, procesamiento y seguimiento final.
             </p>
             <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
                 {onVerAprobados ? (

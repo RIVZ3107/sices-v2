@@ -1,3 +1,10 @@
+import {
+    derivarKpisInstitucionales,
+    resolverEstadoCertificador,
+    resolverEstadoFirma,
+    resolverEstadoProcesamiento,
+} from './certificacionEstadosInstitucionales';
+
 const TIPO_DOC_LABELS = {
     certificado: 'Certificado',
     titulo: 'Título',
@@ -9,7 +16,7 @@ export const FASES = {
     en_revision: { key: 'en_revision', label: 'En revisión', badge: 'blue' },
     aprobado: { key: 'aprobado', label: 'Aprobado', badge: 'green' },
     pendiente_folio: { key: 'pendiente_folio', label: 'Pendiente de folio', badge: 'orange' },
-    listo_proceso_tecnico: { key: 'listo_proceso_tecnico', label: 'Listo para proceso técnico', badge: 'purple' },
+    listo_proceso_tecnico: { key: 'listo_proceso_tecnico', label: 'En procesamiento', badge: 'purple' },
     firmado: { key: 'firmado', label: 'Firmado', badge: 'green' },
     incidencia: { key: 'incidencia', label: 'Con incidencia', badge: 'red' },
 };
@@ -106,10 +113,17 @@ export function mapDocumentoSupervisionRow(doc) {
     const fase = resolverFase(doc);
     const estatus = resolverEstatus(doc);
     const prioridad = resolverPrioridad(doc);
+    const estadoCertificador = resolverEstadoCertificador(doc);
+    const estadoProcesamiento = resolverEstadoProcesamiento(doc);
+    const estadoFirma = resolverEstadoFirma(doc);
     const nombrePartes = [doc.alumno?.nombre, doc.alumno?.primer_apellido, doc.alumno?.segundo_apellido]
         .filter(Boolean)
         .join(' ');
     const alumnoNombre = doc.alumno?.nombre_completo ?? (nombrePartes || '—');
+    const meta = doc?.metadata ?? {};
+    const trayectoria = meta?.trayectoria_resumen ?? meta?.trayectoria ?? {};
+    const promedio = trayectoria?.promedio ?? meta?.promedio ?? meta?.promedio_aprovechamiento ?? '—';
+    const sedeLabel = [doc.institucion?.nombre, doc.sede?.clave ?? doc.sede?.nombre].filter(Boolean).join(' · ');
 
     return {
         id: doc.id,
@@ -118,26 +132,41 @@ export function mapDocumentoSupervisionRow(doc) {
         alumnoId: doc.alumno?.id ?? doc.alumno_id,
         curp: doc.alumno?.curp ?? '',
         matricula: doc.matricula?.matricula ?? '',
-        institucion: doc.institucion?.nombre ?? '—',
+        institucion: sedeLabel || '—',
         institucionId: doc.institucion_id,
         programa: doc.programa?.nombre ?? '—',
         tipoDocumento: labelTipoDocumento(doc.tipo_documento),
+        tipoCertificacion: doc.tipo_certificacion ?? '',
         tipoDocumentoRaw: doc.tipo_documento,
         ciclo: doc.ciclo_escolar?.nombre ?? '',
+        promedio,
+        fechaExpedicion: doc.fecha_aprobacion ?? doc.fecha_solicitud ?? null,
         fase,
         estatus,
+        estadoCertificador,
+        estadoProcesamiento,
+        estadoFirma,
         prioridad,
         diasEspera: diasEnEspera(doc),
         raw: doc,
         puedeAsignarFolio:
             doc.estado_workflow === 'aprobado' && !doc.folio_interno && !doc.listo_para_firma,
+        puedeProcesar:
+            doc.estado_workflow === 'aprobado'
+            && doc.folio_interno
+            && !doc.listo_para_firma
+            && !doc.tiene_observaciones_pendientes
+            && doc.estado_firma !== 'firmado',
         puedeLiberar:
             doc.estado_workflow === 'aprobado'
             && doc.folio_interno
             && !doc.listo_para_firma
             && !doc.tiene_observaciones_pendientes
             && doc.estado_firma !== 'firmado',
+        puedeAprobar: ['en_revision', 'pendiente'].includes(doc.estado_workflow),
         puedeValidar: ['en_revision', 'pendiente'].includes(doc.estado_workflow),
+        puedeFirmar: Boolean(doc.listo_para_firma) && doc.estado_firma !== 'firmado' && doc.estado_firma !== 'error_firma',
+        tieneIncidencia: doc.estado_firma === 'error_firma' || Boolean(meta?.firma_servicio_34?.last_error),
         updated_at: doc.updated_at ?? doc.created_at,
     };
 }
@@ -151,30 +180,17 @@ export function mergeDocumentosBandejas(listas) {
 }
 
 export function derivarKpis(resumen, rows) {
-    const candidatos = Number(
-        resumen.egresados_candidatos
-        ?? resumen.candidatos_certificacion
-        ?? resumen.pendientes_revision
-        ?? 0,
-    );
-    const aprobados = Number(resumen.aprobados ?? 0);
-    const listos = Number(resumen.listos_para_firma ?? 0);
-    const firmados = Number(resumen.firmados ?? 0);
-    const rechazados = Number(resumen.rechazados ?? 0);
-    const cancelados = Number(resumen.cancelados ?? 0);
-    const erroresFirma = Number(resumen.errores_firma ?? resumen.error_firma ?? 0);
-
-    const pendientesFolio = rows.filter((r) => r.fase.key === FASES.pendiente_folio.key).length;
-    const incidencias = rows.filter((r) => r.fase.key === FASES.incidencia.key).length
-        || rechazados + cancelados + erroresFirma;
-
+    const institucional = derivarKpisInstitucionales(rows);
     return {
-        candidatos,
-        aprobados,
-        pendientesFolio: pendientesFolio || Math.max(0, aprobados - listos),
-        listosProcesoTecnico: listos,
-        firmados,
-        incidencias,
+        candidatos: institucional.pendientesValidacion,
+        aprobados: institucional.validadosCertificador,
+        pendientesFolio: institucional.pendientesFolio,
+        listosProcesoTecnico: institucional.enProcesamiento,
+        firmados: institucional.firmados,
+        incidencias: institucional.incidencias,
+        pendientesValidacion: institucional.pendientesValidacion,
+        validadosCertificador: institucional.validadosCertificador,
+        enProcesamiento: institucional.enProcesamiento,
     };
 }
 

@@ -122,7 +122,7 @@ class SystemMenusSeeder extends Seeder
         $mk(null, 'es_plan', 'Planes de estudio', '/app/educacion-superior/planes', 'panel', 5, 'OPERACION', 'planes_estudio.ver', ['educacion_superior']);
         $mk(null, 'es_sol', 'Solicitudes de matrícula', '/app/solicitudes-matricula', 'matriculas', 6, 'OPERACION', 'solicitudes_matricula.ver', ['educacion_superior']);
         $mk(null, 'es_val', 'Validaciones normativas', '/app/educacion-superior/validaciones-normativas', 'validate', 7, 'OPERACION', 'validaciones_normativas.ver', ['educacion_superior']);
-        $mk(null, 'es_upn', 'Certificación UPN', '/app/educacion-superior/upn/certificacion', 'docs', 8, 'OPERACION', 'certificacion.ver', ['educacion_superior']);
+        $mk(null, 'es_upn', 'Certificación UPN', '/app/educacion-superior/upn-certificacion', 'docs', 8, 'OPERACION', 'certificacion.ver', ['educacion_superior']);
         $mk(null, 'es_cert_rev', 'Revisión por expediente', '/app/educacion-superior/revision', 'validate', 9, 'OPERACION', 'certificacion.validar', ['educacion_superior']);
         $mk(null, 'es_rep', 'Reportes oficiales', '/app/educacion-superior/reportes-oficiales', 'report', 10, 'OPERACION', 'reportes_oficiales.ver', ['educacion_superior']);
         $mk(null, 'es_cp', 'Consulta pública', '/app/consulta/documentos', 'validate', 10, 'CONSULTA', 'consulta_publica.ver', ['educacion_superior']);

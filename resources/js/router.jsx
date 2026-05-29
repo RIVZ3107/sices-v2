@@ -1,5 +1,6 @@
 import { RequirePermission } from './components/auth/RequirePermission';
-import { createBrowserRouter, Navigate } from 'react-router-dom';
+import { createBrowserRouter, Navigate, Outlet, useParams } from 'react-router-dom';
+import { SpaNotFoundPage, SpaRouteErrorPage } from './components/routing/SpaRouteErrorPage';
 import { getToken } from './authStore';
 import { AppLayout } from './layouts/AppLayout';
 import { AuthLayout } from './layouts/AuthLayout';
@@ -83,6 +84,11 @@ import { ReportesCertificacionPage } from './pages/certificacion/ReportesCertifi
 import { ConfiguracionCertificacionPage } from './pages/certificacion/ConfiguracionCertificacionPage';
 import { NotificacionesCertificacionPage } from './pages/certificacion/NotificacionesCertificacionPage';
 import { CERT_PERM } from './utils/certificacionPermissions';
+import {
+    DOCUMENTO_PROCESO_TECNICO_PATH,
+    PROCESO_TECNICO_BANDEJA_PATH,
+    UPN_CERTIFICACION_PATH,
+} from './utils/certificacionRoutes';
 
 function PrivateOutlet() {
     return getToken() ? <AppLayout /> : <Navigate to="/login" replace />;
@@ -94,6 +100,15 @@ function GuestOutlet() {
 
 function Guard({ anyOf, children }) {
     return <RequirePermission anyOf={anyOf}>{children}</RequirePermission>;
+}
+
+function LegacyDetailRedirect({ basePath, sourceParam = 'id' }) {
+    const params = useParams();
+    const value = params[sourceParam] ?? params.documentoId ?? params.id;
+    if (!value) {
+        return <Navigate to={basePath} replace />;
+    }
+    return <Navigate to={`${basePath}/${value}`} replace />;
 }
 
 const PERM = {
@@ -157,10 +172,14 @@ export const router = createBrowserRouter([
     },
     {
         path: '/app',
+        element: <Outlet />,
+        errorElement: <SpaRouteErrorPage />,
         children: [
             {
                 element: <PrivateOutlet />,
+                errorElement: <SpaRouteErrorPage />,
                 children: [
+                    { index: true, element: <Navigate to="/app/dashboard" replace /> },
                     { path: 'dashboard', element: <DashboardPage /> },
                     { path: 'expedientes', element: <Guard anyOf={PERM.expediente}><AlumnoDetallePage /></Guard> },
                     { path: 'documentos/bandejas', element: <Guard anyOf={PERM.docView}><BandejasPage /></Guard> },
@@ -327,45 +346,117 @@ export const router = createBrowserRouter([
                     { path: 'direccion/autorizaciones-observaciones', element: <Guard anyOf={PERM.direccion}><DireccionAutorizacionesPage /></Guard> },
                     { path: 'direccion/reportes', element: <Guard anyOf={PERM.direccion}><DireccionReportesPage /></Guard> },
                     { path: 'direccion/notificaciones', element: <Guard anyOf={PERM.direccion}><DireccionNotificacionesPage /></Guard> },
-                    { path: 'educacion-superior/instituciones', element: <Guard anyOf={PERM.educacionSuperior}><EsInstitucionesPage /></Guard> },
-                    { path: 'educacion-superior/sedes', element: <Guard anyOf={PERM.educacionSuperior}><EsSedesPage /></Guard> },
-                    { path: 'educacion-superior/programas', element: <Guard anyOf={PERM.educacionSuperior}><EsProgramasPage /></Guard> },
-                    { path: 'educacion-superior/planes', element: <Guard anyOf={PERM.educacionSuperior}><EsPlanesPage /></Guard> },
-                    { path: 'educacion-superior/validaciones-normativas', element: <Guard anyOf={PERM.educacionSuperior}><EsValidacionesNormativasPage /></Guard> },
-                    { path: 'educacion-superior/certificacion', element: <Guard anyOf={PERM.educacionSuperior}><EsCertificacionPage /></Guard> },
                     {
-                        path: 'educacion-superior/revision',
-                        element: <Guard anyOf={PERM.revisionInstitucional}><BandejaRevisionInstitucionalPage /></Guard>,
+                        path: 'educacion-superior',
+                        children: [
+                            {
+                                path: 'instituciones',
+                                element: <Guard anyOf={PERM.educacionSuperior}><EsInstitucionesPage /></Guard>,
+                            },
+                            {
+                                path: 'sedes',
+                                element: <Guard anyOf={PERM.educacionSuperior}><EsSedesPage /></Guard>,
+                            },
+                            {
+                                path: 'programas',
+                                element: <Guard anyOf={PERM.educacionSuperior}><EsProgramasPage /></Guard>,
+                            },
+                            {
+                                path: 'planes',
+                                element: <Guard anyOf={PERM.educacionSuperior}><EsPlanesPage /></Guard>,
+                            },
+                            {
+                                path: 'validaciones-normativas',
+                                element: <Guard anyOf={PERM.educacionSuperior}><EsValidacionesNormativasPage /></Guard>,
+                            },
+                            {
+                                path: 'certificacion',
+                                element: <Guard anyOf={PERM.educacionSuperior}><EsCertificacionPage /></Guard>,
+                            },
+                            {
+                                path: 'revision',
+                                element: <Guard anyOf={PERM.revisionInstitucional}><BandejaRevisionInstitucionalPage /></Guard>,
+                            },
+                            {
+                                path: 'revision/:id',
+                                element: <Guard anyOf={PERM.revisionInstitucional}><RevisionInstitucionalPage /></Guard>,
+                            },
+                            {
+                                path: 'upn-certificacion',
+                                element: <Guard anyOf={PERM.educacionSuperior}><UpnCertificacionPage /></Guard>,
+                            },
+                            {
+                                path: 'upn-certificacion/:documentoId',
+                                element: <Guard anyOf={PERM.educacionSuperior}><UpnCertificadoDetallePage /></Guard>,
+                            },
+                            {
+                                path: 'upn/certificacion',
+                                element: <Navigate to={UPN_CERTIFICACION_PATH} replace />,
+                            },
+                            {
+                                path: 'upn/certificacion/:id',
+                                element: <LegacyDetailRedirect basePath={UPN_CERTIFICACION_PATH} />,
+                            },
+                            {
+                                path: 'reportes-oficiales',
+                                element: <Guard anyOf={PERM.educacionSuperior}><EsReportesOficialesPage /></Guard>,
+                            },
+                        ],
                     },
-                    {
-                        path: 'educacion-superior/revision/:id',
-                        element: <Guard anyOf={PERM.revisionInstitucional}><RevisionInstitucionalPage /></Guard>,
-                    },
-                    { path: 'educacion-superior/upn/certificacion', element: <Guard anyOf={PERM.educacionSuperior}><UpnCertificacionPage /></Guard> },
-                    { path: 'educacion-superior/upn/certificacion/:id', element: <Guard anyOf={PERM.educacionSuperior}><UpnCertificadoDetallePage /></Guard> },
-                    { path: 'educacion-superior/reportes-oficiales', element: <Guard anyOf={PERM.educacionSuperior}><EsReportesOficialesPage /></Guard> },
                     { path: 'solicitudes-matricula', element: <Guard anyOf={['ver_solicitud_matricula', 'solicitudes_matricula.ver']}><SolicitudesMatriculaBandejaPage /></Guard> },
                     {
-                        path: 'sistemas/proceso-tecnico-certificacion',
-                        element: (
-                            <Guard anyOf={PERM.procesoTecnico}>
-                                <ProcesoTecnicoCertificacionPage />
-                            </Guard>
-                        ),
+                        path: 'sistemas',
+                        children: [
+                            {
+                                path: 'proceso-tecnico-certificacion',
+                                element: (
+                                    <Guard anyOf={PERM.procesoTecnico}>
+                                        <ProcesoTecnicoCertificacionPage />
+                                    </Guard>
+                                ),
+                            },
+                            {
+                                path: 'documento-proceso-tecnico',
+                                element: (
+                                    <Guard anyOf={PERM.procesoTecnico}>
+                                        <DocumentoProcesoTecnicoPage />
+                                    </Guard>
+                                ),
+                            },
+                            {
+                                path: 'documento-proceso-tecnico/:documentoId',
+                                element: (
+                                    <Guard anyOf={PERM.procesoTecnico}>
+                                        <DocumentoProcesoTecnicoPage />
+                                    </Guard>
+                                ),
+                            },
+                            {
+                                path: 'proceso-tecnico-certificacion/:id',
+                                element: <LegacyDetailRedirect basePath={DOCUMENTO_PROCESO_TECNICO_PATH} />,
+                            },
+                            {
+                                path: 'listos-para-firma',
+                                element: <Navigate to={PROCESO_TECNICO_BANDEJA_PATH} replace />,
+                            },
+                            {
+                                path: 'listos-firma',
+                                element: <Navigate to={PROCESO_TECNICO_BANDEJA_PATH} replace />,
+                            },
+                            {
+                                path: 'dashboard',
+                                element: <Guard anyOf={PERM.sistemas}><DashboardTecnicoPage /></Guard>,
+                            },
+                            {
+                                path: 'logs',
+                                element: <Guard anyOf={['logs.ver', 'ver_logs_integracion']}><LogsTecnicosPage /></Guard>,
+                            },
+                            {
+                                path: 'configuracion',
+                                element: <Guard anyOf={PERM.sistemas}><ConfiguracionTecnicaPage /></Guard>,
+                            },
+                        ],
                     },
-                    {
-                        path: 'sistemas/proceso-tecnico-certificacion/:id',
-                        element: (
-                            <Guard anyOf={PERM.procesoTecnico}>
-                                <DocumentoProcesoTecnicoPage />
-                            </Guard>
-                        ),
-                    },
-                    { path: 'sistemas/listos-para-firma', element: <Navigate to="/app/sistemas/proceso-tecnico-certificacion" replace /> },
-                    { path: 'sistemas/listos-firma', element: <Navigate to="/app/sistemas/proceso-tecnico-certificacion" replace /> },
-                    { path: 'sistemas/dashboard', element: <Guard anyOf={PERM.sistemas}><DashboardTecnicoPage /></Guard> },
-                    { path: 'sistemas/logs', element: <Guard anyOf={['logs.ver', 'ver_logs_integracion']}><LogsTecnicosPage /></Guard> },
-                    { path: 'sistemas/configuracion', element: <Guard anyOf={PERM.sistemas}><ConfiguracionTecnicaPage /></Guard> },
                     { path: 'admin/dashboard', element: <Guard anyOf={PERM.adminDashboard}><AdminDashboardPage /></Guard> },
                     { path: 'superadmin/dashboard', element: <Guard anyOf={PERM.adminDashboard}><SuperAdminDashboardPage /></Guard> },
                     { path: 'admin/usuarios-roles', element: <Guard anyOf={PERM.adminUsuarios}><UsuariosRolesPage /></Guard> },
@@ -394,8 +485,10 @@ export const router = createBrowserRouter([
                     { path: 'coordinador/dashboard', element: <Guard anyOf={PERM.coordinadorDashboard}><CoordinadorAcademicoDashboardPage /></Guard> },
                     { path: 'admin/parametros', element: <Guard anyOf={PERM.adminParametros}><ParametrosSistemaPage /></Guard> },
                     { path: 'admin/reportes-basicos', element: <Guard anyOf={PERM.adminReportes}><ReportesBasicosPage /></Guard> },
+                    { path: '*', element: <SpaNotFoundPage /> },
                 ],
             },
         ],
     },
+    { path: '*', element: <SpaNotFoundPage />, errorElement: <SpaRouteErrorPage /> },
 ]);
