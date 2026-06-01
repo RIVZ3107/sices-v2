@@ -11,6 +11,8 @@ import { AlertBox } from '../../components/ui/AlertBox';
 import { SectionCard } from '../../components/ui/SectionCard';
 import { DataTable } from '../../components/ui/DataTable';
 import { EstadoSepLegacyPanel } from '../expedientes/components/EstadoSepLegacyPanel';
+import { ExpedienteAvanceResumen } from '../../components/alumnos/ExpedienteAvanceResumen';
+import { AlumnoSeleccionCard } from '../../components/documentos/AlumnoSeleccionCard';
 
 function permiso(nombre) {
     return Boolean(getUser()?.permissions?.includes(nombre));
@@ -266,26 +268,30 @@ export function AlumnoDetallePage() {
                 : null}
             {legacy?.requiere_atencion ? <AlertBox type="warning" message={legacy.mensaje_operativo ?? 'Hay bloqueo normativo pendiente.'} /> : null}
 
-            <SectionCard title="Identificación del expediente">
-                <div className="grid gap-2 text-sm md:grid-cols-2">
-                    <p><strong>Nombre:</strong> {alumno?.nombre_completo ?? '—'}</p>
-                    <p><strong>CURP:</strong> {alumno?.curp ?? '—'}</p>
-                    <p><strong>Matrícula activa:</strong> {mat?.clave_matricula ?? 'Sin matrícula'}</p>
-                    <p><strong>Subsistema:</strong> {mat?.subsistema ?? '—'}</p>
-                    <p><strong>Institución:</strong> {mat?.institucion ?? '—'}</p>
-                    <p><strong>Programa / Plan:</strong> {`${mat?.programa ?? '—'} / ${mat?.plan_estudios ?? '—'}`}</p>
-                    {expedienteNormativo?.subsistema_clave === 'UPN' ? (
-                        <>
-                            <p><strong>Modalidad operativa:</strong> {etiquetaModalidadUpn(uiNorm.modalidad_operacion_upn)}</p>
-                            <p><strong>Programa educativo UPN:</strong> {uiNorm.programa_educativo ?? mat?.programa ?? '—'}</p>
-                            <p><strong>Unidad UPN:</strong> {uiNorm.unidad_academica ?? mat?.institucion ?? '—'}</p>
-                            <p><strong>Sede / CCT:</strong> {uiNorm.sede_cct ?? mat?.sede ?? '—'}</p>
-                        </>
-                    ) : null}
-                    <p><strong>Estado académico:</strong> {alumno?.estatus ?? '—'}</p>
-                    <p><strong>Estado certificación:</strong> {docs[0]?.workflow ?? 'Sin solicitud'}</p>
-                </div>
-            </SectionCard>
+            <AlumnoSeleccionCard
+                datos={{
+                    nombre_completo: alumno?.nombre_completo,
+                    curp: alumno?.curp,
+                    matricula: mat?.clave_matricula ?? 'Sin matrícula',
+                    institucion: mat?.institucion,
+                    subsistema: mat?.subsistema,
+                    programa_plan: mat?.programa && mat?.plan_estudios ? `${mat.programa} · ${mat.plan_estudios}` : mat?.programa,
+                    ciclo_escolar: mat?.ciclo_actual,
+                    estatus: alumno?.estatus,
+                }}
+                seleccionado
+                compact
+            />
+            {expedienteNormativo?.subsistema_clave === 'UPN' ? (
+                <p className="text-xs text-slate-600 -mt-2">
+                    UPN · {etiquetaModalidadUpn(uiNorm.modalidad_operacion_upn)} · {uiNorm.unidad_academica ?? mat?.institucion ?? '—'}
+                </p>
+            ) : null}
+            <p className="text-sm text-slate-600">
+                <strong>Estado académico:</strong> {alumno?.estatus ?? '—'}
+                {' · '}
+                <strong>Solicitudes documentales:</strong> {docs.length > 0 ? docs[0]?.workflow ?? 'En trámite' : 'Sin solicitud activa'}
+            </p>
 
             <div className="flex flex-wrap gap-2 border-b border-slate-200 pb-2">
                 {TABS.map((t) => (
@@ -295,25 +301,7 @@ export function AlumnoDetallePage() {
                 ))}
             </div>
 
-            {tab === 'resumen' ? (
-                <div className="grid gap-3 md:grid-cols-3">
-                    {[
-                        { titulo: 'Matrícula', estado: mat?.clave_matricula ? 'Listo' : 'Pendiente', accion: 'Ir a Matrícula', to: '/app/expedientes?tab=matricula' },
-                        { titulo: 'Inscripción', estado: (data?.inscripciones_periodo ?? []).length > 0 ? 'Listo' : 'Pendiente', accion: 'Ir a Inscripción', to: '/app/expedientes?tab=inscripcion' },
-                        { titulo: 'Carga académica', estado: (data?.materias_cursadas ?? []).length > 0 ? 'Listo' : 'Pendiente', accion: 'Ir a Carga', to: '/app/expedientes?tab=carga' },
-                        { titulo: 'Calificaciones', estado: (data?.materias_cursadas ?? []).length > 0 ? 'En captura' : 'Pendiente', accion: 'Capturar', to: '/app/expedientes?tab=calificaciones' },
-                        { titulo: 'Trayectoria', estado: trayectoria ? 'Listo' : 'Bloqueado', accion: 'Recalcular', to: '/app/expedientes?tab=trayectoria' },
-                        { titulo: 'Certificación', estado: checklist.every((x) => x.ok) ? 'Listo' : 'Bloqueado', accion: 'Solicitar', to: '/app/expedientes?tab=certificacion' },
-                        { titulo: 'Observaciones', estado: observacionesPend.length > 0 ? 'Pendiente' : 'Sin pendientes', accion: 'Atender', to: '/app/expedientes?tab=observaciones' },
-                    ].map((card) => (
-                        <article key={card.titulo} className="action-card">
-                            <p className="text-sm font-semibold text-slate-900">{card.titulo}</p>
-                            <p className="text-xs text-slate-600 mt-1">Estado: {card.estado}</p>
-                            <Link to={card.to} className="inst-btn inst-btn-secondary text-xs mt-2 inline-flex">{card.accion}</Link>
-                        </article>
-                    ))}
-                </div>
-            ) : null}
+            {tab === 'resumen' ? <ExpedienteAvanceResumen alumnoPk={alumnoPk} data={data} /> : null}
 
             {tab === 'datos' ? <SectionCard title="Datos personales"><p className="text-sm">Nombre: {alumno?.nombre_completo} · CURP: {alumno?.curp}</p></SectionCard> : null}
             {tab === 'matricula' ? (
@@ -535,14 +523,33 @@ export function AlumnoDetallePage() {
             ) : null}
             {tab === 'trayectoria' ? <SectionCard title="Trayectoria"><p className="text-sm">Promedio: {trayectoria?.promedio ?? '—'} · Créditos: {trayectoria?.creditos_obtenidos ?? '—'} / {trayectoria?.creditos_registrados ?? '—'}</p><Link to="/app/trayectorias" className="inst-btn inst-btn-secondary text-sm mt-2 inline-flex">Recalcular trayectoria</Link></SectionCard> : null}
             {tab === 'certificacion' ? (
-                <SectionCard title="Certificación">
-                    <ul className="grid gap-1 text-sm">
-                        {checklist.map((item) => <li key={item.label}>{item.ok ? '✓' : '✕'} {item.label}</li>)}
+                <SectionCard title="Solicitud documental" subtitle="Inicie una solicitud para revisión del Certificador. No genera documento final.">
+                    <ul className="grid gap-2 text-sm" style={{ listStyle: 'none', padding: 0, margin: '0 0 12px' }}>
+                        {checklist.map((item) => (
+                            <li
+                                key={item.label}
+                                style={{
+                                    padding: '6px 10px',
+                                    borderRadius: 6,
+                                    background: item.ok ? '#f0fdf4' : '#fffbeb',
+                                    color: item.ok ? '#166534' : '#92400e',
+                                }}
+                            >
+                                {item.ok ? '✓' : '○'} {item.label}
+                            </li>
+                        ))}
                     </ul>
-                    <Link to={`/app/certificacion/solicitud?alumno=${alumnoPk}`} className={`inst-btn text-sm mt-2 inline-flex ${checklist.every((x) => x.ok) ? 'inst-btn-success' : 'inst-btn-secondary blocked-action'}`}>
-                        Crear borrador
+                    <Link
+                        to={`/app/certificacion/solicitud?alumno=${alumnoPk}`}
+                        className={`inst-btn text-sm inline-flex ${mat?.clave_matricula && trayectoria ? 'inst-btn-primary' : 'inst-btn-secondary'}`}
+                    >
+                        Iniciar solicitud documental
                     </Link>
-                    {!checklist.every((x) => x.ok) ? <p className="text-xs text-amber-700 mt-2">Acción bloqueada: complete los pendientes del expediente.</p> : null}
+                    {!mat?.clave_matricula || !trayectoria ? (
+                        <p className="text-xs text-amber-700 mt-2">
+                            Complete matrícula y trayectoria antes de enviar la solicitud al Certificador.
+                        </p>
+                    ) : null}
                 </SectionCard>
             ) : null}
             {tab === 'observaciones' ? <SectionCard title="Observaciones"><p className="text-sm">Pendientes: {observacionesPend.length}</p><Link to={`/app/observaciones?alumno=${alumnoPk}`} className="inst-btn inst-btn-secondary text-sm mt-2 inline-flex">Abrir observaciones</Link></SectionCard> : null}
