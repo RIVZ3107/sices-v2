@@ -239,14 +239,7 @@ export function CertificadorDocumentoDetalle() {
                 </SectionCard>
 
                 <SectionCard title="7. Checklist académico">
-                    <CertificadorChecklistAcademico data={data} />
-                    {!data.validacion?.valido && (data.validacion?.errores ?? []).length > 0 ? (
-                        <ul className="mt-3 text-xs text-amber-800 grid gap-1">
-                            {(data.validacion.errores ?? []).map((e, i) => (
-                                <li key={i}>• {String(e)}</li>
-                            ))}
-                        </ul>
-                    ) : null}
+                    <CertificadorChecklistAcademico data={data} puedeValidar={puedeValidar} />
                 </SectionCard>
 
                 <SectionCard title="8. Observaciones">

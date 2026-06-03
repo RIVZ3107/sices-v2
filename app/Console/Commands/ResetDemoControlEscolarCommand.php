@@ -5,7 +5,8 @@ declare(strict_types=1);
 namespace App\Console\Commands;
 
 use App\Services\ControlEscolar\ResetDemoControlEscolarService;
-use Database\Seeders\CertificacionControlEscolarDemoSeeder;
+use Database\Seeders\Concerns\GuardsDemoSeeders;
+use Database\Seeders\Demo\CertificacionControlEscolarDemoSeeder;
 use Illuminate\Console\Command;
 
 final class ResetDemoControlEscolarCommand extends Command
@@ -28,6 +29,11 @@ final class ResetDemoControlEscolarCommand extends Command
         $this->info('Datos demo Control Escolar eliminados conforme marcado en metadata.origen=demo_control_escolar.');
 
         if ($this->option('seed')) {
+            if (! GuardsDemoSeeders::demoSeedersAllowed()) {
+                $this->error('Los seeders demo están deshabilitados. Active ALLOW_DEMO_SEEDERS=true solo en local/testing.');
+
+                return self::FAILURE;
+            }
             $this->call('db:seed', ['--class' => CertificacionControlEscolarDemoSeeder::class]);
         }
 

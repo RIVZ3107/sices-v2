@@ -1,7 +1,12 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Database\Seeders;
 
+use Database\Seeders\Base\InstitutionalBaseSeeder;
+use Database\Seeders\Concerns\GuardsDemoSeeders;
+use Database\Seeders\Demo\DemoBundleSeeder;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
@@ -10,34 +15,14 @@ class DatabaseSeeder extends Seeder
     use WithoutModelEvents;
 
     /**
-     * Seed the application's database.
+     * Seed catálogos institucionales base. Datos demo solo con ALLOW_DEMO_SEEDERS=true.
      */
     public function run(): void
     {
-        $this->call([
-            EntidadFederativaSeeder::class,
-            MunicipioSeeder::class,
-            SubsistemasSeeder::class,
-            NivelAcademicoSeeder::class,
-            EstadoCatalogoSeeder::class,
-            TipoDocumentoSeeder::class,
-            TipoCertificacionSeeder::class,
-            MotorDocumentoSeeder::class,
-            ProveedorFirmaSeeder::class,
-            RolesAndPermissionsSeeder::class,
-            SystemMenusSeeder::class,
-            Sistema\ConfiguracionVisualSistemaSeeder::class,
-            CadenaOriginalReglaSeeder::class,
-            XmlPlantillaSeeder::class,
-            PlantillaDocumentoSeeder::class,
-            FirmaConfiguracionSeeder::class,
-            Catalogos\InstitucionesSedesInicialSeeder::class,
-            Catalogos\InstitucionesLegacyBaseSeeder::class,
-            Catalogos\InstitucionesSubsedesLegacySeeder::class,
-        ]);
+        $this->call(InstitutionalBaseSeeder::class);
 
-        if (! app()->environment('production')) {
-            $this->call(DemoUsuariosPorRolSeeder::class);
+        if (GuardsDemoSeeders::demoSeedersAllowed() && ! app()->environment('production')) {
+            $this->call(DemoBundleSeeder::class);
         }
     }
 }

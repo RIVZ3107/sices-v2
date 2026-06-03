@@ -22,9 +22,9 @@ export const CERT_PERM = {
     documentosACertificar: [
         'documentos.ver',
         'ver_documentos',
-        'certificacion.autorizar_emision',
-        'preparar_documento_firma',
         'certificacion.ver',
+        'certificacion.validar',
+        'certificacion.revisar',
     ],
     generacion: ['documentos.ver', 'ver_documentos', 'pdf.ver', 'certificacion.ver'],
     firmaElectronica: ['firma.ver', 'documentos.ver', 'ver_documentos', 'certificacion.ver'],

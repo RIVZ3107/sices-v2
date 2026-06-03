@@ -1,8 +1,23 @@
 import { checklistAcademicoCertificador } from '../../utils/certificadorUx';
 
-export function CertificadorChecklistAcademico({ data }) {
-    const items = checklistAcademicoCertificador(data);
-    const completas = items.filter((i) => i.ok).length;
+const STYLES = {
+    ok: { background: '#f0fdf4', color: '#166534' },
+    warning: { background: '#fffbeb', color: '#92400e' },
+    error: { background: '#fef2f2', color: '#991b1b' },
+};
+
+const ICON = {
+    ok: '✓',
+    warning: '!',
+    error: '✕',
+};
+
+export function CertificadorChecklistAcademico({ data, puedeValidar = false }) {
+    const items = checklistAcademicoCertificador(data, {
+        ocultarBloqueosSiPuedeValidar: true,
+        puedeValidar,
+    });
+    const completas = items.filter((i) => i.severidad === 'ok').length;
 
     return (
         <div
@@ -17,24 +32,27 @@ export function CertificadorChecklistAcademico({ data }) {
                 Checklist académico ({completas} de {items.length})
             </p>
             <ul style={{ margin: 0, padding: 0, listStyle: 'none', display: 'grid', gap: 6 }}>
-                {items.map((item) => (
-                    <li
-                        key={item.key}
-                        style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 8,
-                            fontSize: 13,
-                            padding: '6px 8px',
-                            borderRadius: 6,
-                            background: item.ok ? '#f0fdf4' : '#fffbeb',
-                            color: item.ok ? '#166534' : '#92400e',
-                        }}
-                    >
-                        <span aria-hidden>{item.ok ? '✓' : '○'}</span>
-                        {item.label}
-                    </li>
-                ))}
+                {items.map((item) => {
+                    const sev = item.severidad ?? (item.ok ? 'ok' : 'warning');
+                    const style = STYLES[sev] ?? STYLES.warning;
+                    return (
+                        <li
+                            key={item.key}
+                            style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 8,
+                                fontSize: 13,
+                                padding: '6px 8px',
+                                borderRadius: 6,
+                                ...style,
+                            }}
+                        >
+                            <span aria-hidden>{ICON[sev] ?? '○'}</span>
+                            {item.label}
+                        </li>
+                    );
+                })}
             </ul>
         </div>
     );

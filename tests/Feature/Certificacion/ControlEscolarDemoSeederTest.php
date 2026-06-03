@@ -28,8 +28,17 @@ final class ControlEscolarDemoSeederTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        putenv('ALLOW_DEMO_SEEDERS=true');
+        $_ENV['ALLOW_DEMO_SEEDERS'] = 'true';
         $this->seed(DatabaseSeeder::class);
         $this->seed(CertificacionControlEscolarDemoSeeder::class);
+    }
+
+    protected function tearDown(): void
+    {
+        putenv('ALLOW_DEMO_SEEDERS');
+        unset($_ENV['ALLOW_DEMO_SEEDERS'], $_SERVER['ALLOW_DEMO_SEEDERS']);
+        parent::tearDown();
     }
 
     public function test_seeder_crea_al_menos_50_alumnos_demo_y_curp_unicas(): void
