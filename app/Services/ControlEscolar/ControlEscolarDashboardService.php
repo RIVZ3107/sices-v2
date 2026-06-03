@@ -30,7 +30,7 @@ class ControlEscolarDashboardService
         'importacion_errores' => ['label' => 'Importación con errores', 'color' => '#991b1b'],
         'documento_observaciones' => ['label' => 'Documento observado', 'color' => '#7c3aed'],
         'solicitud_revision' => ['label' => 'Solicitud en revisión', 'color' => '#534AB7'],
-        'legacy_fuera_plan' => ['label' => 'Legacy fuera de plan', 'color' => '#64748b'],
+        'legacy_fuera_plan' => ['label' => 'Carga histórica fuera de plan', 'color' => '#64748b'],
     ];
 
     private const ESTATUS_VISUAL = [
@@ -74,10 +74,12 @@ class ControlEscolarDashboardService
 
             $metricas = array_merge($this->metricasOperativas($user, $conteosEstatus), $solicitudesMetricas);
             $pendientes = $this->armarPendientesPrioritarios($muestras);
-            $procesos = $this->armarProcesosRecientes($muestras, $pendientes);
+            $procesos = $this->armarProcesosRecientes($user, $muestras, $pendientes);
 
             return [
+                'actualizado_en' => now()->toIso8601String(),
                 'contexto' => $this->contextoOperativo($user, (int) $distribucion['total']),
+                'atencion_prioritaria' => $this->armarAtencionPrioritaria($metricas),
                 'metricas' => $metricas,
                 'alumnos_distribucion' => $distribucion,
                 'cards' => [
@@ -230,7 +232,73 @@ class ControlEscolarDashboardService
             'trayectorias_listas_para_certificar' => $this->trayectoriasListas($user)->count(),
             'documentos_con_observaciones' => $this->documentosConObservaciones($user)->count(),
             'solicitudes_en_revision' => $this->solicitudesEnRevision($user)->count(),
+            'reinscripciones_bloqueadas' => $this->reinscripcionesBloqueadas($user),
         ];
+    }
+
+    /**
+     * @param  array<string, int|float>  $metricas
+     * @return list<array{key: string, count: int, titulo: string, descripcion: string, href: string, severidad: string}>
+     */
+    private function armarAtencionPrioritaria(array $metricas): array
+    {
+        $importaciones = (int) ($metricas['importaciones_con_errores'] ?? 0);
+        $observaciones = (int) ($metricas['documentos_con_observaciones'] ?? 0);
+        $reinscripciones = (int) ($metricas['reinscripciones_bloqueadas'] ?? 0);
+
+        $items = [];
+
+        if ($importaciones > 0) {
+            $items[] = [
+                'key' => 'importaciones',
+                'count' => $importaciones,
+                'titulo' => $importaciones === 1 ? '1 importación con error' : "{$importaciones} importaciones con error",
+                'descripcion' => 'Requieren corrección para poder certificar.',
+                'href' => '/app/importaciones',
+                'severidad' => 'error',
+            ];
+        }
+
+        if ($observaciones > 0) {
+            $items[] = [
+                'key' => 'observaciones',
+                'count' => $observaciones,
+                'titulo' => $observaciones === 1 ? '1 solicitud con observaciones' : "{$observaciones} solicitudes con observaciones",
+                'descripcion' => 'Atender observaciones pendientes.',
+                'href' => '/app/control-escolar/solicitudes',
+                'severidad' => 'warning',
+            ];
+        }
+
+        if ($reinscripciones > 0) {
+            $items[] = [
+                'key' => 'reinscripciones',
+                'count' => $reinscripciones,
+                'titulo' => $reinscripciones === 1 ? '1 reinscripción bloqueada' : "{$reinscripciones} reinscripciones bloqueadas",
+                'descripcion' => 'Documentación incompleta.',
+                'href' => '/app/control-escolar/reinscripciones',
+                'severidad' => 'info',
+            ];
+        }
+
+        return $items;
+    }
+
+    protected function reinscripcionesBloqueadas(User $user): int
+    {
+        $ids = $this->ofertasIds($user);
+        if ($ids === []) {
+            return 0;
+        }
+
+        return InscripcionPeriodo::query()
+            ->whereIn('estatus', self::ESTATUS_INSCRIPCION_ACTIVA)
+            ->whereHas('matricula', fn (Builder $m) => $m->whereIn('oferta_academica_id', $ids)->whereIn('estado', self::ESTADOS_MATRICULA_ACTIVA))
+            ->whereHas('matricula.alumno.documentosAcademicos', function (Builder $q): void {
+                $q->where('estado_workflow', 'rechazado')
+                    ->orWhereHas('observacionesPendientes');
+            })
+            ->count();
     }
 
     /**
@@ -316,113 +384,140 @@ class ControlEscolarDashboardService
     /**
      * @param  array<string, Collection>  $muestras
      * @param  list<array<string, mixed>>  $pendientes
-     * @return list<array{alumno: string, matricula: string, tramite: string, estatus: string, expediente_url: string}>
+     * @return list<array<string, mixed>>
      */
-    private function armarProcesosRecientes(array $muestras, array $pendientes): array
+    private function armarProcesosRecientes(User $user, array $muestras, array $pendientes): array
     {
+        $items = $this->procesosRecientesDesdeDocumentos($user, 25);
+
+        if ($items !== []) {
+            return $items;
+        }
+
         $items = [];
         $push = function (
             string $alumno,
             string $matricula,
             string $tramite,
             string $estatus,
-            ?string $curp = null,
+            ?int $alumnoId = null,
+            ?int $documentoId = null,
+            ?string $proceso = null,
+            ?string $codigo = null,
+            ?string $fecha = null,
         ) use (&$items): void {
-            if (count($items) >= 8) {
+            if (count($items) >= 25) {
                 return;
             }
-            $url = '/app/control-escolar/expedientes';
-            if ($curp !== null && $curp !== '') {
-                $url .= '?search='.urlencode($curp);
-            }
+            $url = $documentoId
+                ? '/app/documentos/'.$documentoId
+                : ($alumnoId ? '/app/alumnos/'.$alumnoId.'/expediente' : '/app/control-escolar/expedientes');
             $items[] = [
                 'alumno' => $alumno,
                 'matricula' => $matricula,
+                'codigo' => $codigo ?? $matricula,
+                'proceso' => $proceso ?? '—',
+                'tipo' => $tramite,
                 'tramite' => $tramite,
                 'estatus' => $estatus,
+                'fecha' => $fecha,
                 'expediente_url' => $url,
+                'documento_id' => $documentoId,
+                'alumno_id' => $alumnoId,
             ];
         };
 
         foreach ($muestras['docs_observaciones'] as $doc) {
             $push(
-                $this->nombreAlumno($doc->alumno),
+                $this->nombreAlumnoInstitucional($doc->alumno),
                 (string) ($doc->matricula?->matricula ?? '—'),
-                'Certificado · observaciones pendientes',
+                $this->etiquetaTipoDocumental((string) $doc->tipo_documento).' · observaciones pendientes',
                 'Observado',
-                (string) $doc->alumno?->curp,
+                (int) $doc->alumno_id,
+                (int) $doc->id,
+                $this->nombreProcesoInstitucional($doc),
+                (string) ($doc->folio_interno ?? $doc->matricula?->matricula ?? '—'),
+                $doc->updated_at?->toIso8601String(),
             );
         }
 
         foreach ($muestras['docs_revision'] as $doc) {
             $push(
-                $this->nombreAlumno($doc->alumno),
+                $this->nombreAlumnoInstitucional($doc->alumno),
                 (string) ($doc->matricula?->matricula ?? '—'),
-                'Solicitud de certificación',
+                'Solicitud documental',
                 'En revisión',
-                (string) $doc->alumno?->curp,
+                (int) $doc->alumno_id,
+                (int) $doc->id,
+                $this->nombreProcesoInstitucional($doc),
+                (string) ($doc->folio_interno ?? $doc->matricula?->matricula ?? '—'),
+                $doc->updated_at?->toIso8601String(),
             );
         }
 
         foreach ($muestras['sin_matricula']->take(2) as $alumno) {
             $push(
-                $this->nombreAlumno($alumno),
+                $this->nombreAlumnoInstitucional($alumno),
                 'Sin matrícula',
                 'Expediente incompleto',
                 'Pendiente',
-                (string) $alumno->curp,
+                (int) $alumno->id,
             );
         }
 
         foreach ($muestras['sin_inscripcion']->take(2) as $matricula) {
             $push(
-                $this->nombreAlumno($matricula->alumno),
+                $this->nombreAlumnoInstitucional($matricula->alumno),
                 (string) $matricula->matricula,
                 'Inscripción de periodo',
                 'Pendiente',
-                (string) $matricula->alumno?->curp,
+                (int) $matricula->alumno_id,
             );
         }
 
         foreach ($muestras['sin_carga']->take(2) as $inscripcion) {
             $push(
-                $this->nombreAlumno($inscripcion->matricula?->alumno),
+                $this->nombreAlumnoInstitucional($inscripcion->matricula?->alumno),
                 (string) ($inscripcion->matricula?->matricula ?? '—'),
                 'Carga académica',
                 'En proceso',
-                (string) $inscripcion->matricula?->alumno?->curp,
+                (int) ($inscripcion->matricula?->alumno_id ?? 0) ?: null,
             );
         }
 
         foreach ($muestras['importaciones_error'] as $imp) {
             $push(
-                $this->nombreAlumno($imp->matricula?->alumno),
+                $this->nombreAlumnoInstitucional($imp->matricula?->alumno),
                 (string) ($imp->matricula?->matricula ?? '—'),
                 'Importación histórica',
                 'Error',
-                (string) $imp->matricula?->alumno?->curp,
+                (int) ($imp->matricula?->alumno_id ?? 0) ?: null,
             );
         }
 
         foreach ($muestras['trayectorias_listas'] as $tray) {
             $alumno = $tray->alumno ?? $tray->matricula?->alumno;
             $push(
-                $this->nombreAlumno($alumno),
+                $this->nombreAlumnoInstitucional($alumno),
                 (string) ($tray->matricula?->matricula ?? '—'),
                 'Listo para certificar',
                 'Completado',
-                (string) $alumno?->curp,
+                (int) ($alumno?->id ?? 0) ?: null,
             );
         }
 
         if ($items === []) {
             foreach ($pendientes as $p) {
                 $push(
-                    (string) $p['alumno'],
+                    $this->nombreAlumnoInstitucionalDesdeTexto((string) $p['alumno']),
                     (string) $p['matricula'],
                     (string) $p['problema'],
                     (string) $p['prioridad'],
-                    isset($p['curp']) ? (string) $p['curp'] : null,
+                    null,
+                    null,
+                    null,
+                    (string) $p['matricula'],
+                    null,
                 );
             }
         }
@@ -569,12 +664,12 @@ class ControlEscolarDashboardService
     protected function contextoOperativo(User $user, int $totalAlumnos): array
     {
         $ciclo = CicloEscolar::query()
-            ->where('clave', 'SXCE-DEMO-CICLO-2026')
+            ->where(function (Builder $q): void {
+                $q->where('es_actual', true)->orWhere('activo', true);
+            })
+            ->orderByDesc('es_actual')
+            ->orderByDesc('id')
             ->first();
-
-        if ($ciclo === null) {
-            $ciclo = CicloEscolar::query()->where('activo', true)->orderByDesc('id')->first();
-        }
 
         $nombresSedes = $user->sedes()->orderBy('nombre')->limit(3)->pluck('nombre');
         $sede = match (true) {
@@ -585,7 +680,7 @@ class ControlEscolarDashboardService
 
         return [
             'sede' => $sede,
-            'ciclo_escolar' => $ciclo?->nombre,
+            'ciclo_escolar' => $this->etiquetaCicloInstitucional($ciclo?->nombre),
             'total_alumnos_alcance' => $totalAlumnos,
         ];
     }
@@ -669,5 +764,127 @@ class ControlEscolarDashboardService
             'total' => $total,
             'segmentos' => $segmentos,
         ];
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    private function procesosRecientesDesdeDocumentos(User $user, int $limit): array
+    {
+        $docs = $this->documentosBaseQuery($user)
+            ->with([
+                'alumno:id,nombre,primer_apellido,segundo_apellido,curp',
+                'matricula:id,matricula,oferta_academica_id',
+                'matricula.ofertaAcademica:id,nombre,institucion_id,sede_id',
+                'matricula.ofertaAcademica.institucion:id,nombre',
+                'matricula.ofertaAcademica.sede:id,nombre',
+                'observacionesPendientes',
+            ])
+            ->where(function (Builder $q): void {
+                $q->whereIn('estado_workflow', ['en_revision', 'observado', 'borrador', 'rechazado'])
+                    ->orWhereHas('observacionesPendientes');
+            })
+            ->orderByDesc('updated_at')
+            ->limit($limit)
+            ->get();
+
+        if ($docs->isEmpty()) {
+            return [];
+        }
+
+        return $docs->map(function (DocumentoAcademico $doc): array {
+            $estatus = $doc->observacionesPendientes->isNotEmpty()
+                ? 'Observado'
+                : match ((string) $doc->estado_workflow) {
+                    'en_revision' => 'En revisión',
+                    'rechazado' => 'Rechazado',
+                    'borrador' => 'Borrador',
+                    default => ucfirst(str_replace('_', ' ', (string) $doc->estado_workflow)),
+                };
+
+            $tipo = $this->etiquetaTipoDocumental((string) $doc->tipo_documento);
+            if ($estatus === 'Observado') {
+                $tipo .= ' · observaciones pendientes';
+            }
+
+            return [
+                'alumno' => $this->nombreAlumnoInstitucional($doc->alumno),
+                'matricula' => (string) ($doc->matricula?->matricula ?? '—'),
+                'codigo' => (string) ($doc->folio_interno ?? $doc->matricula?->matricula ?? '—'),
+                'proceso' => $this->nombreProcesoInstitucional($doc),
+                'tipo' => $tipo,
+                'tramite' => $tipo,
+                'estatus' => $estatus,
+                'fecha' => $doc->updated_at?->toIso8601String(),
+                'expediente_url' => '/app/documentos/'.$doc->id,
+                'documento_id' => (int) $doc->id,
+                'alumno_id' => (int) $doc->alumno_id,
+            ];
+        })->values()->all();
+    }
+
+    protected function nombreAlumnoInstitucional(?Alumno $alumno): string
+    {
+        $nombre = $this->nombreAlumno($alumno);
+
+        return $this->nombreAlumnoInstitucionalDesdeTexto($nombre);
+    }
+
+    protected function nombreAlumnoInstitucionalDesdeTexto(string $nombre): string
+    {
+        if (stripos($nombre, 'demosynthetic') !== false || stripos($nombre, 'demo synthetic') !== false) {
+            return 'Alumno de prueba institucional';
+        }
+
+        if (preg_match('/\bdemo\b/i', $nombre) && preg_match('/\b(synthetic|sintetico|sintético)\b/i', $nombre)) {
+            return 'Alumno de prueba institucional';
+        }
+
+        return $nombre;
+    }
+
+    protected function etiquetaTipoDocumental(string $tipo): string
+    {
+        return match ($tipo) {
+            'certificado_terminacion' => 'Certificado · terminación',
+            'certificado_parcial' => 'Certificado · parcial',
+            'constancia_estudios' => 'Constancia de estudios',
+            'kardex' => 'Kardex',
+            'titulo' => 'Título profesional',
+            default => $tipo !== '' ? ucfirst(str_replace('_', ' ', $tipo)) : 'Documento académico',
+        };
+    }
+
+    protected function etiquetaCicloInstitucional(?string $nombre): ?string
+    {
+        if ($nombre === null || trim($nombre) === '') {
+            return null;
+        }
+
+        $limpio = trim((string) preg_replace('/\bdemo\b/i', '', $nombre));
+        $limpio = trim((string) preg_replace('/\s{2,}/', ' ', $limpio));
+
+        return $limpio !== '' ? $limpio : 'Ciclo escolar vigente';
+    }
+
+    protected function nombreProcesoInstitucional(DocumentoAcademico $doc): string
+    {
+        $oferta = $doc->matricula?->ofertaAcademica;
+        $sede = $oferta?->sede?->nombre;
+        $inst = $oferta?->institucion?->nombre;
+
+        if ($sede !== null && $sede !== '') {
+            return (string) $sede;
+        }
+
+        if ($inst !== null && $inst !== '') {
+            return (string) $inst;
+        }
+
+        if ($oferta?->nombre) {
+            return (string) $oferta->nombre;
+        }
+
+        return 'Proceso escolar';
     }
 }

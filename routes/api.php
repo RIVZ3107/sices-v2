@@ -17,6 +17,12 @@ use App\Http\Controllers\Api\V1\Certificacion\LegacyCertificadoTimbradoJsonContr
 use App\Http\Controllers\Api\V1\Certificacion\SicesLegacyShadowExportController;
 use App\Http\Controllers\Api\V1\Certificacion\DocumentoObservacionController;
 use App\Http\Controllers\Api\V1\ControlEscolar\ControlEscolarController;
+use App\Http\Controllers\Api\V1\ControlEscolar\ControlEscolarExpedienteController;
+use App\Http\Controllers\Api\V1\ControlEscolar\ControlEscolarReinscripcionController;
+use App\Http\Controllers\Api\V1\ControlEscolar\ControlEscolarCalificacionController;
+use App\Http\Controllers\Api\V1\ControlEscolar\ControlEscolarDocumentoController;
+use App\Http\Controllers\Api\V1\ControlEscolar\ControlEscolarBajaCambioController;
+use App\Http\Controllers\Api\V1\ControlEscolar\ControlEscolarTrayectoriaController;
 use App\Http\Controllers\Api\V1\ControlEscolar\ControlEscolarIntegracionController;
 use App\Http\Controllers\Api\Certificacion\ConsultaPublicaController;
 use App\Http\Controllers\Api\V1\Certificacion\InscripcionPeriodoController;
@@ -279,22 +285,230 @@ Route::prefix('v1/control-escolar')
     ->group(function () {
         Route::get('dashboard', [ControlEscolarController::class, 'dashboard'])
             ->middleware('permission_or:ver_documentos|documentos.ver|dashboard.ver');
+        Route::get('alumnos/resumen', [ControlEscolarController::class, 'alumnosResumen'])
+            ->middleware('permission_or:ver_alumnos|alumnos.ver|expedientes.ver');
+        Route::get('alumnos/recientes', [ControlEscolarController::class, 'alumnosRecientes'])
+            ->middleware('permission_or:ver_alumnos|alumnos.ver|expedientes.ver');
+        Route::get('alumnos/exportar', [ControlEscolarController::class, 'alumnosExportar'])
+            ->middleware('permission_or:alumnos.exportar|reportes.ver|exportar_reportes|ver_alumnos|alumnos.ver');
+        Route::post('alumnos/importar-csv', [ControlEscolarController::class, 'alumnosImportar'])
+            ->middleware('permission_or:alumnos.importar|importaciones_academicas.importar|control_escolar.importar|gestionar_alumnos');
+        Route::post('alumnos', [ControlEscolarController::class, 'alumnosStore'])
+            ->middleware('permission_or:gestionar_alumnos|alumnos.crear|expedientes.crear');
         Route::get('alumnos', [ControlEscolarController::class, 'alumnos'])
             ->middleware('permission_or:ver_alumnos|alumnos.ver|expedientes.ver');
-        Route::get('expedientes', [ControlEscolarController::class, 'expedientes'])
+        Route::get('expedientes/exportar', [ControlEscolarExpedienteController::class, 'exportar'])
+            ->middleware('permission_or:expedientes.exportar|reportes.ver|exportar_reportes|expedientes.ver');
+        Route::get('expedientes/resumen', [ControlEscolarExpedienteController::class, 'resumen'])
+            ->middleware('permission_or:ver_alumnos|alumnos.ver|expedientes.ver');
+        Route::get('expedientes/documentos-requeridos', [ControlEscolarExpedienteController::class, 'documentosRequeridos'])
+            ->middleware('permission_or:ver_alumnos|alumnos.ver|expedientes.ver');
+        Route::get('expedientes/actividad-reciente', [ControlEscolarExpedienteController::class, 'actividadReciente'])
+            ->middleware('permission_or:expedientes.actividad.ver|expedientes.ver|ver_alumnos');
+        Route::post('expedientes/validar-masivo', [ControlEscolarExpedienteController::class, 'validarMasivo'])
+            ->middleware('permission_or:expedientes.validacion.masiva|expedientes.validar|expedientes.editar');
+        Route::post('expedientes/observar-masivo', [ControlEscolarExpedienteController::class, 'observarMasivo'])
+            ->middleware('permission_or:expedientes.observacion.masiva|expedientes.observar|observaciones.crear');
+        Route::post('expedientes', [ControlEscolarExpedienteController::class, 'store'])
+            ->middleware('permission_or:expedientes.crear|gestionar_alumnos');
+        Route::post('expedientes/{alumno}/documentos', [ControlEscolarExpedienteController::class, 'cargarDocumento'])
+            ->whereNumber('alumno')
+            ->middleware('permission_or:expedientes.documentos.cargar|documentos.crear_borrador|documentos.crear');
+        Route::post('expedientes/{alumno}/validar', [ControlEscolarExpedienteController::class, 'validar'])
+            ->whereNumber('alumno')
+            ->middleware('permission_or:expedientes.validar|expedientes.editar|expedientes.revisar');
+        Route::post('expedientes/{alumno}/observar', [ControlEscolarExpedienteController::class, 'observar'])
+            ->whereNumber('alumno')
+            ->middleware('permission_or:expedientes.observar|observaciones.crear|documentos.observar');
+        Route::get('expedientes', [ControlEscolarExpedienteController::class, 'index'])
             ->middleware('permission_or:ver_alumnos|alumnos.ver|expedientes.ver');
         Route::get('inscripciones', [ControlEscolarController::class, 'inscripciones'])
             ->middleware('permission_or:inscripciones.ver|gestionar_inscripciones_periodo|ver_alumnos|alumnos.ver');
-        Route::get('reinscripciones', [ControlEscolarController::class, 'reinscripciones'])
+        Route::get('reinscripciones/exportar', [ControlEscolarReinscripcionController::class, 'exportar'])
+            ->middleware('permission_or:reinscripciones.exportar|reportes.ver|exportar_reportes');
+        Route::get('reinscripciones/elegibles', [ControlEscolarReinscripcionController::class, 'elegibles'])
+            ->middleware('permission_or:reinscripciones.ver|reinscripciones.crear|ver_alumnos|alumnos.ver');
+        Route::get('reinscripciones/flujo', [ControlEscolarReinscripcionController::class, 'flujo'])
+            ->middleware('permission_or:reinscripciones.ver|ver_alumnos|alumnos.ver');
+        Route::get('reinscripciones/motivos-bloqueo', [ControlEscolarReinscripcionController::class, 'motivosBloqueo'])
+            ->middleware('permission_or:reinscripciones.ver|ver_alumnos|alumnos.ver');
+        Route::get('reinscripciones/resumen', [ControlEscolarReinscripcionController::class, 'resumen'])
+            ->middleware('permission_or:reinscripciones.ver|ver_alumnos|alumnos.ver');
+        Route::post('reinscripciones/desbloquear-masivo', [ControlEscolarReinscripcionController::class, 'desbloquearMasivo'])
+            ->middleware('permission_or:reinscripciones.desbloqueo.masivo|reinscripciones.desbloquear');
+        Route::post('reinscripciones/completar-masivo', [ControlEscolarReinscripcionController::class, 'completarMasivo'])
+            ->middleware('permission_or:reinscripciones.completar.masivo|reinscripciones.completar');
+        Route::post('reinscripciones', [ControlEscolarReinscripcionController::class, 'store'])
+            ->middleware('permission_or:reinscripciones.crear|reinscripciones.editar');
+        Route::post('reinscripciones/{reinscripcion}/desbloquear', [ControlEscolarReinscripcionController::class, 'desbloquear'])
+            ->whereNumber('reinscripcion')
+            ->middleware('permission_or:reinscripciones.desbloquear|reinscripciones.autorizar_excepcion');
+        Route::post('reinscripciones/{reinscripcion}/completar', [ControlEscolarReinscripcionController::class, 'completar'])
+            ->whereNumber('reinscripcion')
+            ->middleware('permission_or:reinscripciones.completar');
+        Route::post('reinscripciones/{reinscripcion}/observar', [ControlEscolarReinscripcionController::class, 'observar'])
+            ->whereNumber('reinscripcion')
+            ->middleware('permission_or:reinscripciones.observar');
+        Route::post('reinscripciones/{reinscripcion}/cancelar', [ControlEscolarReinscripcionController::class, 'cancelar'])
+            ->whereNumber('reinscripcion')
+            ->middleware('permission_or:reinscripciones.cancelar');
+        Route::get('reinscripciones/{reinscripcion}/ficha', [ControlEscolarReinscripcionController::class, 'ficha'])
+            ->whereNumber('reinscripcion')
+            ->middleware('permission_or:reinscripciones.ficha.generar|reinscripciones.ficha.descargar|reinscripciones.completar');
+        Route::get('reinscripciones', [ControlEscolarReinscripcionController::class, 'index'])
             ->middleware('permission_or:reinscripciones.ver|reinscripciones.revisar|reinscripciones.crear|ver_alumnos|alumnos.ver');
+        Route::prefix('trayectoria')->group(function (): void {
+            Route::get('alumnos/buscar', [ControlEscolarTrayectoriaController::class, 'buscar'])
+                ->middleware('permission_or:trayectoria.ver|ver_trayectorias|alumnos.ver|ver_alumnos');
+            Route::get('alumnos/{alumno}/exportar', [ControlEscolarTrayectoriaController::class, 'exportar'])
+                ->whereNumber('alumno')
+                ->middleware('permission_or:trayectoria.exportar|trayectoria.ver|kardex.exportar|exportar_reportes');
+            Route::get('alumnos/{alumno}/constancia', [ControlEscolarTrayectoriaController::class, 'constancia'])
+                ->whereNumber('alumno')
+                ->middleware('permission_or:constancias.generar|trayectoria.ver');
+            Route::get('alumnos/{alumno}/kardex/pdf', [ControlEscolarTrayectoriaController::class, 'kardexPdf'])
+                ->whereNumber('alumno')
+                ->middleware('permission_or:kardex.exportar|trayectoria.exportar|kardex.ver|trayectoria.ver');
+            Route::get('alumnos/{alumno}/actividad-reciente', [ControlEscolarTrayectoriaController::class, 'actividad'])
+                ->whereNumber('alumno')
+                ->middleware('permission_or:trayectoria.ver|ver_trayectorias|alumnos.ver');
+            Route::get('alumnos/{alumno}/equivalencias', [ControlEscolarTrayectoriaController::class, 'equivalencias'])
+                ->whereNumber('alumno')
+                ->middleware('permission_or:trayectoria.ver|ver_trayectorias');
+            Route::get('alumnos/{alumno}/estadisticas', [ControlEscolarTrayectoriaController::class, 'estadisticas'])
+                ->whereNumber('alumno')
+                ->middleware('permission_or:trayectoria.ver|reportes.ver|kardex.ver');
+            Route::get('alumnos/{alumno}/historial-periodos', [ControlEscolarTrayectoriaController::class, 'historialPeriodos'])
+                ->whereNumber('alumno')
+                ->middleware('permission_or:trayectoria.ver|kardex.ver|ver_trayectorias');
+            Route::get('alumnos/{alumno}/plan-estudios', [ControlEscolarTrayectoriaController::class, 'planEstudios'])
+                ->whereNumber('alumno')
+                ->middleware('permission_or:trayectoria.ver|materias.ver|ver_materias');
+            Route::get('alumnos/{alumno}/kardex', [ControlEscolarTrayectoriaController::class, 'kardex'])
+                ->whereNumber('alumno')
+                ->middleware('permission_or:kardex.ver|trayectoria.ver|alumnos.kardex.ver|ver_trayectorias');
+            Route::get('alumnos/{alumno}/ultimo-periodo', [ControlEscolarTrayectoriaController::class, 'ultimoPeriodo'])
+                ->whereNumber('alumno')
+                ->middleware('permission_or:trayectoria.ver|ver_trayectorias|alumnos.ver');
+            Route::get('alumnos/{alumno}/resumen', [ControlEscolarTrayectoriaController::class, 'resumen'])
+                ->whereNumber('alumno')
+                ->middleware('permission_or:trayectoria.ver|ver_trayectorias|alumnos.ver');
+            Route::get('alumnos/{alumno}', [ControlEscolarTrayectoriaController::class, 'show'])
+                ->whereNumber('alumno')
+                ->middleware('permission_or:trayectoria.ver|ver_trayectorias|kardex.ver|alumnos.ver');
+        });
         Route::get('trayectoria', [ControlEscolarController::class, 'trayectoria'])
             ->middleware('permission_or:trayectoria.ver|ver_trayectorias|kardex.ver|ver_alumnos|alumnos.ver');
-        Route::get('calificaciones', [ControlEscolarController::class, 'calificaciones'])
+        Route::get('calificaciones/exportar', [ControlEscolarCalificacionController::class, 'exportar'])
+            ->middleware('permission_or:calificaciones.exportar|calificaciones.ver');
+        Route::get('calificaciones/plantilla', [ControlEscolarCalificacionController::class, 'plantilla'])
+            ->middleware('permission_or:calificaciones.importar|calificaciones.plantilla.descargar|importaciones_academicas.importar');
+        Route::post('calificaciones/importar', [ControlEscolarCalificacionController::class, 'importar'])
+            ->middleware('permission_or:calificaciones.importar|importaciones_academicas.importar');
+        Route::get('calificaciones/historial', [ControlEscolarCalificacionController::class, 'historial'])
+            ->middleware('permission_or:calificaciones.historial.ver|calificaciones.ver');
+        Route::get('calificaciones/fechas-importantes', [ControlEscolarCalificacionController::class, 'fechasImportantes'])
+            ->middleware('permission_or:calificaciones.ver|calificaciones.capturar');
+        Route::get('calificaciones/pendientes-atencion', [ControlEscolarCalificacionController::class, 'pendientesAtencion'])
+            ->middleware('permission_or:calificaciones.ver|calificaciones.capturar');
+        Route::get('calificaciones/avance', [ControlEscolarCalificacionController::class, 'avance'])
+            ->middleware('permission_or:calificaciones.ver|calificaciones.capturar');
+        Route::get('calificaciones/resumen', [ControlEscolarCalificacionController::class, 'resumen'])
+            ->middleware('permission_or:calificaciones.ver|calificaciones.capturar|alumnos.ver');
+        Route::post('calificaciones/{calificacion}/solicitar-correccion', [ControlEscolarCalificacionController::class, 'solicitarCorreccion'])
+            ->whereNumber('calificacion')
+            ->middleware('permission_or:calificaciones.correccion.solicitar|calificaciones.capturar');
+        Route::get('calificaciones/{grupoMateria}/exportar', [ControlEscolarCalificacionController::class, 'exportarGrupo'])
+            ->middleware('permission_or:calificaciones.exportar|calificaciones.ver');
+        Route::post('calificaciones/{grupoMateria}/cerrar-captura', [ControlEscolarCalificacionController::class, 'cerrarCaptura'])
+            ->middleware('permission_or:calificaciones.cerrar_captura|calificaciones.cerrar');
+        Route::post('calificaciones/{grupoMateria}/capturar', [ControlEscolarCalificacionController::class, 'capturar'])
+            ->middleware('permission_or:calificaciones.capturar|calificaciones.editar');
+        Route::get('calificaciones/{grupoMateria}/alumnos', [ControlEscolarCalificacionController::class, 'alumnos'])
+            ->middleware('permission_or:calificaciones.capturar|calificaciones.ver|calificaciones.editar');
+        Route::get('calificaciones/{grupoMateria}', [ControlEscolarCalificacionController::class, 'show'])
+            ->middleware('permission_or:calificaciones.ver|calificaciones.capturar');
+        Route::get('calificaciones', [ControlEscolarCalificacionController::class, 'index'])
             ->middleware('permission_or:calificaciones.ver|calificaciones.capturar|calificaciones.revisar|ver_alumnos|alumnos.ver');
-        Route::get('documentos', [ControlEscolarController::class, 'documentos'])
+        Route::get('documentos/exportar', [ControlEscolarDocumentoController::class, 'exportar'])
+            ->middleware('permission_or:documentos.exportar|documentos.ver');
+        Route::get('documentos/tipos-autorizados', [ControlEscolarDocumentoController::class, 'tiposAutorizados'])
+            ->middleware('permission_or:documentos.tipos.ver|documentos.ver|documentos.crear|documentos.crear_borrador');
+        Route::get('documentos/pendientes-atencion', [ControlEscolarDocumentoController::class, 'pendientesAtencion'])
+            ->middleware('permission_or:documentos.pendientes.ver|documentos.ver');
+        Route::get('documentos/fechas-importantes', [ControlEscolarDocumentoController::class, 'fechasImportantes'])
+            ->middleware('permission_or:documentos.ver|documentos.crear_borrador');
+        Route::get('documentos/resumen', [ControlEscolarDocumentoController::class, 'resumen'])
             ->middleware('permission_or:documentos.ver|ver_documentos|documentos.crear_borrador|expedientes.ver');
-        Route::get('bajas-cambios', [ControlEscolarController::class, 'bajasCambios'])
-            ->middleware('permission_or:expedientes.ver|expedientes.editar|ver_alumnos|alumnos.ver');
+        Route::get('documentos/{documento}/acuse', [ControlEscolarDocumentoController::class, 'acuse'])
+            ->whereNumber('documento')
+            ->middleware('permission_or:documentos.acuse.descargar|documentos.ver');
+        Route::get('documentos/{documento}/descargar', [ControlEscolarDocumentoController::class, 'descargar'])
+            ->whereNumber('documento')
+            ->middleware('permission_or:documentos.descargar|expedientes.documentos.descargar|documentos.ver');
+        Route::post('documentos/{documento}/cancelar', [ControlEscolarDocumentoController::class, 'cancelar'])
+            ->whereNumber('documento')
+            ->middleware('permission_or:documentos.cancelar|rechazar_documentos');
+        Route::post('documentos/{documento}/atender-observacion', [ControlEscolarDocumentoController::class, 'atenderObservacion'])
+            ->whereNumber('documento')
+            ->middleware('permission_or:documentos.observaciones.atender|observaciones.atender|editar_documentos');
+        Route::post('documentos/{documento}/enviar-validacion', [ControlEscolarDocumentoController::class, 'enviarValidacion'])
+            ->whereNumber('documento')
+            ->middleware('permission_or:documentos.enviar_validacion|documentos.enviar_revision|enviar_revision');
+        Route::put('documentos/{documento}', [ControlEscolarDocumentoController::class, 'update'])
+            ->whereNumber('documento')
+            ->middleware('permission_or:documentos.editar|editar_documentos');
+        Route::post('documentos', [ControlEscolarDocumentoController::class, 'store'])
+            ->middleware('permission_or:documentos.crear|documentos.crear_borrador|crear_documentos');
+        Route::get('documentos/{documento}', [ControlEscolarDocumentoController::class, 'show'])
+            ->whereNumber('documento')
+            ->middleware('permission_or:documentos.ver|ver_documentos|documentos.crear_borrador|expedientes.ver');
+        Route::get('documentos', [ControlEscolarDocumentoController::class, 'index'])
+            ->middleware('permission_or:documentos.ver|ver_documentos|documentos.crear_borrador|expedientes.ver');
+        Route::get('bajas-cambios/exportar', [ControlEscolarBajaCambioController::class, 'exportar'])
+            ->middleware('permission_or:bajas_cambios.exportar|bajas_cambios.ver');
+        Route::post('bajas-cambios/aprobar-masivo', [ControlEscolarBajaCambioController::class, 'aprobarMasivo'])
+            ->middleware('permission_or:bajas_cambios.aprobar_masivo|bajas_cambios.aprobar');
+        Route::post('bajas-cambios/rechazar-masivo', [ControlEscolarBajaCambioController::class, 'rechazarMasivo'])
+            ->middleware('permission_or:bajas_cambios.rechazar_masivo|bajas_cambios.rechazar');
+        Route::get('bajas-cambios/flujo', [ControlEscolarBajaCambioController::class, 'flujo'])
+            ->middleware('permission_or:bajas_cambios.ver|expedientes.ver|alumnos.ver');
+        Route::get('bajas-cambios/riesgo-operativo', [ControlEscolarBajaCambioController::class, 'riesgoOperativo'])
+            ->middleware('permission_or:bajas_cambios.ver|expedientes.ver|alumnos.ver');
+        Route::get('bajas-cambios/motivos-frecuentes', [ControlEscolarBajaCambioController::class, 'motivosFrecuentes'])
+            ->middleware('permission_or:bajas_cambios.ver|expedientes.ver|alumnos.ver');
+        Route::get('bajas-cambios/cambios-recientes', [ControlEscolarBajaCambioController::class, 'cambiosRecientes'])
+            ->middleware('permission_or:bajas_cambios.ver|expedientes.ver|alumnos.ver');
+        Route::get('bajas-cambios/resumen', [ControlEscolarBajaCambioController::class, 'resumen'])
+            ->middleware('permission_or:bajas_cambios.ver|expedientes.ver|alumnos.ver');
+        Route::get('bajas-cambios/{solicitud}/dictamen', [ControlEscolarBajaCambioController::class, 'dictamen'])
+            ->whereNumber('solicitud')
+            ->middleware('permission_or:bajas_cambios.dictamen.generar|bajas_cambios.dictamen.descargar');
+        Route::post('bajas-cambios/{solicitud}/aplicar', [ControlEscolarBajaCambioController::class, 'aplicar'])
+            ->whereNumber('solicitud')
+            ->middleware('permission_or:bajas_cambios.aplicar');
+        Route::post('bajas-cambios/{solicitud}/observar', [ControlEscolarBajaCambioController::class, 'observar'])
+            ->whereNumber('solicitud')
+            ->middleware('permission_or:bajas_cambios.observar');
+        Route::post('bajas-cambios/{solicitud}/rechazar', [ControlEscolarBajaCambioController::class, 'rechazar'])
+            ->whereNumber('solicitud')
+            ->middleware('permission_or:bajas_cambios.rechazar');
+        Route::post('bajas-cambios/{solicitud}/aprobar', [ControlEscolarBajaCambioController::class, 'aprobar'])
+            ->whereNumber('solicitud')
+            ->middleware('permission_or:bajas_cambios.aprobar');
+        Route::post('bajas-cambios/{solicitud}/revisar', [ControlEscolarBajaCambioController::class, 'revisar'])
+            ->whereNumber('solicitud')
+            ->middleware('permission_or:bajas_cambios.revisar');
+        Route::put('bajas-cambios/{solicitud}', [ControlEscolarBajaCambioController::class, 'update'])
+            ->whereNumber('solicitud')
+            ->middleware('permission_or:bajas_cambios.editar');
+        Route::post('bajas-cambios', [ControlEscolarBajaCambioController::class, 'store'])
+            ->middleware('permission_or:bajas_cambios.crear');
+        Route::get('bajas-cambios/{solicitud}', [ControlEscolarBajaCambioController::class, 'show'])
+            ->whereNumber('solicitud')
+            ->middleware('permission_or:bajas_cambios.ver|expedientes.ver|alumnos.ver');
+        Route::get('bajas-cambios', [ControlEscolarBajaCambioController::class, 'index'])
+            ->middleware('permission_or:bajas_cambios.ver|expedientes.ver|expedientes.editar|alumnos.ver');
         Route::get('solicitudes', [ControlEscolarController::class, 'solicitudes'])
             ->middleware('permission_or:expedientes.ver|ver_solicitud_matricula|solicitudes_matricula.ver|documentos.ver|ver_documentos|inscripciones.ver|ver_alumnos|alumnos.ver');
         Route::get('observaciones', [ControlEscolarController::class, 'observaciones'])

@@ -17,7 +17,8 @@ final class ControlEscolarUiContratoVisualTest extends TestCase
         $this->assertFileExists($path);
         $src = (string) file_get_contents($path);
         $this->assertStringContainsString('Mis pendientes', $src);
-        $this->assertStringContainsString('Alumnos por estatus', $src);
+        $this->assertStringContainsString('Atención prioritaria', $src);
+        $this->assertStringContainsString('institutionalDistribucionTitulo', $src);
         $this->assertStringContainsString('Procesos recientes', $src);
         $this->assertStringContainsString('Expedientes pendientes', $src);
         $this->assertStringContainsString('Inscripciones por validar', $src);
@@ -26,12 +27,19 @@ final class ControlEscolarUiContratoVisualTest extends TestCase
     public function test_alumnos_incluye_acciones_rapidas_y_tabla(): void
     {
         $path = base_path('resources/js/pages/controlEscolar/AlumnosCePage.jsx');
+        $quick = base_path('resources/js/pages/controlEscolar/alumnos/AlumnosQuickActions.jsx');
         $this->assertFileExists($path);
+        $this->assertFileExists($quick);
         $src = (string) file_get_contents($path);
-        $this->assertStringContainsString('Acciones rápidas', $src);
+        $srcQuick = (string) file_get_contents($quick);
+        $this->assertStringContainsString('Acciones rápidas', $srcQuick);
         $this->assertStringContainsString('Gestión de alumnos', $src);
-        $this->assertStringContainsString('controlEscolarApi', $src);
-        $this->assertStringContainsString('Matrícula', $src);
+        $this->assertStringContainsString('useAlumnos', $src);
+        $err = base_path('resources/js/pages/controlEscolar/alumnos/ErrorStateAlert.jsx');
+        $table = base_path('resources/js/pages/controlEscolar/alumnos/AlumnosTable.jsx');
+        $this->assertStringContainsString('ErrorStateAlert', $src);
+        $this->assertStringContainsString('Reintentar', (string) file_get_contents($err));
+        $this->assertStringContainsString('Matrícula', (string) file_get_contents($table));
     }
 
     public function test_expedientes_incluye_panel_documentos_y_actividad(): void
@@ -40,7 +48,11 @@ final class ControlEscolarUiContratoVisualTest extends TestCase
         $src = (string) file_get_contents($path);
         $this->assertStringContainsString('Documentos requeridos', $src);
         $this->assertStringContainsString('Actividad reciente', $src);
-        $this->assertStringContainsString('Validar expediente operativo', $src);
+        $this->assertStringContainsString('Validar expediente', $src);
+        $this->assertStringContainsString('useExpedientes', $src);
+        $this->assertStringContainsString('formatDateTime', $src);
+        $this->assertStringNotContainsString('console.log', $src);
+        $this->assertStringNotContainsString('DemoSynthetic', $src);
     }
 
     public function test_inscripciones_indica_regla_matricula(): void
@@ -64,9 +76,12 @@ final class ControlEscolarUiContratoVisualTest extends TestCase
         $path = base_path('resources/js/pages/controlEscolar/CalificacionesCePage.jsx');
         $this->assertFileExists($path);
         $src = (string) file_get_contents($path);
-        $this->assertStringContainsString('controlEscolarApi', $src);
-        $this->assertStringContainsString('calificaciones', $src);
+        $this->assertStringContainsString('useCalificaciones', $src);
+        $this->assertStringContainsString('calificacionesResumen', $src);
         $this->assertStringNotContainsString('CE_DEMO_CALIFICACIONES_TABLA', $src);
+        $this->assertStringNotContainsString('console.log', $src);
+        $this->assertStringNotContainsString('Ciclo demo', $src);
+        $this->assertStringNotContainsString('/app/coordinador/dashboard', $src);
     }
 
     public function test_trayectoria_conecta_api(): void
@@ -75,8 +90,13 @@ final class ControlEscolarUiContratoVisualTest extends TestCase
         $this->assertFileExists($path);
         $src = (string) file_get_contents($path);
         $this->assertStringContainsString('controlEscolarApi', $src);
-        $this->assertStringContainsString('trayectoria', $src);
+        $this->assertStringContainsString('trayectoriaResumen', $src);
+        $this->assertStringContainsString('Trayectoria académica', $src);
+        $this->assertStringContainsString('sanitizeInstitutionalLabel', $src);
         $this->assertStringNotContainsString('CE_DEMO_ALUMNO_TRAYECTORIA', $src);
+        $this->assertStringNotContainsString('console.log', $src);
+        $this->assertStringNotContainsString('DemoSynthetic', $src);
+        $this->assertStringNotContainsString('Ciclo demo', $src);
     }
 
     public function test_reinscripciones_conecta_api(): void
@@ -84,9 +104,11 @@ final class ControlEscolarUiContratoVisualTest extends TestCase
         $path = base_path('resources/js/pages/controlEscolar/ReinscripcionesCePage.jsx');
         $this->assertFileExists($path);
         $src = (string) file_get_contents($path);
-        $this->assertStringContainsString('controlEscolarApi', $src);
-        $this->assertStringContainsString('reinscripciones', $src);
+        $this->assertStringContainsString('useReinscripciones', $src);
+        $this->assertStringContainsString('Gestión de reinscripciones', $src);
         $this->assertStringNotContainsString('CE_DEMO_REINSCRIPCIONES', $src);
+        $this->assertStringNotContainsString('console.log', $src);
+        $this->assertStringNotContainsString('Ciclo demo', $src);
     }
 
     public function test_bajas_cambios_conecta_api(): void

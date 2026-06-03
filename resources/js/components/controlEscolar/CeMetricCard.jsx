@@ -12,6 +12,7 @@ export function CeMetricCard({
     valueSize = 24,
     flex = true,
     compact = true,
+    onClick,
 }) {
     const trendLine =
         trend === undefined || trend === null || trend === ''
@@ -31,8 +32,12 @@ export function CeMetricCard({
 
     const iconSize = compact ? 48 : 56;
 
+    const Wrapper = onClick ? 'button' : 'div';
+
     return (
-        <div
+        <Wrapper
+            type={onClick ? 'button' : undefined}
+            onClick={onClick}
             style={{
                 ...ceTheme.card,
                 padding: compact ? '16px' : 20,
@@ -41,6 +46,10 @@ export function CeMetricCard({
                 gap: compact ? 14 : 16,
                 flex: flex ? 1 : undefined,
                 minWidth: flex ? 0 : undefined,
+                border: onClick ? ceTheme.card.border ?? '1px solid #e2e8f0' : undefined,
+                cursor: onClick ? 'pointer' : undefined,
+                textAlign: 'left',
+                width: onClick && flex ? '100%' : undefined,
             }}
         >
             <div
@@ -63,6 +72,6 @@ export function CeMetricCard({
                 <p style={{ margin: 0, fontSize: valueSize, fontWeight: 700, color: ceColors.text, lineHeight: 1 }}>{value}</p>
                 {trendLine}
             </div>
-        </div>
+        </Wrapper>
     );
 }

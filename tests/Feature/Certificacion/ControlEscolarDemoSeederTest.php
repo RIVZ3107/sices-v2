@@ -99,7 +99,7 @@ final class ControlEscolarDemoSeederTest extends TestCase
 
         $r1 = $this->getJson('/api/v1/control-escolar/expedientes?search='.urlencode($curp));
         $r1->assertOk();
-        $this->assertNotEmpty($r1->json('data'));
+        $this->assertNotEmpty($r1->json('data.listado.data') ?? $r1->json('data'));
 
         if ($mat !== null) {
             $r2 = $this->getJson('/api/v1/control-escolar/expedientes?search='.urlencode((string) $mat->matricula));
@@ -129,16 +129,15 @@ final class ControlEscolarDemoSeederTest extends TestCase
 
         $doc = $this->getJson('/api/v1/control-escolar/documentos');
         $doc->assertOk();
-        $this->assertArrayHasKey('metricas', $doc->json('data') ?? []);
-        $this->assertArrayHasKey('plantillas_frecuentes', $doc->json('data') ?? []);
-        $this->assertArrayHasKey('listado', $doc->json('data') ?? []);
+        $doc->assertJsonPath('success', true);
+        $this->assertArrayHasKey('data', $doc->json('data') ?? []);
+        $this->assertArrayHasKey('meta', $doc->json('data') ?? []);
 
         $bajas = $this->getJson('/api/v1/control-escolar/bajas-cambios');
         $bajas->assertOk();
-        $this->assertArrayHasKey('metricas', $bajas->json('data') ?? []);
-        $this->assertArrayHasKey('listado', $bajas->json('data') ?? []);
-        $this->assertArrayHasKey('motivos_frecuentes', $bajas->json('data') ?? []);
-        $this->assertArrayHasKey('cambios_recientes', $bajas->json('data') ?? []);
+        $bajas->assertJsonPath('success', true);
+        $this->assertArrayHasKey('data', $bajas->json('data') ?? []);
+        $this->assertArrayHasKey('meta', $bajas->json('data') ?? []);
 
         $sol = $this->getJson('/api/v1/control-escolar/solicitudes');
         $sol->assertOk();

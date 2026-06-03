@@ -26,9 +26,9 @@ function resolverEstado(num, { pasoActivo, alumnoOk, expedienteOk, tipoOk, puede
     }
     if (num === 4) {
         if (!alumnoOk || !tipoOk) return 'blocked';
-        if (puedeEnviar && pasoActivo === 4) return 'active';
+        if (pasoActivo === 4) return 'active';
         if (puedeEnviar) return 'pending';
-        return pasoActivo === 4 ? 'active' : 'blocked';
+        return 'blocked';
     }
     return 'pending';
 }

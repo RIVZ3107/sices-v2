@@ -59,6 +59,89 @@ class DocumentoRolesAutorizacionTest extends TestCase
         $this->assertNotSame(403, $resp->status(), 'Educación Superior no debe ser bloqueado por autorización.');
     }
 
+    public function test_certificador_ve_solo_documentos_en_validacion_en_bandeja_activa(): void
+    {
+        $ctx = $this->crearContextoInstitucional();
+        $cert = $this->usuarioCertificador();
+        Sanctum::actingAs($cert);
+
+        $enVal = $this->crearDocumentoEnValidacionCertificador($ctx);
+        $enEs = $this->crearDocumentoEnRevision();
+        $enEs->forceFill([
+            'metadata' => ['etapa_institucional' => 'aprobado_educacion_superior'],
+            'estado_workflow' => 'aprobado',
+        ])->save();
+
+        $ids = collect(
+            $this->getJson('/api/v1/certificacion/bandejas/documentos-academicos/en-validacion-certificador')->json('data'),
+        )->pluck('id');
+
+        $this->assertTrue($ids->contains($enVal->id));
+        $this->assertFalse($ids->contains($enEs->id));
+    }
+
+    public function test_certificador_puede_validar_informacion(): void
+    {
+        $ctx = $this->crearContextoInstitucional();
+        $doc = $this->crearDocumentoEnValidacionCertificador($ctx);
+        Sanctum::actingAs($this->usuarioCertificador());
+
+        $resp = $this->postJson("/api/v1/certificacion/documentos-academicos/{$doc->id}/validar-informacion", [
+            'motivo' => 'Expediente conforme.',
+        ]);
+
+        $resp->assertSuccessful();
+        $this->assertSame('validado_por_certificador', $resp->json('data.metadata.etapa_institucional'));
+    }
+
+    public function test_certificador_puede_devolver_con_observaciones_con_motivo(): void
+    {
+        $ctx = $this->crearContextoInstitucional();
+        $doc = $this->crearDocumentoEnValidacionCertificador($ctx);
+        Sanctum::actingAs($this->usuarioCertificador());
+
+        $this->postJson("/api/v1/certificacion/documentos-academicos/{$doc->id}/rechazar", [
+            'motivo' => 'Falta documentación de servicio social.',
+        ])->assertSuccessful();
+
+        $doc->refresh();
+        $this->assertSame('observado_por_certificador', $doc->metadata['etapa_institucional'] ?? null);
+    }
+
+    public function test_certificador_no_puede_aprobar_ni_asignar_folio_ni_procesar(): void
+    {
+        $ctx = $this->crearContextoInstitucional();
+        $doc = $this->crearDocumentoValidadoPorCertificador($ctx);
+        Sanctum::actingAs($this->usuarioCertificador());
+
+        $this->postJson("/api/v1/certificacion/documentos-academicos/{$doc->id}/aprobar", [
+            'motivo' => 'Intento no permitido.',
+        ])->assertForbidden();
+
+        $this->postJson("/api/v1/certificacion/documentos-academicos/{$doc->id}/workflow/transicion", [
+            'accion' => 'asignar_folio',
+        ])->assertStatus(422);
+
+        $this->postJson("/api/v1/certificacion/documentos-academicos/{$doc->id}/workflow/transicion", [
+            'accion' => 'procesar_certificacion',
+            'motivo' => 'Intento procesar.',
+        ])->assertStatus(422);
+
+        $this->postJson("/api/v1/certificacion/documentos-academicos/{$doc->id}/workflow/transicion", [
+            'accion' => 'firmar_certificado',
+        ])->assertStatus(422);
+    }
+
+    public function test_certificador_devolver_exige_motivo(): void
+    {
+        $ctx = $this->crearContextoInstitucional();
+        $doc = $this->crearDocumentoEnValidacionCertificador($ctx);
+        Sanctum::actingAs($this->usuarioCertificador());
+
+        $this->postJson("/api/v1/certificacion/documentos-academicos/{$doc->id}/rechazar", [])
+            ->assertStatus(422);
+    }
+
     public function test_sistemas_no_puede_capturar_materias_y_si_puede_preparar_documento_para_firma(): void
     {
         $usuario = User::factory()->create();
@@ -102,6 +185,55 @@ class DocumentoRolesAutorizacionTest extends TestCase
             'estado_workflow' => 'en_revision',
             'metadata' => ['etapa_institucional' => 'validado_por_certificador'],
         ]);
+    }
+
+    /**
+     * @param  array<string, int>  $ctx
+     */
+    private function crearDocumentoEnValidacionCertificador(array $ctx): DocumentoAcademico
+    {
+        $alumno = Alumno::query()->create([
+            'curp' => sprintf('CCCC000000HDF%05d', random_int(10000, 99999)),
+            'nombre' => 'Alumno',
+            'primer_apellido' => 'Cert',
+            'segundo_apellido' => 'Val',
+        ]);
+
+        return DocumentoAcademico::query()->create([
+            'alumno_id' => $alumno->id,
+            'ciclo_escolar_id' => $ctx['ciclo_escolar_id'],
+            'oferta_academica_id' => $ctx['oferta_academica_id'],
+            'subsistema_id' => $ctx['subsistema_id'],
+            'region_id' => $ctx['region_id'],
+            'institucion_id' => $ctx['institucion_id'],
+            'sede_id' => $ctx['sede_id'],
+            'tipo_documento' => 'certificado',
+            'estado_workflow' => 'en_revision',
+            'metadata' => ['etapa_institucional' => 'en_validacion_certificador'],
+        ]);
+    }
+
+    /**
+     * @param  array<string, int>  $ctx
+     */
+    private function crearDocumentoValidadoPorCertificador(array $ctx): DocumentoAcademico
+    {
+        $doc = $this->crearDocumentoEnValidacionCertificador($ctx);
+        $doc->forceFill([
+            'metadata' => array_merge($doc->metadata ?? [], [
+                'etapa_institucional' => 'validado_por_certificador',
+            ]),
+        ])->save();
+
+        return $doc->refresh();
+    }
+
+    private function usuarioCertificador(): User
+    {
+        $u = User::factory()->create();
+        $u->assignRole('responsable_certificacion_titulacion');
+
+        return $u;
     }
 
     private function crearDocumentoAprobado(): DocumentoAcademico

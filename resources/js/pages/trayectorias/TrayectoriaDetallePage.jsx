@@ -142,7 +142,7 @@ export function TrayectoriaDetallePage() {
                 : (resumen?.trayectoria?.materias_totales_plan ?? 0) > (resumen?.trayectoria?.materias_cursadas ?? 0)
                     ? 'Faltan materias por cursar.'
                     : tieneLegacyBloqueante
-                        ? 'Hay validación normativa legacy pendiente.'
+                        ? 'La matrícula proviene de una carga histórica pendiente de validación por Educación Superior.'
                         : '';
 
     const matSel = alumnoNombre || '';

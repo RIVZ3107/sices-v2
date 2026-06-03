@@ -13,6 +13,9 @@ import { DataTable } from '../../components/ui/DataTable';
 import { EstadoSepLegacyPanel } from '../expedientes/components/EstadoSepLegacyPanel';
 import { ExpedienteAvanceResumen } from '../../components/alumnos/ExpedienteAvanceResumen';
 import { AlumnoSeleccionCard } from '../../components/documentos/AlumnoSeleccionCard';
+import { ValidacionSeveridadPanel } from '../../components/ui/ValidacionSeveridadPanel';
+import { interpretarLegacyNormativo } from '../../utils/validacionInstitucionalUx';
+import { sanitizeInstitutionalLabel, sanitizeInstitutionalMessage } from '../../utils/uxInstitucional';
 
 function permiso(nombre) {
     return Boolean(getUser()?.permissions?.includes(nombre));
@@ -95,8 +98,18 @@ export function AlumnoDetallePage() {
     }, [cargar]);
 
     useEffect(() => {
+        const t = searchParams.get('tab');
+        if (t && TABS.some((x) => x.key === t) && t !== tab) {
+            setTab(t);
+        }
+    }, [searchParams, tab]);
+
+    useEffect(() => {
         setSearchParams((prev) => {
             const next = new URLSearchParams(prev);
+            if (next.get('tab') === tab) {
+                return prev;
+            }
             next.set('tab', tab);
             return next;
         });
@@ -150,6 +163,7 @@ export function AlumnoDetallePage() {
     };
 
     const legacy = data?.contexto_legacy_normativo;
+    const legacyUx = interpretarLegacyNormativo(legacy, { flujo: 'expediente' });
     const expedienteNormativo = data?.expediente_normativo ?? {};
     const uiNorm = expedienteNormativo?.ui ?? {};
     const mensajesNormativos = expedienteNormativo?.mensajes_institucionales ?? [];
@@ -264,19 +278,33 @@ export function AlumnoDetallePage() {
             {error ? <ErrorState message={error} /> : null}
             {busy ? <p className="text-sm text-slate-600">Cargando expediente...</p> : null}
             {mensajesNormativos.length > 0
-                ? mensajesNormativos.map((msg, idx) => <AlertBox key={`norm-${idx}`} type="warning" message={msg} />)
+                ? mensajesNormativos.map((msg, idx) => (
+                    <AlertBox
+                        key={`norm-${idx}`}
+                        type="warning"
+                        message={sanitizeInstitutionalMessage(msg, 'Revise la información del expediente con su área normativa.')}
+                    />
+                ))
                 : null}
-            {legacy?.requiere_atencion ? <AlertBox type="warning" message={legacy.mensaje_operativo ?? 'Hay bloqueo normativo pendiente.'} /> : null}
+            {legacyUx.mostrar ? (
+                <ValidacionSeveridadPanel
+                    severidad={legacyUx.severidad}
+                    mensajes={[legacyUx.mensaje]}
+                />
+            ) : null}
 
             <AlumnoSeleccionCard
                 datos={{
-                    nombre_completo: alumno?.nombre_completo,
+                    nombre_completo: sanitizeInstitutionalLabel(alumno?.nombre_completo),
                     curp: alumno?.curp,
                     matricula: mat?.clave_matricula ?? 'Sin matrícula',
-                    institucion: mat?.institucion,
-                    subsistema: mat?.subsistema,
-                    programa_plan: mat?.programa && mat?.plan_estudios ? `${mat.programa} · ${mat.plan_estudios}` : mat?.programa,
-                    ciclo_escolar: mat?.ciclo_actual,
+                    institucion: sanitizeInstitutionalLabel(mat?.institucion),
+                    subsistema: sanitizeInstitutionalLabel(mat?.subsistema),
+                    programa_plan:
+                        mat?.programa && mat?.plan_estudios
+                            ? sanitizeInstitutionalLabel(`${mat.programa} · ${mat.plan_estudios}`)
+                            : sanitizeInstitutionalLabel(mat?.programa),
+                    ciclo_escolar: sanitizeInstitutionalLabel(mat?.ciclo_actual),
                     estatus: alumno?.estatus,
                 }}
                 seleccionado

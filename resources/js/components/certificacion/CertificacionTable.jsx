@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { EmptyState } from '../EmptyState';
 import { LoadingState } from '../LoadingState';
+import { InstitutionalEmptyState } from '../ui/InstitutionalEmptyState';
 import { certColors } from './certTheme';
 import { CertificacionWorkflowBadge } from './CertificacionStatusBadge';
 import { alumnoNombre } from './certTheme';
@@ -13,12 +14,15 @@ export function CertificacionTable({
     columns,
     renderActions,
     emptyMessage = 'No hay registros con los filtros actuales.',
+    emptyDescription,
 }) {
     if (loading && rows === null) {
         return <LoadingState text="Cargando documentos…" />;
     }
 
-    if (error) {
+    const data = Array.isArray(rows) ? rows : [];
+
+    if (error && data.length === 0 && !loading) {
         return (
             <div style={{ padding: 16, color: certColors.danger, fontSize: 13, background: '#FEF2F2', borderRadius: 10 }}>
                 {error}
@@ -26,9 +30,10 @@ export function CertificacionTable({
         );
     }
 
-    const data = Array.isArray(rows) ? rows : [];
-
-    if (data.length === 0) {
+    if (!loading && data.length === 0) {
+        if (emptyDescription) {
+            return <InstitutionalEmptyState title={emptyMessage} description={emptyDescription} />;
+        }
         return <EmptyState message={emptyMessage} />;
     }
 

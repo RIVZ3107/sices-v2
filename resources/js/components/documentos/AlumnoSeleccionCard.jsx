@@ -1,10 +1,11 @@
 import { Link } from 'react-router-dom';
+import { sanitizeInstitutionalLabel } from '../../utils/uxInstitucional';
 
 function fila(label, valor) {
     return (
         <div style={{ display: 'grid', gridTemplateColumns: 'minmax(100px, 130px) 1fr', gap: 6, fontSize: 13 }}>
             <span style={{ color: '#64748b' }}>{label}</span>
-            <span style={{ color: '#0f172a', fontWeight: 500 }}>{valor || '—'}</span>
+            <span style={{ color: '#0f172a', fontWeight: 500 }}>{sanitizeInstitutionalLabel(valor)}</span>
         </div>
     );
 }

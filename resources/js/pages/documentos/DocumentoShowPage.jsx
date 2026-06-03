@@ -24,8 +24,18 @@ import {
     uxPuedeProcesarCertificacion,
 } from '../../utils/uxInstitucional';
 import { EstadoSepLegacyPanel } from '../expedientes/components/EstadoSepLegacyPanel';
+import { CertificadorDocumentoDetalle } from '../../components/certificacion/CertificadorDocumentoDetalle';
+import { uxEsCertificadorOperativo } from '../../utils/uxInstitucional';
 
 export function DocumentoShowPage() {
+    if (uxEsCertificadorOperativo()) {
+        return <CertificadorDocumentoDetalle />;
+    }
+
+    return <DocumentoShowPageGeneral />;
+}
+
+function DocumentoShowPageGeneral() {
     const { id } = useParams();
     const navigate = useNavigate();
     const [doc, setDoc] = useState(null);

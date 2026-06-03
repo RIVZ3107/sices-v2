@@ -27,6 +27,14 @@ class ControlEscolarCalificacionesService
      */
     public function gestion(User $user, ?string $search, int $page, int $perPage): array
     {
+        return app(ControlEscolarCalificacionOperativoService::class)->gestionLegacy($user, $search, $page, $perPage);
+    }
+
+    /**
+     * @deprecated Usar ControlEscolarCalificacionOperativoService
+     */
+    protected function gestionLegacyInterno(User $user, ?string $search, int $page, int $perPage): array
+    {
         $perPage = max(1, min(50, $perPage));
         $page = max(1, $page);
         $term = trim((string) $search);

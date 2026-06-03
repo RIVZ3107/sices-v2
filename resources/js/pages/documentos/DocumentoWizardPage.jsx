@@ -39,7 +39,7 @@ function CapturaIndice() {
                     </Link>
                 </div>
                 <p className="subtle-help-text mt-3">
-                    Para crear un certificado: abra el expediente del alumno → pestaña Certificación → Crear borrador.
+                    Para iniciar una solicitud documental: abra el expediente del alumno → pestaña Certificación → Iniciar solicitud documental.
                 </p>
             </SectionCard>
         </section>

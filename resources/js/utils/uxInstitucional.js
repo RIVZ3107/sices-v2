@@ -162,6 +162,28 @@ const TECHNICAL_PATTERNS = [
     /execute\s+seed/i,
     /entorno\s+local/i,
     /datos\s+demo/i,
+    /legacy_controlado/i,
+    /importación histórica legacy/i,
+    /importacion historica legacy/i,
+];
+
+/** Patrones de etiquetas demo/sintéticas en datos locales (solo presentación). */
+const DEMO_LABEL_PATTERNS = [
+    /\bdemosynthetic\b/i,
+    /\bdemo\s+synthetic\b/i,
+    /\bciclo\s+demo\b/i,
+    /\bplan\s+demo\b/i,
+    /\bprograma\s+demo\b/i,
+    /\bnormal\s+case\d+/i,
+    /\btest\s+case\b/i,
+    /\bprueba\s+institucional\b/i,
+];
+
+const LEGACY_OPERATIVE_PATTERNS = [
+    /importación histórica legacy/i,
+    /importacion historica legacy/i,
+    /\blegacy\b/i,
+    /legacy_controlado/i,
 ];
 
 /**
@@ -177,10 +199,63 @@ export function sanitizeInstitutionalMessage(raw, fallback = MSG_CARGA_TABLERO) 
     if (TECHNICAL_PATTERNS.some((re) => re.test(text))) {
         return fallback;
     }
+    if (LEGACY_OPERATIVE_PATTERNS.some((re) => re.test(text))) {
+        return fallback;
+    }
     if (text.length > 280) {
         return fallback;
     }
     return text;
+}
+
+/**
+ * Limpia etiquetas visibles (programa, ciclo, nombre) sin alterar datos en BD.
+ * @param {unknown} value
+ * @param {string} [fallback]
+ */
+export function sanitizeInstitutionalLabel(value, fallback = '—') {
+    const text = String(value ?? '').trim();
+    if (!text) {
+        return fallback;
+    }
+
+    if (TECHNICAL_PATTERNS.some((re) => re.test(text))) {
+        return fallback;
+    }
+
+    if (/\bdemosynthetic\b/i.test(text)) {
+        return 'Alumno de prueba institucional';
+    }
+
+    let out = text;
+
+    const cicloDemo = out.match(/ciclo\s+demo\s+(.+)/i);
+    if (cicloDemo) {
+        const resto = cicloDemo[1].replace(/control\s+escolar/gi, '').trim();
+        out = resto ? `Ciclo escolar ${resto}` : 'Ciclo escolar';
+    }
+
+    const planDemo = out.match(/plan\s+demo\s+(.+)/i);
+    if (planDemo) {
+        out = `Plan de estudios ${planDemo[1].trim()}`;
+    }
+
+    const programaDemo = out.match(/programa\s+demo\s+(.+)/i);
+    if (programaDemo) {
+        out = `Programa ${programaDemo[1].trim()}`;
+    }
+
+    if (DEMO_LABEL_PATTERNS.some((re) => re.test(out)) && out === text) {
+        if (/ciclo/i.test(out)) return 'Ciclo escolar';
+        if (/plan/i.test(out)) return 'Plan de estudios';
+        if (/programa/i.test(out)) return 'Programa educativo';
+        return fallback;
+    }
+
+    out = out.replace(/\bdemo\b/gi, '').replace(/\s+/g, ' ').trim();
+    out = out.replace(/\blegacy\b/gi, '').replace(/\s+/g, ' ').trim();
+
+    return out || fallback;
 }
 
 /** Título del gráfico de distribución de alumnos (sin referencias a demo). */

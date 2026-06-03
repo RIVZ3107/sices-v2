@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { sanitizeInstitutionalLabel } from '../../utils/uxInstitucional';
 
 const ESTADO_STYLE = {
     listo: { bg: '#dcfce7', color: '#166534', dot: '#16a34a', label: 'Completo' },
@@ -41,7 +42,7 @@ export function ExpedienteAvanceResumen({ alumnoPk, data }) {
             key: 'matricula',
             titulo: 'Matrícula',
             desc: mat?.clave_matricula
-                ? `Clave ${mat.clave_matricula} · ${mat.subsistema ?? 'subsistema'}.`
+                ? `Clave ${mat.clave_matricula} · ${sanitizeInstitutionalLabel(mat.subsistema, 'subsistema')}.`
                 : 'Sin matrícula asignada; solicite a Educación Superior.',
             estado: mat?.clave_matricula ? 'listo' : 'bloqueado',
             accion: 'Gestionar matrícula',

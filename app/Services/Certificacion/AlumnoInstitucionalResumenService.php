@@ -236,12 +236,16 @@ final class AlumnoInstitucionalResumenService
             ];
         }
 
+        $estadoCodigo = (string) data_get($m->metadata, CertificacionImportacionLegacyNormativaGate::MATRICULA_META_KEY.'.estado');
         $msg = $this->legacyGate->mensajeSiImpedeCertificadoOficial($m, null);
 
         return [
             'requiere_atencion' => $msg !== null,
+            'bloquea' => $estadoCodigo === CertificacionImportacionLegacyNormativaGate::ESTADO_RECHAZADO_NORMATIVAMENTE,
+            'advertencia_carga_historica' => $estadoCodigo === CertificacionImportacionLegacyNormativaGate::ESTADO_PENDIENTE_VALIDACION,
+            'estado_codigo' => $estadoCodigo !== '' ? $estadoCodigo : null,
             'mensaje_operativo' => $msg,
-            'estado_legacy' => $this->labelBucketLegacyNormativo(data_get($m->metadata, CertificacionImportacionLegacyNormativaGate::MATRICULA_META_KEY.'.estado')),
+            'estado_legacy' => $this->labelBucketLegacyNormativo($estadoCodigo !== '' ? $estadoCodigo : null),
         ];
     }
 
@@ -254,8 +258,8 @@ final class AlumnoInstitucionalResumenService
 
         return match ($estado) {
             CertificacionImportacionLegacyNormativaGate::ESTADO_PENDIENTE_VALIDACION => 'Validación normativa pendiente',
-            CertificacionImportacionLegacyNormativaGate::ESTADO_VALIDADO_NORMATIVAMENTE => 'Legacy validado ante normativa',
-            CertificacionImportacionLegacyNormativaGate::ESTADO_RECHAZADO_NORMATIVAMENTE => 'Legacy rechazado (requiere corrección)',
+            CertificacionImportacionLegacyNormativaGate::ESTADO_VALIDADO_NORMATIVAMENTE => 'Carga histórica validada normativamente',
+            CertificacionImportacionLegacyNormativaGate::ESTADO_RECHAZADO_NORMATIVAMENTE => 'Validación normativa rechazada (requiere corrección)',
             default => null,
         };
     }

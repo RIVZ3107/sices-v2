@@ -12,7 +12,7 @@ import { SectionCard } from '../../components/ui/SectionCard';
 import { FormField } from '../../components/FormField';
 import { ExpedienteValidacionesPanel } from '../../components/documentos/ExpedienteValidacionesPanel';
 import { SolicitudDocumentalStepper } from '../../components/documentos/SolicitudDocumentalStepper';
-import { AlumnoSeleccionCard, ExpedienteResumenCard } from '../../components/documentos/AlumnoSeleccionCard';
+import { AlumnoSeleccionCard } from '../../components/documentos/AlumnoSeleccionCard';
 import { SolicitudResumenEnvio } from '../../components/documentos/SolicitudResumenEnvio';
 import {
     fetchTiposDocumentosAcademicos,
@@ -20,12 +20,12 @@ import {
     normalizarSubsistemaCatalogo,
 } from '../../utils/documentosAcademicosTipos';
 import { clasificarValidaciones, descripcionTipoInstitucional } from '../../utils/solicitudDocumentalUx';
+import { interpretarLegacyNormativo } from '../../utils/validacionInstitucionalUx';
+import { sanitizeInstitutionalLabel } from '../../utils/uxInstitucional';
+import { ValidacionSeveridadPanel } from '../../components/ui/ValidacionSeveridadPanel';
 import { userCanAny } from '../../utils/userPermissions';
 
 const WORKFLOW_ACTIVOS = ['borrador', 'pendiente', 'en_revision', 'aprobado'];
-
-const ADVERTENCIA_LEGACY_DEFAULT =
-    'La matrícula proviene de importación histórica. Educación Superior podrá validarla en etapa posterior.';
 
 function resolverTipoCertificacion(tipoKey) {
     if (tipoKey === 'certificacion_parcial') return 'parcial';
@@ -46,14 +46,17 @@ function mapCandidatoBusqueda(a, resumen) {
     const al = resumen?.alumno;
     return {
         id: a.id,
-        nombre_completo: al?.nombre_completo ?? nombreCompletoAlumno(a),
+        nombre_completo: sanitizeInstitutionalLabel(al?.nombre_completo ?? nombreCompletoAlumno(a), al?.nombre_completo ?? nombreCompletoAlumno(a)),
         curp: a.curp ?? al?.curp,
         matricula: m?.clave_matricula,
-        institucion: m?.institucion,
-        subsistema: m?.subsistema,
-        programa: m?.programa,
-        programa_plan: m?.programa && m?.plan_estudios ? `${m.programa}` : m?.programa,
-        ciclo_escolar: m?.ciclo_actual,
+        institucion: sanitizeInstitutionalLabel(m?.institucion),
+        subsistema: sanitizeInstitutionalLabel(m?.subsistema),
+        programa: sanitizeInstitutionalLabel(m?.programa),
+        programa_plan:
+            m?.programa && m?.plan_estudios
+                ? sanitizeInstitutionalLabel(`${m.programa} · ${m.plan_estudios}`)
+                : sanitizeInstitutionalLabel(m?.programa),
+        ciclo_escolar: sanitizeInstitutionalLabel(m?.ciclo_actual),
         estatus: al?.estatus ?? m?.estado ?? a.estatus,
     };
 }
@@ -182,13 +185,9 @@ function construirChecklist(resumen, { tieneAlumno, alumnoPk, tipoEfectivo, sinD
     );
 
     const advertenciaLegacy =
-        !legacy?.requiere_atencion
-        && legacy?.estado_legacy
-        && /pendiente|import|históric/i.test(String(legacy.estado_legacy))
-            ? ADVERTENCIA_LEGACY_DEFAULT
-            : null;
+        !legacyUx.bloquea && legacyUx.severidad === 'warning' ? legacyUx.mensaje : null;
 
-    return { items, advertenciaLegacy };
+    return { items, advertenciaLegacy, legacyUx };
 }
 
 export function SolicitudCertificacionPage() {
@@ -275,7 +274,7 @@ export function SolicitudCertificacionPage() {
         );
     }, [resumen, tipoEfectivo]);
 
-    const { items: checklistExpediente, advertenciaLegacy } = useMemo(
+    const { items: checklistExpediente, advertenciaLegacy, legacyUx } = useMemo(
         () =>
             construirChecklist(resumen, {
                 tieneAlumno,
@@ -304,7 +303,7 @@ export function SolicitudCertificacionPage() {
         [checklistExpediente, tipoEfectivo, tiposCatalogo],
     );
 
-    const { puedeEnviar, bloqueantes } = clasificarValidaciones(checklistEnvio);
+    const { puedeEnviar, bloqueantes, advertencias } = clasificarValidaciones(checklistEnvio);
 
     const pasoActivo = !tieneAlumno
         ? 1
@@ -602,15 +601,31 @@ export function SolicitudCertificacionPage() {
                         El Certificador revisará la información académica antes de continuar el proceso institucional.
                     </p>
 
-                    {intentadoEnviar && !puedeEnviar && bloqueantes.length > 0 ? (
-                        <AlertBox
-                            type="danger"
-                            message={`No es posible enviar la solicitud: ${bloqueantes.map((b) => b.label.toLowerCase()).join(', ')}.`}
+                    {!puedeEnviar && bloqueantes.length > 0 ? (
+                        <ValidacionSeveridadPanel
+                            titulo="Pendientes que impiden continuar"
+                            severidad="error"
+                            mensajes={[
+                                intentadoEnviar
+                                    ? 'Corrige los pendientes antes de enviar la solicitud.'
+                                    : null,
+                                ...bloqueantes.map((b) => b.hint || b.label),
+                                legacyUx?.bloquea ? legacyUx.mensaje : null,
+                            ]}
                         />
                     ) : null}
 
-                    {advertenciaLegacy && puedeEnviar ? (
-                        <AlertBox type="warning" message={advertenciaLegacy} />
+                    {puedeEnviar && (advertenciaLegacy || advertencias.length > 0) ? (
+                        <ValidacionSeveridadPanel
+                            titulo="Advertencias"
+                            severidad="warning"
+                            mensajes={[
+                                advertenciaLegacy,
+                                advertencias.length > 0
+                                    ? 'Hay puntos de atención que no impiden el envío; el Certificador podrá revisarlos.'
+                                    : null,
+                            ]}
+                        />
                     ) : null}
 
                     {errorEnvio ? (

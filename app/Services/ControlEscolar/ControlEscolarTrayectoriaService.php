@@ -11,8 +11,13 @@ use App\Models\MateriaCursada;
 use App\Models\Matricula;
 use App\Models\TrayectoriaAcademica;
 use App\Models\User;
+use App\Services\Certificacion\AuditoriaService;
+use Barryvdh\DomPDF\Facade\Pdf;
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
+use Illuminate\Validation\ValidationException;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ControlEscolarTrayectoriaService
 {
@@ -20,6 +25,7 @@ class ControlEscolarTrayectoriaService
 
     public function __construct(
         protected ControlEscolarDashboardService $dashboard,
+        protected AuditoriaService $auditoria,
     ) {}
 
     /**
@@ -473,7 +479,7 @@ class ControlEscolarTrayectoriaService
         return [
             'clave' => (string) ($m->clave ?? '—'),
             'nombre' => (string) ($m->nombre ?? '—'),
-            'periodo' => (string) ($m->periodo ?? $m->etiqueta_periodo_curricular ?? '—'),
+            'periodo' => $this->nombrePeriodo((string) ($m->periodo ?? $m->etiqueta_periodo_curricular ?? '')),
             'calificacion' => $m->calificacion !== null
                 ? number_format((float) $m->calificacion, 1, '.', '')
                 : ($m->calificacion_texto ? (string) $m->calificacion_texto : '—'),
@@ -547,10 +553,339 @@ class ControlEscolarTrayectoriaService
 
     protected function nombreCompleto(Alumno $alumno): string
     {
-        return trim(implode(' ', array_filter([
+        $nombre = trim(implode(' ', array_filter([
             $alumno->nombre,
             $alumno->primer_apellido,
             $alumno->segundo_apellido,
         ])));
+        if (stripos($nombre, 'demosynthetic') !== false) {
+            return 'Alumno institucional';
+        }
+
+        return $nombre !== '' ? $nombre : 'Alumno sin nombre';
+    }
+
+    protected function nombrePeriodo(?string $periodo): string
+    {
+        $p = trim((string) $periodo);
+        if ($p === '' || stripos($p, 'demo') !== false) {
+            return 'Periodo escolar';
+        }
+
+        return $p;
+    }
+
+    /**
+     * @param  array<string, mixed>  $filtros
+     * @return array{data: list<array<string, mixed>>, meta: array<string, int>}
+     */
+    public function buscarAlumnos(User $user, array $filtros): array
+    {
+        return $this->dashboard->conAlcanceUsuario($user, function () use ($user, $filtros): array {
+            $term = trim((string) ($filtros['search'] ?? ''));
+            $perPage = max(1, min(25, (int) ($filtros['per_page'] ?? 10)));
+            $paginator = $this->queryAlumnosTrayectoria($user, $term !== '' ? $term : null)
+                ->paginate($perPage, ['*'], 'page', max(1, (int) ($filtros['page'] ?? 1)));
+
+            return [
+                'data' => collect($paginator->items())->map(fn (Alumno $a) => [
+                    'alumno_id' => $a->id,
+                    'nombre' => $this->nombreCompleto($a),
+                    'matricula' => (string) ($a->matriculaActiva?->matricula ?? '—'),
+                    'curp' => (string) $a->curp,
+                    'programa' => $a->matriculaActiva?->ofertaAcademica?->planEstudio?->programaEstudio?->nombre ?? '—',
+                ])->values()->all(),
+                'meta' => [
+                    'current_page' => $paginator->currentPage(),
+                    'last_page' => $paginator->lastPage(),
+                    'total' => $paginator->total(),
+                ],
+            ];
+        });
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function alumnoDetalle(User $user, int $alumnoId): array
+    {
+        return $this->dashboard->conAlcanceUsuario($user, function () use ($user, $alumnoId): array {
+            $data = $this->consulta($user, null, $alumnoId, null, null);
+            if ($data['alumno'] === null) {
+                throw ValidationException::withMessages(['alumno_id' => ['Alumno fuera de su alcance o no encontrado.']]);
+            }
+            $this->registrarAuditoria($user, 'trayectoria.consultar', $alumnoId);
+
+            return $data;
+        });
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function resumenKpis(User $user, int $alumnoId): array
+    {
+        $data = $this->alumnoDetalle($user, $alumnoId);
+        $m = $data['metricas'] ?? [];
+        $mr = $data['materias_resumen'] ?? [];
+        $ac = $data['avance_curricular'] ?? [];
+
+        return [
+            'promedio_general' => is_numeric(str_replace('—', '', (string) ($m['promedio'] ?? ''))) ? (float) $m['promedio'] : null,
+            'escala_promedio' => '0-10',
+            'creditos_aprobados' => (int) ($ac['aprobados'] ?? $m['creditos_aprobados'] ?? 0),
+            'creditos_totales' => (int) ($m['creditos_totales'] ?? 0),
+            'porcentaje_creditos' => (float) ($m['pct_avance'] ?? 0),
+            'materias_aprobadas' => (int) ($mr['aprobadas'] ?? 0),
+            'materias_totales' => max(1, (int) ($mr['total'] ?? 0)),
+            'porcentaje_materias' => (float) ($mr['pct_aprobadas'] ?? 0),
+            'materias_reprobadas' => (int) ($mr['reprobadas'] ?? 0),
+            'antiguedad' => $this->calcularAntiguedad($user, $alumnoId),
+            'periodos_cursados' => count(array_unique(array_column($data['historial']['data'] ?? [], 'periodo'))),
+            'avance_global' => (float) ($m['pct_avance'] ?? 0),
+            'estado' => ($mr['total'] ?? 0) > 0 ? 'con_trayectoria' : 'sin_trayectoria',
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function ultimoPeriodo(User $user, int $alumnoId): array
+    {
+        $data = $this->alumnoDetalle($user, $alumnoId);
+        $historial = $data['historial']['data'] ?? [];
+        if ($historial === []) {
+            return ['periodo' => '—', 'materias_cursadas' => 0, 'materias_aprobadas' => 0, 'materias_reprobadas' => 0, 'promedio_periodo' => null, 'creditos_periodo' => 0, 'estatus' => 'sin_datos'];
+        }
+        $porPeriodo = [];
+        foreach ($historial as $h) {
+            $p = $this->nombrePeriodo((string) ($h['periodo'] ?? ''));
+            $porPeriodo[$p][] = $h;
+        }
+        $ultimo = array_key_last($porPeriodo);
+        $items = $porPeriodo[$ultimo] ?? [];
+        $ap = count(array_filter($items, fn ($i) => ($i['estatus'] ?? '') === 'Aprobada'));
+        $rep = count(array_filter($items, fn ($i) => ($i['estatus'] ?? '') === 'Reprobada'));
+        $cals = array_filter(array_map(fn ($i) => is_numeric($i['calificacion'] ?? null) ? (float) $i['calificacion'] : null, $items));
+
+        return [
+            'periodo' => $ultimo,
+            'materias_cursadas' => count($items),
+            'materias_aprobadas' => $ap,
+            'materias_reprobadas' => $rep,
+            'promedio_periodo' => $cals !== [] ? round(array_sum($cals) / count($cals), 2) : null,
+            'creditos_periodo' => array_sum(array_column($items, 'creditos')),
+            'estatus' => $rep > 0 ? 'con_observaciones' : ($ap === count($items) ? 'aprobado' : 'en_curso'),
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function kardex(User $user, int $alumnoId): array
+    {
+        $data = $this->alumnoDetalle($user, $alumnoId);
+        $agrupado = [];
+        foreach ($data['historial']['data'] ?? [] as $h) {
+            $p = $this->nombrePeriodo((string) ($h['periodo'] ?? 'Sin periodo'));
+            $agrupado[$p]['materias'][] = $h;
+        }
+        $periodos = [];
+        foreach ($agrupado as $nombre => $bloque) {
+            $mats = $bloque['materias'];
+            $cals = array_filter(array_map(fn ($m) => is_numeric($m['calificacion'] ?? null) ? (float) $m['calificacion'] : null, $mats));
+            $periodos[] = [
+                'periodo' => $nombre,
+                'materias' => $mats,
+                'promedio' => $cals !== [] ? round(array_sum($cals) / count($cals), 2) : null,
+                'creditos' => array_sum(array_column($mats, 'creditos')),
+            ];
+        }
+
+        return ['periodos' => $periodos, 'resumen' => $data['metricas']];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function planEstudios(User $user, int $alumnoId): array
+    {
+        $data = $this->alumnoDetalle($user, $alumnoId);
+        $mr = $data['materias_resumen'] ?? [];
+
+        return [
+            'plan' => $data['alumno']['programa'] ?? '—',
+            'creditos_totales' => (int) ($data['metricas']['creditos_totales'] ?? 0),
+            'materias_totales' => (int) ($mr['total'] ?? 0),
+            'avance_creditos' => (float) ($data['metricas']['pct_avance'] ?? 0),
+            'avance_materias' => (float) ($mr['pct_aprobadas'] ?? 0),
+            'materias_por_periodo' => $this->kardex($user, $alumnoId)['periodos'],
+            'materias_pendientes' => (int) ($mr['en_curso'] ?? 0),
+        ];
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    public function historialPeriodos(User $user, int $alumnoId): array
+    {
+        return $this->kardex($user, $alumnoId)['periodos'];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function estadisticas(User $user, int $alumnoId): array
+    {
+        $data = $this->alumnoDetalle($user, $alumnoId);
+        $mr = $data['materias_resumen'] ?? [];
+        $dist = [
+            ['rango' => '9.0-10', 'total' => 0],
+            ['rango' => '8.0-8.9', 'total' => 0],
+            ['rango' => '7.0-7.9', 'total' => 0],
+            ['rango' => '6.0-6.9', 'total' => 0],
+            ['rango' => 'Menor a 6', 'total' => 0],
+        ];
+        foreach ($data['historial']['data'] ?? [] as $h) {
+            $c = is_numeric($h['calificacion'] ?? null) ? (float) $h['calificacion'] : null;
+            if ($c === null) {
+                continue;
+            }
+            $idx = match (true) {
+                $c >= 9 => 0,
+                $c >= 8 => 1,
+                $c >= 7 => 2,
+                $c >= 6 => 3,
+                default => 4,
+            };
+            $dist[$idx]['total']++;
+        }
+        $total = max(1, array_sum(array_column($dist, 'total')));
+        foreach ($dist as &$d) {
+            $d['porcentaje'] = round(($d['total'] / $total) * 100, 1);
+        }
+
+        return [
+            'distribucion_calificaciones' => $dist,
+            'promedio_por_periodo' => array_map(fn ($p) => ['periodo' => $p['periodo'], 'promedio' => $p['promedio']], $this->kardex($user, $alumnoId)['periodos']),
+            'avance_creditos' => $data['avance_curricular'] ?? [],
+            'aprobadas_reprobadas' => [
+                'aprobadas' => (int) ($mr['aprobadas'] ?? 0),
+                'reprobadas' => (int) ($mr['reprobadas'] ?? 0),
+                'en_curso' => (int) ($mr['en_curso'] ?? 0),
+            ],
+        ];
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    public function equivalencias(User $user, int $alumnoId): array
+    {
+        return [];
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    public function actividadReciente(User $user, int $alumnoId, int $limit = 8): array
+    {
+        $data = $this->alumnoDetalle($user, $alumnoId);
+        $items = [];
+        foreach (($data['alertas'] ?? []) as $a) {
+            $items[] = [
+                'id' => md5($a['titulo'] ?? uniqid()),
+                'tipo' => $a['tipo'] ?? 'info',
+                'titulo' => $a['titulo'] ?? 'Actividad',
+                'descripcion' => $a['desc'] ?? '',
+                'tiempo_relativo' => 'Reciente',
+                'severidad' => $a['tipo'] === 'warning' ? 'warning' : 'info',
+            ];
+        }
+
+        return array_slice($items, 0, $limit);
+    }
+
+    public function exportarCsv(User $user, int $alumnoId): StreamedResponse
+    {
+        $data = $this->alumnoDetalle($user, $alumnoId);
+        $this->registrarAuditoria($user, 'trayectoria.exportar', $alumnoId);
+
+        return response()->streamDownload(function () use ($data): void {
+            $out = fopen('php://output', 'w');
+            fputcsv($out, ['clave', 'materia', 'periodo', 'calificacion', 'creditos', 'estatus']);
+            foreach ($data['historial']['data'] ?? [] as $h) {
+                fputcsv($out, [$h['clave'], $h['nombre'], $h['periodo'], $h['calificacion'], $h['creditos'], $h['estatus']]);
+            }
+            fclose($out);
+        }, 'trayectoria_'.$alumnoId.'_'.now()->format('Y-m-d').'.csv', ['Content-Type' => 'text/csv; charset=UTF-8']);
+    }
+
+    public function constanciaPdf(User $user, int $alumnoId, ?string $tipo = null): \Symfony\Component\HttpFoundation\Response
+    {
+        $data = $this->alumnoDetalle($user, $alumnoId);
+        $this->registrarAuditoria($user, 'trayectoria.constancia', $alumnoId, ['tipo' => $tipo]);
+        $html = '<html><body style="font-family:DejaVu Sans;padding:24px"><h1>Constancia académica</h1>'
+            .'<p><strong>Alumno:</strong> '.e($data['alumno']['nombre'] ?? '').'</p>'
+            .'<p><strong>Matrícula:</strong> '.e($data['alumno']['matricula'] ?? '').'</p>'
+            .'<p><strong>Programa:</strong> '.e($data['alumno']['programa'] ?? '').'</p>'
+            .'<p>Generado: '.now()->format('d/m/Y H:i').'</p></body></html>';
+
+        return Pdf::loadHTML($html)->download('constancia_'.$alumnoId.'.pdf');
+    }
+
+    public function kardexPdf(User $user, int $alumnoId): \Symfony\Component\HttpFoundation\Response
+    {
+        $k = $this->kardex($user, $alumnoId);
+        $this->registrarAuditoria($user, 'trayectoria.kardex_pdf', $alumnoId);
+        $rows = '';
+        foreach ($k['periodos'] as $p) {
+            $rows .= '<tr><td colspan="4"><strong>'.e($p['periodo']).'</strong></td></tr>';
+            foreach ($p['materias'] as $m) {
+                $rows .= '<tr><td>'.e($m['clave']).'</td><td>'.e($m['nombre']).'</td><td>'.e($m['calificacion']).'</td><td>'.e($m['creditos']).'</td></tr>';
+            }
+        }
+        $html = '<html><body style="font-family:DejaVu Sans;padding:24px;font-size:11px"><h1>Kardex académico</h1><table border="1" cellpadding="4" width="100%"><tr><th>Clave</th><th>Materia</th><th>Calif.</th><th>Créd.</th></tr>'.$rows.'</table></body></html>';
+
+        return Pdf::loadHTML($html)->download('kardex_'.$alumnoId.'.pdf');
+    }
+
+    protected function calcularAntiguedad(User $user, int $alumnoId): string
+    {
+        $alumno = $this->queryAlumnosTrayectoria($user, null)->where('id', $alumnoId)->first();
+        if ($alumno === null) {
+            return '—';
+        }
+        $mat = $alumno->matriculaActiva;
+        $desde = MateriaCursada::query()->where('matricula_id', $mat?->id)->min('created_at')
+            ?? $mat?->created_at
+            ?? $alumno->created_at;
+        if ($desde === null) {
+            return '—';
+        }
+        $diff = Carbon::parse($desde)->diff(now());
+        $parts = [];
+        if ($diff->y > 0) {
+            $parts[] = $diff->y.' año'.($diff->y !== 1 ? 's' : '');
+        }
+        if ($diff->m > 0) {
+            $parts[] = $diff->m.' mes'.($diff->m !== 1 ? 'es' : '');
+        }
+
+        return $parts !== [] ? implode(', ', $parts) : 'Menos de un mes';
+    }
+
+    protected function registrarAuditoria(User $user, string $evento, int $alumnoId, array $meta = []): void
+    {
+        $this->auditoria->registrar(
+            $evento,
+            'alumno',
+            $alumnoId,
+            $meta,
+            $user->id,
+            request()->ip(),
+            (string) request()->userAgent(),
+            ['modulo' => 'control_escolar_trayectoria'],
+        );
     }
 }

@@ -1,303 +1,274 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { controlEscolarApi } from '../../api/controlEscolar';
 import {
     CeIcons,
     CeMetricCard,
-    CePriorityBadge,
-    CeQuickAction,
-    CeStatusBadge,
-    ceAvatarStyle,
+    CePageHeader,
     ceColors,
-    ceInitials,
     ceTheme,
     formatCeActualizado,
     formatCeNum,
 } from '../../components/controlEscolar';
+import { ErrorStateAlert } from './alumnos/ErrorStateAlert';
+import { formatDateTime } from '../../utils/expedienteUx';
+import { sanitizeInstitutionalLabel } from '../../utils/uxInstitucional';
+import { CalificacionStatusBadge } from './calificaciones/CalificacionStatusBadge';
+import {
+    CalificacionCapturaModal,
+    CalificacionesHistorialModal,
+    ImportarCalificacionesModal,
+    SolicitarCorreccionModal,
+} from './calificaciones/CalificacionesModals';
+import { canCal } from './calificaciones/calificacionesPermissions';
+import { useCalificaciones } from './calificaciones/useCalificaciones';
+
+function ActionBtn({ label, icon, onClick, disabled, loading, title, variant = 'secondary' }) {
+    const border = variant === 'primary' ? '#185FA5' : '#e2e8f0';
+    const color = disabled ? '#94a3b8' : variant === 'primary' ? '#185FA5' : '#0f172a';
+    return (
+        <button
+            type="button"
+            title={disabled ? (title || 'No disponible') : title}
+            disabled={disabled || loading}
+            onClick={onClick}
+            style={{
+                display: 'inline-flex', alignItems: 'center', gap: 8, height: 38, padding: '0 14px',
+                borderRadius: 8, border: `1px solid ${border}`, background: 'white',
+                fontSize: 13, fontWeight: 500, color, cursor: disabled ? 'not-allowed' : 'pointer', opacity: loading ? 0.7 : 1,
+            }}
+        >
+            <span style={{ display: 'flex', color: disabled ? '#94a3b8' : '#185FA5' }}>{icon}</span>
+            {loading ? 'Procesando…' : label}
+        </button>
+    );
+}
 
 export function CalificacionesCePage() {
-    const [search, setSearch] = useState('');
-    const [page, setPage] = useState(1);
-    const [perPage] = useState(10);
-    const [payload, setPayload] = useState(null);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState('');
+    const [modalCaptura, setModalCaptura] = useState(false);
+    const [modalImportar, setModalImportar] = useState(false);
+    const [modalHistorial, setModalHistorial] = useState(false);
+    const [modalCorreccion, setModalCorreccion] = useState(false);
+    const [grupoActivo, setGrupoActivo] = useState(null);
+    const [correccionId, setCorreccionId] = useState(null);
+    const [exporting, setExporting] = useState(false);
+    const [aviso, setAviso] = useState('');
 
-    const cargar = useCallback(async () => {
-        setLoading(true);
-        setError('');
-        try {
-            const res = await controlEscolarApi.calificaciones({
-                search: search.trim() || undefined,
-                page,
-                per_page: perPage,
-            });
-            setPayload(res?.data ?? null);
-        } catch (err) {
-            setPayload(null);
-            setError(err?.message ?? 'No se pudo cargar las calificaciones.');
-        } finally {
-            setLoading(false);
+    const {
+        loading, error, technicalDetail, filters, setFilters, limpiarFiltros, recargar,
+        rows, meta, resumen, avance, pendientes, fechas, ventana, aviso: avisoInst,
+        actualizadoEn, selected, toggleSelect, toggleAll,
+    } = useCalificaciones();
+
+    const pctGlobal = resumen?.avance_global ?? 0;
+    const dist = avance?.distribucion_estatus ?? avance?.estado_captura ?? {};
+    const ventanaAbierta = ventana?.abierta !== false;
+
+    const filtrosActivos = useMemo(() => {
+        let n = 0;
+        if (filters.search?.trim()) n++;
+        if (filters.estatus || filters.con_pendientes || filters.con_correcciones) n++;
+        return n;
+    }, [filters]);
+
+    const abrirCaptura = (key) => {
+        if (!canCal('capturar')) return;
+        if (!ventanaAbierta) {
+            setAviso('La ventana de captura está cerrada.');
+            return;
         }
-    }, [search, page, perPage]);
+        setGrupoActivo(key || selected[0] || null);
+        setModalCaptura(true);
+    };
 
-    useEffect(() => {
-        const t = setTimeout(() => void cargar(), search.trim() ? 350 : 0);
-        return () => clearTimeout(t);
-    }, [cargar]);
+    const exportar = async () => {
+        if (!canCal('exportar')) return;
+        setExporting(true);
+        try {
+            await controlEscolarApi.calificacionesExportar(filters);
+            setAviso('Archivo exportado correctamente.');
+        } catch (err) {
+            setAviso(err?.message ?? 'No se pudo exportar.');
+        } finally {
+            setExporting(false);
+        }
+    };
 
-    useEffect(() => {
-        setPage(1);
-    }, [search]);
+    const kpi = (n) => (loading && !resumen ? '…' : formatCeNum(n ?? 0));
 
-    const metricas = payload?.metricas ?? {};
-    const grupos = payload?.grupos ?? [];
-    const calificaciones = payload?.listado?.data ?? [];
-    const meta = payload?.listado?.meta ?? {};
-    const avanceGlobal = payload?.avance_global?.porcentaje ?? metricas.avance_global_pct ?? 0;
-    const avanceDescripcion = payload?.avance_global?.descripcion ?? '';
-
-        return (
+    return (
         <div style={{ ...ceTheme.pageShell }}>
+            <CePageHeader
+                breadcrumbCurrent="Calificaciones"
+                title="Calificaciones"
+                subtitle="Captura, importa y da seguimiento operativo a las calificaciones por grupo, materia y periodo."
+                updatedAt={(
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                        {loading && !actualizadoEn ? '…' : formatCeActualizado(actualizadoEn)}
+                        <button type="button" onClick={() => void recargar()} style={{ border: 'none', background: 'transparent', color: '#185FA5', cursor: 'pointer', fontSize: 12, fontWeight: 600 }}>
+                            {CeIcons.refreshCw} Actualizar
+                        </button>
+                    </span>
+                )}
+            />
 
-            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 24, flexWrap: 'wrap', gap: 16 }}>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                        <h1 style={{ fontSize: 24, fontWeight: 700, color: '#0f172a', margin: 0 }}>Calificaciones</h1>
-                        {CeIcons.shieldCheck}
-                    </div>
-                    <p style={{ fontSize: 13, color: '#64748b', margin: 0 }}>
-                        Captura e importación operativa. La autorización final de correcciones y el cierre global no corresponden a Control Escolar.
-                    </p>
-                </div>
-
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 12 }}>
-                    <p style={{ fontSize: 11, color: '#94a3b8', margin: 0 }}>
-                        Actualizado: {loading && !payload ? '…' : formatCeActualizado(payload?.actualizado_en)}
-                    </p>
-                </div>
+            <div style={{ padding: '12px 16px', borderRadius: 8, background: ventanaAbierta ? '#EFF6FF' : '#FEF3C7', border: `1px solid ${ventanaAbierta ? '#BFDBFE' : '#FDE68A'}`, marginBottom: 16, fontSize: 13, color: ventanaAbierta ? '#1e40af' : '#92400e' }}>
+                {avisoInst || 'Captura e importación operativa. La autorización final de correcciones y el cierre global no corresponden a Control Escolar.'}
+                {!ventanaAbierta && ventana?.mensaje ? (
+                    <p style={{ margin: '8px 0 0', fontWeight: 600 }}>{ventana.mensaje}</p>
+                ) : null}
             </div>
 
-            <div style={{ display: 'flex', gap: 12, marginBottom: 24, flexWrap: 'wrap', justifyContent: 'space-between' }}>
-                <div style={{ display: 'flex', gap: 12 }}>
-                    {[
-                        { to: '/app/coordinador/dashboard', label: 'Capturar calificación', icon: CeIcons.pencil, color: '#185FA5' },
-                        { to: '/app/importaciones', label: 'Importar calificaciones', icon: CeIcons.upload, color: '#0F6E56' },
-                        { to: '/app/control-escolar/calificaciones', label: 'Solicitar corrección', icon: CeIcons.cornerUpLeft, color: '#BA7517' },
-                        { to: '/app/control-escolar/calificaciones', label: 'Ver historial', icon: CeIcons.history, color: '#534AB7' },
-                    ].map(({ to, label, icon, color }) => (
-                        <Link
-                            key={label}
-                            to={to}
-                            style={{
-                                display: 'inline-flex', alignItems: 'center', gap: 8,
-                                height: 38, padding: '0 16px', borderRadius: 8,
-                                background: 'white',
-                                border: '1px solid #e2e8f0',
-                                fontSize: 13, fontWeight: 500, textDecoration: 'none',
-                            }}
-                        >
-                            <span style={{ color: color, display: 'flex', alignItems: 'center' }}>{icon}</span>
-                            <span style={{ color: '#0f172a' }}>{label}</span>
-                        </Link>
-                    ))}
+            <div style={{ display: 'flex', gap: 10, marginBottom: 20, flexWrap: 'wrap', justifyContent: 'space-between' }}>
+                <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                    {canCal('capturar') ? (
+                        <ActionBtn label="Capturar calificación" icon={CeIcons.pencil} onClick={() => abrirCaptura()} disabled={!ventanaAbierta} title={!ventanaAbierta ? 'Ventana de captura cerrada' : 'Selecciona un grupo o usa acciones por fila'} />
+                    ) : null}
+                    {canCal('importar') ? (
+                        <ActionBtn label="Importar calificaciones" icon={CeIcons.upload} onClick={() => { setGrupoActivo(selected[0] || null); setModalImportar(true); }} disabled={!ventanaAbierta} />
+                    ) : null}
+                    {canCal('correccion') ? (
+                        <ActionBtn label="Solicitar corrección" icon={CeIcons.cornerUpLeft} onClick={() => setModalCorreccion(true)} disabled={!correccionId && !selected.length} />
+                    ) : null}
+                    {canCal('historial') ? (
+                        <ActionBtn label="Ver historial" icon={CeIcons.history} onClick={() => { setGrupoActivo(selected[0] || null); setModalHistorial(true); }} />
+                    ) : null}
                 </div>
-                <Link
-                    to="/app/control-escolar/reportes"
-                    style={{
-                        display: 'inline-flex', alignItems: 'center', gap: 8,
-                        height: 38, padding: '0 16px', borderRadius: 8,
-                        background: 'white', border: '1px solid #e2e8f0',
-                        fontSize: 13, fontWeight: 500, textDecoration: 'none', color: '#0f172a'
-                    }}
-                >
-                    <span style={{ color: '#64748b', display: 'flex' }}>{CeIcons.download}</span> Exportar
-                </Link>
+                {canCal('exportar') ? (
+                    <ActionBtn label="Exportar" icon={CeIcons.download} onClick={() => void exportar()} loading={exporting} />
+                ) : null}
             </div>
 
-            {error ? (
-                <p style={{ marginBottom: 16, padding: '12px 16px', background: '#FEE2E2', color: '#991B1B', borderRadius: 8, fontSize: 13 }}>
-                    {error}
-                </p>
-            ) : null}
+            {error ? <ErrorStateAlert message={error.message} onRetry={recargar} technicalDetail={technicalDetail} status={error.status} /> : null}
+            {aviso ? <p style={{ marginBottom: 12, padding: 10, background: '#EFF6FF', color: '#1e40af', borderRadius: 8, fontSize: 13 }}>{aviso}</p> : null}
 
-            <div style={{ display: 'flex', gap: 16, marginBottom: 24, flexWrap: 'wrap' }}>
-                <CeMetricCard icon={CeIcons.users} iconBg="#DBEAFE" iconColor="#185FA5" title="Grupos en captura" value={loading && !payload ? '…' : formatCeNum(metricas.grupos_en_captura)} trend={metricas.ciclo_label ?? 'Ciclo activo'} trendColor="#185FA5" />
-                <CeMetricCard icon={CeIcons.trendingUp} iconBg="#DCFCE7" iconColor="#0F6E56" title="Avance global" value={loading && !payload ? '…' : `${avanceGlobal}%`} trend="Captura en alcance operativo" trendColor="#0F6E56" />
-                <CeMetricCard icon={CeIcons.clock} iconBg="#FEF3C7" iconColor="#BA7517" title="Pendientes de captura" value={loading && !payload ? '…' : formatCeNum(metricas.pendientes_captura)} trend="Por cerrar periodo" trendColor="#BA7517" />
-                <CeMetricCard icon={CeIcons.messageCircle} iconBg="#EEEDFE" iconColor="#534AB7" title="Correcciones solicitadas" value={loading && !payload ? '…' : formatCeNum(metricas.correcciones_solicitadas)} trend="En flujo con Dirección" trendColor="#534AB7" />
+            <div style={{ display: 'flex', gap: 16, marginBottom: 20, flexWrap: 'wrap' }}>
+                <button type="button" onClick={() => setFilters({ estatus: 'en_captura' })} style={{ border: 'none', background: 'transparent', padding: 0, cursor: 'pointer', flex: '1 1 200px' }}>
+                    <CeMetricCard icon={CeIcons.users} iconBg="#DBEAFE" iconColor="#185FA5" title="Grupos en captura" value={kpi(resumen?.grupos_en_captura)} trend={resumen?.ciclo_label} trendColor="#185FA5" />
+                </button>
+                <button type="button" onClick={() => setFilters({})} style={{ border: 'none', background: 'transparent', padding: 0, cursor: 'pointer', flex: '1 1 200px' }}>
+                    <CeMetricCard icon={CeIcons.trendingUp} iconBg="#DCFCE7" iconColor="#0F6E56" title="Avance global" value={loading && !resumen ? '…' : `${pctGlobal}%`} trend="Captura y revisión" trendColor="#0F6E56" />
+                </button>
+                <button type="button" onClick={() => setFilters({ con_pendientes: '1' })} style={{ border: 'none', background: 'transparent', padding: 0, cursor: 'pointer', flex: '1 1 200px' }}>
+                    <CeMetricCard icon={CeIcons.clock} iconBg="#FEF3C7" iconColor="#BA7517" title="Pendientes de captura" value={kpi(resumen?.pendientes_captura)} trend="Por capturar" trendColor="#BA7517" />
+                </button>
+                <button type="button" onClick={() => setFilters({ con_correcciones: '1' })} style={{ border: 'none', background: 'transparent', padding: 0, cursor: 'pointer', flex: '1 1 200px' }}>
+                    <CeMetricCard icon={CeIcons.messageCircle} iconBg="#EEEDFE" iconColor="#534AB7" title="Correcciones solicitadas" value={kpi(resumen?.correcciones_solicitadas)} trend="En flujo institucional" trendColor="#534AB7" />
+                </button>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: 16, alignItems: 'start', marginBottom: 16 }}>
-                
-                <div style={ceTheme.surface}>
-                    <p style={ceTheme.surfaceTitle}>Avance de captura</p>
-                    <div style={{ marginTop: 16 }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-                            <span style={{ fontSize: 13, fontWeight: 600, color: '#0f172a' }}>Progreso global</span>
-                            <span style={{ fontSize: 13, fontWeight: 700, color: '#0F6E56' }}>{avanceGlobal}%</span>
+            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(260px, 1fr) minmax(0, 2fr) minmax(260px, 1fr)', gap: 16, alignItems: 'start' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                    <div style={ceTheme.surface}>
+                        <p style={ceTheme.surfaceTitle}>Avance de captura</p>
+                        <p style={{ fontSize: 13, fontWeight: 600 }}>Progreso global: {pctGlobal}%</p>
+                        <div style={{ height: 8, background: '#e2e8f0', borderRadius: 4, margin: '8px 0 16px' }}>
+                            <div style={{ width: `${pctGlobal}%`, height: '100%', background: '#0F6E56', borderRadius: 4 }} />
                         </div>
-                        <div style={{ height: 8, width: '100%', background: '#e2e8f0', borderRadius: 4, overflow: 'hidden' }}>
-                            <div style={{ height: '100%', width: `${Math.min(100, Math.max(0, avanceGlobal))}%`, background: '#0F6E56', borderRadius: 4 }} />
-                        </div>
-                        <p style={{ fontSize: 12, color: '#64748b', marginTop: 12, lineHeight: 1.4 }}>
-                            {avanceDescripcion || `${avanceGlobal}% de las calificaciones han sido capturadas en el alcance operativo.`}
-                        </p>
-                    </div>
-                </div>
-
-                <div style={ceTheme.surface}>
-                    <p style={ceTheme.surfaceTitle}>Estado por Grupos / Materias</p>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 8 }}>
-                        {grupos.length === 0 && !loading ? (
-                            <p style={{ fontSize: 13, color: '#64748b', margin: 0 }}>Sin grupos con carga académica en tu alcance.</p>
-                        ) : null}
-                        {grupos.map((g, index) => (
-                            <div key={`${g.grupo}-${index}`} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: index < grupos.length - 1 ? 12 : 0, borderBottom: index < grupos.length - 1 ? '1px solid #f1f5f9' : 'none' }}>
-                                <div>
-                                    <p style={{ fontSize: 13, fontWeight: 600, color: '#0f172a', margin: 0 }}>{g.grupo}</p>
-                                    <p style={{ fontSize: 11, color: '#64748b', margin: '2px 0 0 0' }}>{g.sede}</p>
+                        <p style={{ fontSize: 12, fontWeight: 600, marginBottom: 8 }}>Avance por programa</p>
+                        {(avance?.avance_por_programa ?? []).map((p) => (
+                            <div key={p.programa} style={{ marginBottom: 10 }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11 }}>
+                                    <span>{sanitizeInstitutionalLabel(p.programa)}</span>
+                                    <span>{p.porcentaje}%</span>
                                 </div>
-                                <div style={{ textAlign: 'right' }}>
-                                    <p style={{ fontSize: 12, fontWeight: 700, color: (g.avance_pct ?? g.avancePct) === 100 ? '#0F6E56' : '#185FA5', margin: 0 }}>
-                                        {g.avance_pct ?? g.avancePct ?? 0}% capturado
-                                    </p>
-                                    <p style={{ fontSize: 11, color: g.pendientes > 0 ? '#BA7517' : '#64748b', margin: '2px 0 0 0' }}>
-                                        {g.pendientes} pendientes
-                                    </p>
+                                <div style={{ height: 4, background: '#e2e8f0', borderRadius: 2, marginTop: 4 }}>
+                                    <div style={{ width: `${p.porcentaje}%`, height: '100%', background: '#185FA5', borderRadius: 2 }} />
                                 </div>
                             </div>
                         ))}
-                    </div>
-                </div>
-            </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: '280px 1fr', gap: 16, alignItems: 'start' }}>
-                
-                <div style={ceTheme.surface}>
-                    <p style={ceTheme.surfaceTitle}>Acciones rápidas</p>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 8 }}>
-                        <Link to="/app/importaciones" style={{ fontSize: 13, fontWeight: 500, color: '#185FA5', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 8 }}>
-                            <span style={{ color: '#94a3b8' }}>›</span> Abrir importación académica
-                        </Link>
-                        <Link to="/app/observaciones" style={{ fontSize: 13, fontWeight: 500, color: '#185FA5', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 8 }}>
-                            <span style={{ color: '#94a3b8' }}>›</span> Ver observaciones de captura
-                        </Link>
-                        <Link to="/app/expedientes" style={{ fontSize: 13, fontWeight: 500, color: '#185FA5', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 8 }}>
-                            <span style={{ color: '#94a3b8' }}>›</span> Abrir expediente 360
-                        </Link>
-                    </div>
-                </div>
-
-                <div style={ceTheme.surface}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, gap: 8, flexWrap: 'wrap' }}>
-                        <h2 style={{ fontSize: 14, fontWeight: 600, color: '#0f172a', margin: 0 }}>
-                            Calificaciones del grupo seleccionado
-                        </h2>
-                        
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                            <div style={{ position: 'relative', display: 'inline-block' }}>
-                                <span style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', display: 'flex', alignItems: 'center' }}>
-                                    {CeIcons.search}
+                        <p style={{ fontSize: 12, fontWeight: 600, marginTop: 16 }}>Estado de captura</p>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 8, fontSize: 11 }}>
+                            {[
+                                { k: 'completado', c: '#0F6E56' },
+                                { k: 'en_captura', c: '#185FA5' },
+                                { k: 'pendiente', c: '#BA7517' },
+                                { k: 'en_correccion', c: '#534AB7' },
+                            ].map(({ k, c }) => (
+                                <span key={k} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                                    <span style={{ width: 8, height: 8, borderRadius: '50%', background: c }} />
+                                    {k.replace('_', ' ')}: {dist[k] ?? 0}
                                 </span>
-                                <input
-                                    type="search"
-                                    placeholder="Buscar alumno..."
-                                    value={search}
-                                    onChange={(e) => setSearch(e.target.value)}
-                                    style={{
-                                        height: 36, width: 250,
-                                        paddingLeft: 34, paddingRight: 12,
-                                        border: '1px solid #e2e8f0', borderRadius: 8,
-                                        fontSize: 13, color: '#0f172a', background: 'white',
-                                        outline: 'none',
-                                    }}
-                                />
-                            </div>
-                            <button style={{ height: 36, display: 'inline-flex', alignItems: 'center', gap: 6, padding: '0 10px', border: '1px solid #e2e8f0', borderRadius: 8, background: 'white', fontSize: 13, fontWeight: 500, color: '#64748b', cursor: 'pointer' }}>
-                                <span style={{ display: 'flex', alignItems: 'center', color: '#185FA5' }}>{CeIcons.filter}</span>
-                            </button>
+                            ))}
                         </div>
                     </div>
+                </div>
 
+                <div style={ceTheme.surface}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8, marginBottom: 12 }}>
+                        <h2 style={{ fontSize: 15, fontWeight: 600, margin: 0 }}>Listado por grupos / materias</h2>
+                        <div style={{ display: 'flex', gap: 8 }}>
+                            <input
+                                type="search"
+                                placeholder="Programa, grupo o materia…"
+                                value={filters.search}
+                                onChange={(e) => setFilters({ search: e.target.value })}
+                                style={{ height: 36, width: 220, borderRadius: 8, border: '1px solid #e2e8f0', padding: '0 10px', fontSize: 13 }}
+                            />
+                            <button type="button" onClick={() => setFilters({})} style={{ height: 36, padding: '0 12px', borderRadius: 8, border: '1px solid #e2e8f0', background: 'white', fontSize: 12 }}>
+                                Filtros{filtrosActivos > 0 ? ` (${filtrosActivos})` : ''}
+                            </button>
+                            {filtrosActivos > 0 ? (
+                                <button type="button" onClick={limpiarFiltros} style={{ height: 36, fontSize: 12, color: '#185FA5', border: 'none', background: 'transparent', cursor: 'pointer' }}>Limpiar</button>
+                            ) : null}
+                        </div>
+                    </div>
                     <div style={{ overflowX: 'auto' }}>
-                        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
                             <thead>
-                                <tr>
-                                    {['Alumno', 'Matrícula', 'Materia', 'Calificación', 'Estatus', 'Acciones'].map((h) => (
-                                        <th
-                                            key={h}
-                                            style={{
-                                                padding: '12px 10px',
-                                                textAlign: h === 'Acciones' ? 'center' : 'left',
-                                                fontSize: 12,
-                                                fontWeight: 600,
-                                                color: '#64748b',
-                                                borderBottom: '1px solid #e2e8f0',
-                                                whiteSpace: 'nowrap',
-                                                background: ceColors.pageBg
-                                            }}
-                                        >
-                                            {h !== 'Acciones' ? `${h} ⇅` : h}
-                                        </th>
+                                <tr style={{ background: ceColors.pageBg }}>
+                                    <th style={{ padding: 10 }}><input type="checkbox" checked={selected.length === rows.length && rows.length > 0} onChange={toggleAll} /></th>
+                                    {['Grupo / Materia', 'Programa', 'Avance', 'Estado', 'Última actualización', 'Acciones'].map((h) => (
+                                        <th key={h} style={{ padding: 10, textAlign: h === 'Acciones' ? 'center' : 'left', color: '#64748b', fontSize: 12 }}>{h}</th>
                                     ))}
                                 </tr>
                             </thead>
                             <tbody>
-                                {loading && calificaciones.length === 0 ? (
+                                {loading && rows.length === 0 ? (
+                                    <tr><td colSpan={7} style={{ padding: 32, textAlign: 'center', color: '#64748b' }}>Cargando…</td></tr>
+                                ) : null}
+                                {!loading && rows.length === 0 ? (
                                     <tr>
-                                        <td colSpan={6} style={{ padding: 24, textAlign: 'center', color: '#64748b', fontSize: 13 }}>
-                                            Cargando calificaciones…
+                                        <td colSpan={7} style={{ padding: 32, textAlign: 'center' }}>
+                                            <p style={{ fontWeight: 600 }}>No hay grupos o materias disponibles para captura</p>
+                                            <p style={{ color: '#64748b', fontSize: 13 }}>Verifica que existan cargas académicas activas en el ciclo escolar.</p>
+                                            <Link to="/app/carga-academica" style={{ color: '#185FA5', fontWeight: 600 }}>Ir a carga académica</Link>
                                         </td>
                                     </tr>
                                 ) : null}
-                                {!loading && calificaciones.length === 0 ? (
-                                    <tr>
-                                        <td colSpan={6} style={{ padding: 24, textAlign: 'center', color: '#64748b', fontSize: 13 }}>
-                                            No hay calificaciones en tu alcance con los filtros actuales.
+                                {rows.map((r) => (
+                                    <tr key={r.grupo_materia_key} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                                        <td style={{ padding: 10 }}><input type="checkbox" checked={selected.includes(r.grupo_materia_key)} onChange={() => toggleSelect(r.grupo_materia_key)} /></td>
+                                        <td style={{ padding: 10 }}>
+                                            <p style={{ margin: 0, fontWeight: 600 }}>{r.materia}</p>
+                                            <p style={{ margin: '2px 0 0', fontSize: 11, color: '#64748b' }}>{r.grupo_label} · {r.clave}</p>
                                         </td>
-                                    </tr>
-                                ) : null}
-                                {calificaciones.map((r, i) => (
-                                    <tr
-                                        key={r.matricula + r.materia}
-                                        style={{ borderBottom: '1px solid #f1f5f9', transition: 'background 0.2s' }}
-                                        onMouseEnter={(e) => e.currentTarget.style.background = '#f8fafc'}
-                                        onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
-                                    >
-                                        <td style={{ padding: '14px 10px' }}>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                                                <div
-                                                    style={{
-                                                        ...ceAvatarStyle(i),
-                                                        width: 32, height: 32, borderRadius: '50%',
-                                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                                        fontSize: 11, fontWeight: 700, flexShrink: 0,
-                                                    }}
-                                                >
-                                                    {ceInitials(r.alumno)}
+                                        <td style={{ padding: 10 }}>{sanitizeInstitutionalLabel(r.programa)}</td>
+                                        <td style={{ padding: 10 }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                                <div style={{ flex: 1, height: 4, background: '#e2e8f0', borderRadius: 2 }}>
+                                                    <div style={{ width: `${r.avance_pct}%`, height: '100%', background: '#185FA5', borderRadius: 2 }} />
                                                 </div>
-                                                <div>
-                                                    <p style={{ fontSize: 13, fontWeight: 600, color: '#0f172a', margin: 0 }}>{r.alumno}</p>
-                                                </div>
+                                                <span style={{ fontSize: 12, fontWeight: 600 }}>{r.avance_pct}%</span>
                                             </div>
+                                            <span style={{ fontSize: 10, color: '#64748b' }}>{r.calificaciones_capturadas}/{r.alumnos_esperados}</span>
                                         </td>
-                                        <td style={{ padding: '14px 10px', fontSize: 13, color: '#64748b', fontWeight: 500 }}>{r.matricula}</td>
-                                        <td style={{ padding: '14px 10px', fontSize: 13, color: '#475569' }}>{r.materia}</td>
-                                        <td style={{ padding: '14px 10px', fontSize: 14, fontWeight: 700, color: r.calif === '—' || r.calif === '-' ? '#94a3b8' : '#0f172a' }}>
-                                            {r.calif}
-                                        </td>
-                                        <td style={{ padding: '14px 10px' }}>
-                                            <CeStatusBadge>{r.estatus}</CeStatusBadge>
-                                        </td>
-                                        <td style={{ padding: '14px 10px' }}>
-                                            <div style={{ display: 'flex', gap: 6, alignItems: 'center', justifyContent: 'center' }}>
-                                                <div title="Ver detalles" style={{ width: 28, height: 28, borderRadius: 6, border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#185FA5', background: '#EFF6FF', cursor: 'pointer', flexShrink: 0 }}>
-                                                    {CeIcons.eye}
-                                                </div>
-                                                <div title="Editar calificación" style={{ width: 28, height: 28, borderRadius: 6, border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#185FA5', background: '#F8FAFC', cursor: 'pointer', flexShrink: 0 }}>
-                                                    {CeIcons.pencil}
-                                                </div>
+                                        <td style={{ padding: 10 }}><CalificacionStatusBadge estatus={r.estatus} label={r.estatus_label} /></td>
+                                        <td style={{ padding: 10, fontSize: 11, color: '#64748b' }}>{formatDateTime(r.ultima_actualizacion)}</td>
+                                        <td style={{ padding: 10 }}>
+                                            <div style={{ display: 'flex', gap: 4, justifyContent: 'center', flexWrap: 'wrap' }}>
+                                                {canCal('capturar') ? (
+                                                    <button type="button" title="Capturar" onClick={() => abrirCaptura(r.grupo_materia_key)} style={{ width: 28, height: 28, borderRadius: 6, border: '1px solid #e2e8f0', background: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{CeIcons.pencil}</button>
+                                                ) : null}
+                                                {canCal('importar') ? (
+                                                    <button type="button" title="Importar" onClick={() => { setGrupoActivo(r.grupo_materia_key); setModalImportar(true); }} style={{ width: 28, height: 28, borderRadius: 6, border: '1px solid #e2e8f0', background: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{CeIcons.upload}</button>
+                                                ) : null}
+                                                {canCal('historial') ? (
+                                                    <button type="button" title="Historial" onClick={() => { setGrupoActivo(r.grupo_materia_key); setModalHistorial(true); }} style={{ width: 28, height: 28, borderRadius: 6, border: '1px solid #e2e8f0', background: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{CeIcons.history}</button>
+                                                ) : null}
+                                                {canCal('exportar') ? (
+                                                    <button type="button" title="Exportar" onClick={() => controlEscolarApi.calificacionesExportarGrupo(r.grupo_materia_key)} style={{ width: 28, height: 28, borderRadius: 6, border: '1px solid #e2e8f0', background: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{CeIcons.download}</button>
+                                                ) : null}
                                             </div>
                                         </td>
                                     </tr>
@@ -305,50 +276,63 @@ export function CalificacionesCePage() {
                             </tbody>
                         </table>
                     </div>
-
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 16, paddingTop: 16, borderTop: '1px solid #f1f5f9', flexWrap: 'wrap', gap: 8 }}>
-                        <span style={{ fontSize: 12, color: '#64748b' }}>
-                            {meta.from && meta.to
-                                ? `Mostrando ${meta.from} a ${meta.to} de ${formatCeNum(meta.total)} registros`
-                                : `Total: ${formatCeNum(meta.total ?? 0)} registros`}
-                        </span>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 12, fontSize: 12, color: '#64748b' }}>
+                        <span>{meta.from && meta.to ? `Mostrando ${meta.from} a ${meta.to} de ${formatCeNum(meta.total)} resultados` : ''}</span>
                         <div style={{ display: 'flex', gap: 6 }}>
-                            <button
-                                type="button"
-                                disabled={page <= 1 || loading}
-                                onClick={() => setPage((p) => Math.max(1, p - 1))}
-                                style={{
-                                    minWidth: 32, height: 32, padding: '0 8px', borderRadius: 6,
-                                    border: '1px solid #e2e8f0', background: 'white', color: '#475569',
-                                    fontSize: 13, cursor: page <= 1 ? 'not-allowed' : 'pointer', opacity: page <= 1 ? 0.5 : 1,
-                                }}
-                            >
-                                &lt;
-                            </button>
-                            <span style={{ minWidth: 32, height: 32, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', borderRadius: 6, background: '#185FA5', color: 'white', fontSize: 13, padding: '0 8px' }}>
-                                {meta.current_page ?? page}
-                            </span>
-                            <button
-                                type="button"
-                                disabled={loading || (meta.last_page ?? 1) <= page}
-                                onClick={() => setPage((p) => p + 1)}
-                                style={{
-                                    minWidth: 32, height: 32, padding: '0 8px', borderRadius: 6,
-                                    border: '1px solid #e2e8f0', background: 'white', color: '#475569',
-                                    fontSize: 13, cursor: (meta.last_page ?? 1) <= page ? 'not-allowed' : 'pointer', opacity: (meta.last_page ?? 1) <= page ? 0.5 : 1,
-                                }}
-                            >
-                                &gt;
-                            </button>
+                            <button type="button" disabled={Number(filters.page) <= 1 || loading} onClick={() => setFilters({ page: String(Math.max(1, Number(filters.page) - 1)) }, { resetPage: false })}>&lt;</button>
+                            <span>{meta.current_page ?? filters.page}</span>
+                            <button type="button" disabled={loading || (meta.last_page ?? 1) <= Number(filters.page)} onClick={() => setFilters({ page: String(Number(filters.page) + 1) }, { resetPage: false })}>&gt;</button>
                         </div>
                     </div>
                 </div>
 
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                    <div style={ceTheme.surface}>
+                        <p style={ceTheme.surfaceTitle}>Acciones rápidas</p>
+                        {[
+                            { label: 'Capturar calificación', fn: () => abrirCaptura(selected[0]), perm: 'capturar' },
+                            { label: 'Importar calificaciones', fn: () => { setGrupoActivo(selected[0]); setModalImportar(true); }, perm: 'importar' },
+                            { label: 'Solicitar corrección', fn: () => setModalCorreccion(true), perm: 'correccion' },
+                            { label: 'Ver historial', fn: () => { setGrupoActivo(selected[0]); setModalHistorial(true); }, perm: 'historial' },
+                        ].map((a) => canCal(a.perm) ? (
+                            <button key={a.label} type="button" onClick={a.fn} style={{ display: 'block', width: '100%', textAlign: 'left', padding: '10px 0', border: 'none', borderBottom: '1px solid #f1f5f9', background: 'transparent', cursor: 'pointer', fontSize: 13, color: '#185FA5', fontWeight: 500 }}>
+                                › {a.label}
+                            </button>
+                        ) : null)}
+                    </div>
+                    <div style={ceTheme.surface}>
+                        <p style={ceTheme.surfaceTitle}>Pendientes de atención</p>
+                        {pendientes ? (
+                            <ul style={{ listStyle: 'none', padding: 0, margin: 0, fontSize: 13 }}>
+                                <li><button type="button" onClick={() => setFilters({ con_correcciones: '1' })} style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: '#185FA5' }}>{pendientes.grupos_con_correcciones_pendientes} grupos con correcciones</button></li>
+                                <li><button type="button" onClick={() => setFilters({ con_pendientes: '1' })} style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: '#185FA5' }}>{pendientes.grupos_pendientes_captura} grupos pendientes de captura</button></li>
+                                <li>{pendientes.grupos_por_cerrar_periodo} grupos por cerrar periodo</li>
+                            </ul>
+                        ) : <p style={{ fontSize: 12, color: '#64748b' }}>—</p>}
+                    </div>
+                    <div style={ceTheme.surface}>
+                        <p style={ceTheme.surfaceTitle}>Próximas fechas importantes</p>
+                        {fechas.length === 0 ? <p style={{ fontSize: 12, color: '#64748b' }}>Sin fechas configuradas.</p> : fechas.map((f) => (
+                            <div key={f.id} style={{ display: 'flex', gap: 12, padding: '10px 0', borderBottom: '1px solid #f1f5f9' }}>
+                                <div style={{ textAlign: 'center', minWidth: 36 }}>
+                                    <div style={{ fontWeight: 700, fontSize: 18 }}>{f.dia}</div>
+                                    <div style={{ fontSize: 10, color: '#64748b', textTransform: 'capitalize' }}>{f.mes}</div>
+                                </div>
+                                <div>
+                                    <p style={{ margin: 0, fontSize: 13, fontWeight: 600 }}>{f.titulo}</p>
+                                    <p style={{ margin: '2px 0 0', fontSize: 11, color: '#64748b' }}>{f.descripcion}</p>
+                                    <CalificacionStatusBadge estatus={f.estado === 'proximo' ? 'en_captura' : f.estado} label={f.estado} />
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
             </div>
 
-            <p style={{ marginTop: 32, textAlign: 'center', fontSize: 12, color: '#94a3b8' }}>
-                © 2025 SICES v2 – Control Escolar de Escuela. Todos los derechos reservados. &nbsp;&nbsp; Versión 2.0.0
-            </p>
+            <CalificacionCapturaModal open={modalCaptura} grupoKey={grupoActivo} onClose={() => setModalCaptura(false)} onSuccess={() => { setAviso('Calificaciones guardadas.'); void recargar(); }} ventanaAbierta={ventanaAbierta} />
+            <ImportarCalificacionesModal open={modalImportar} grupoKey={grupoActivo} onClose={() => setModalImportar(false)} onSuccess={() => { setAviso('Importación completada.'); void recargar(); }} ventanaAbierta={ventanaAbierta} />
+            <CalificacionesHistorialModal open={modalHistorial} grupoKey={grupoActivo} onClose={() => setModalHistorial(false)} />
+            <SolicitarCorreccionModal open={modalCorreccion} materiaCursadaId={correccionId} onClose={() => setModalCorreccion(false)} onSuccess={() => { setAviso('Solicitud registrada.'); void recargar(); }} />
         </div>
     );
 }

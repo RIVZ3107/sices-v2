@@ -1,382 +1,272 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { controlEscolarApi } from '../../api/controlEscolar';
 import {
+    CeHeaderAction,
     CeIcons,
-    CeMetricCard,
-    CePriorityBadge,
-    CeQuickAction,
-    CeStatusBadge,
-    ceAvatarStyle,
-    ceColors,
-    ceInitials,
+    CePageHeader,
     ceTheme,
     formatCeActualizado,
     formatCeNum,
 } from '../../components/controlEscolar';
+import { AlumnoKpiCard, AlumnoKpiSkeleton } from './alumnos/AlumnoKpiCard';
+import { ErrorStateAlert } from './alumnos/ErrorStateAlert';
+import { ReinscripcionProgressBar } from './reinscripciones/ReinscripcionProgressBar';
+import { ReinscripcionStatusBadge } from './reinscripciones/ReinscripcionStatusBadge';
+import { DesbloquearReinscripcionModal, ObservarReinscripcionModal, ReinscribirAlumnoModal } from './reinscripciones/ReinscripcionesModals';
+import { canRei } from './reinscripciones/reinscripcionesPermissions';
+import { useReinscripciones } from './reinscripciones/useReinscripciones';
+import { sanitizeInstitutionalLabel } from '../../utils/uxInstitucional';
 
 export function ReinscripcionesCePage() {
-    const [search, setSearch] = useState('');
-    const [page, setPage] = useState(1);
-    const [perPage, setPerPage] = useState(10);
-    const [payload, setPayload] = useState(null);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState('');
+    const [modalReinscribir, setModalReinscribir] = useState(false);
+    const [modalDesbloquear, setModalDesbloquear] = useState(false);
+    const [modalObservar, setModalObservar] = useState(false);
+    const [exporting, setExporting] = useState(false);
+    const [filtrosAbiertos, setFiltrosAbiertos] = useState(false);
+    const [aviso, setAviso] = useState('');
 
-    const cargar = useCallback(async () => {
-        setLoading(true);
-        setError('');
+    const {
+        loading, error, technicalDetail, filters, setFilters, limpiarFiltros, recargar,
+        selected, toggleSelect, toggleAll, metricas, catalogos, rows, meta, motivos, flujo, regla, actualizadoEn, apiOk,
+    } = useReinscripciones();
+
+    const ids = useMemo(() => rows.map((r) => r.reinscripcion_id), [rows]);
+
+    const filtrosActivos = useMemo(() => {
+        let n = 0;
+        if (filters.search?.trim()) n++;
+        if (filters.estatus || filters.periodo_id || filters.programa_id || filters.motivo_bloqueo) n++;
+        if (filters.con_observaciones || filters.con_adeudos || filters.fecha_desde) n++;
+        return n;
+    }, [filters]);
+
+    const kpi = (n) => (apiOk && metricas ? formatCeNum(n ?? 0) : '—');
+
+    const exportar = async () => {
+        if (!canRei('exportar')) return;
+        setExporting(true);
         try {
-            const res = await controlEscolarApi.reinscripciones({
-                search: search.trim() || undefined,
-                page,
-                per_page: perPage,
-            });
-            setPayload(res?.data ?? null);
-        } catch (err) {
-            setPayload(null);
-            setError(err?.message ?? 'No se pudo cargar la gestión de reinscripciones.');
+            const p = { ...filters };
+            delete p.page;
+            await controlEscolarApi.reinscripcionesExportar(p);
         } finally {
-            setLoading(false);
+            setExporting(false);
         }
-    }, [search, page, perPage]);
+    };
 
-    useEffect(() => {
-        const t = setTimeout(() => void cargar(), search.trim() ? 350 : 0);
-        return () => clearTimeout(t);
-    }, [cargar]);
+    const abrirDesbloquear = () => {
+        if (!selected.length) {
+            setAviso('Selecciona al menos una reinscripción para desbloquear.');
+            return;
+        }
+        setAviso('');
+        setModalDesbloquear(true);
+    };
 
-    const metricas = payload?.metricas ?? {};
-    const rows = payload?.listado?.data ?? [];
-    const meta = payload?.listado?.meta ?? {};
-    const motivosBloqueo = payload?.motivos_bloqueo ?? [];
-    const reglaContinuidad = payload?.regla_continuidad ?? '';
+    const abrirFicha = async (id) => {
+        if (!canRei('ficha')) return;
+        try {
+            await controlEscolarApi.reinscripcionesFicha(id);
+        } catch {
+            setAviso('No se pudo generar la ficha.');
+        }
+    };
 
-        return (
-        <div style={{ ...ceTheme.pageShell }}>
+    return (
+        <div style={ceTheme.pageShell}>
+            <CePageHeader
+                breadcrumbCurrent="Reinscripciones"
+                title="Gestión de reinscripciones"
+                subtitle="Administra el proceso de reinscripción de alumnos con matrícula activa y continuidad académica."
+                updatedAt={(
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                        Última actualización: {loading && !actualizadoEn ? '…' : formatCeActualizado(actualizadoEn)}
+                        <button type="button" onClick={() => void recargar()} style={{ border: 'none', background: 'transparent', color: '#185FA5', cursor: 'pointer', fontSize: 12, fontWeight: 600 }}>
+                            {CeIcons.refreshCw} Actualizar
+                        </button>
+                    </span>
+                )}
+                actions={(
+                    <>
+                        {canRei('crear') ? <CeHeaderAction variant="primary" icon={CeIcons.refreshCw} label="Reinscribir alumno" onClick={() => setModalReinscribir(true)} /> : null}
+                        {canRei('desbloquear') ? <CeHeaderAction variant="secondary" icon={CeIcons.lock} label="Desbloquear" onClick={abrirDesbloquear} /> : null}
+                        {canRei('ficha') ? <CeHeaderAction variant="secondary" icon={CeIcons.file} label="Generar ficha" onClick={() => selected[0] ? void abrirFicha(selected[0]) : setAviso('Selecciona una reinscripción para generar ficha.') } /> : null}
+                        {canRei('exportar') ? <CeHeaderAction variant="secondary" icon={CeIcons.download} label={exporting ? 'Exportando…' : 'Exportar'} onClick={() => void exportar()} /> : null}
+                    </>
+                )}
+            />
 
-            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 24, flexWrap: 'wrap', gap: 16 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <h1 style={{ fontSize: 24, fontWeight: 700, color: '#0f172a', margin: 0 }}>Gestión de reinscripciones</h1>
-                    {CeIcons.shieldCheck}
+            <ErrorStateAlert error={error} technicalDetail={technicalDetail} onRetry={recargar} />
+
+            {aviso ? (
+                <div style={{ marginBottom: 12, padding: '10px 14px', borderRadius: 8, background: '#EFF6FF', color: '#1E40AF', fontSize: 13, display: 'flex', justifyContent: 'space-between' }}>
+                    <span>{aviso}</span>
+                    <button type="button" onClick={() => setAviso('')} style={{ border: 'none', background: 'transparent', cursor: 'pointer' }}>×</button>
                 </div>
-
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 12 }}>
-                    <p style={{ fontSize: 11, color: '#94a3b8', margin: 0 }}>
-                        Actualizado: {loading && !payload ? '…' : formatCeActualizado(payload?.actualizado_en)}
-                    </p>
-                </div>
-            </div>
-
-            <div style={{ display: 'flex', gap: 12, marginBottom: 24, flexWrap: 'wrap', justifyContent: 'space-between' }}>
-                <div style={{ display: 'flex', gap: 12 }}>
-                    {[
-                        { to: '/app/control-escolar/reinscripciones', label: 'Reinscribir alumno', icon: CeIcons.refreshCw, color: '#0F6E56' },
-                        { to: '/app/control-escolar/reinscripciones', label: 'Desbloquear', icon: CeIcons.lock, color: '#BA7517' },
-                        { to: '/app/control-escolar/reinscripciones', label: 'Generar ficha', icon: CeIcons.file, color: '#534AB7' },
-                        { to: '/app/control-escolar/reinscripciones?filtros=1', label: 'Filtros', icon: CeIcons.filter, color: '#64748b' },
-                    ].map(({ to, label, icon, color }) => (
-                        <Link
-                            key={label}
-                            to={to}
-                            style={{
-                                display: 'inline-flex', alignItems: 'center', gap: 8,
-                                height: 38, padding: '0 16px', borderRadius: 8,
-                                background: 'white',
-                                border: '1px solid #e2e8f0',
-                                fontSize: 13, fontWeight: 500, textDecoration: 'none',
-                            }}
-                        >
-                            <span style={{ color: color, display: 'flex', alignItems: 'center' }}>{icon}</span>
-                            <span style={{ color: '#0f172a' }}>{label}</span>
-                        </Link>
-                    ))}
-                </div>
-                <Link
-                    to="/app/control-escolar/reportes"
-                    style={{
-                        display: 'inline-flex', alignItems: 'center', gap: 8,
-                        height: 38, padding: '0 16px', borderRadius: 8,
-                        background: 'white', border: '1px solid #e2e8f0',
-                        fontSize: 13, fontWeight: 500, textDecoration: 'none', color: '#0f172a'
-                    }}
-                >
-                    <span style={{ color: '#64748b', display: 'flex' }}>{CeIcons.download}</span> Exportar
-                </Link>
-            </div>
-
-            <div style={{ display: 'flex', gap: 16, marginBottom: 24, flexWrap: 'wrap' }}>
-                <CeMetricCard icon={CeIcons.refreshCw} iconBg="#DBEAFE" iconColor="#185FA5" title="Reinscripciones en proceso" value={formatCeNum(metricas.en_proceso)} trend={`${formatCeNum(metricas.total_alcance)} en tu alcance`} trendUp={false} />
-                <CeMetricCard icon={CeIcons.lock} iconBg="#FEF3C7" iconColor="#BA7517" title="Bloqueadas" value={formatCeNum(metricas.bloqueadas)} trend="Seguimiento académico" trendUp={true} />
-                <CeMetricCard icon={CeIcons.school} iconBg="#DCFCE7" iconColor="#0F6E56" title="Completadas" value={formatCeNum(metricas.completadas)} trend="Continuidad confirmada" trendUp={true} />
-                <CeMetricCard icon={CeIcons.alertTriangle} iconBg="#EEEDFE" iconColor="#534AB7" title="Adeudos detectados" value={formatCeNum(metricas.adeudos)} trend="Solo bloqueos académicos" trendUp={false} />
-            </div>
-
-            {error ? (
-                <p style={{ marginBottom: 16, padding: '12px 16px', borderRadius: 8, background: '#FEE2E2', color: '#991B1B', fontSize: 13 }}>
-                    {error}
-                </p>
             ) : null}
 
-            {reglaContinuidad ? (
-                <p style={{ margin: '0 0 16px', fontSize: 12, color: '#64748b', lineHeight: 1.5 }}>
-                    {reglaContinuidad}
-                </p>
+            {regla ? (
+                <div style={{ marginBottom: 16, padding: '12px 16px', borderRadius: 8, background: '#EFF6FF', border: '1px solid #BFDBFE', fontSize: 13, color: '#1E40AF', display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+                    {CeIcons.infoCircle}
+                    <span>{regla}</span>
+                </div>
             ) : null}
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: 16, alignItems: 'start' }}>
+            <div style={{ display: 'flex', gap: 16, marginBottom: 20, flexWrap: 'wrap' }}>
+                {loading && !metricas ? (
+                    <>
+                        <AlumnoKpiSkeleton />
+                        <AlumnoKpiSkeleton />
+                        <AlumnoKpiSkeleton />
+                        <AlumnoKpiSkeleton />
+                    </>
+                ) : (
+                    <>
+                        <AlumnoKpiCard icon={CeIcons.refreshCw} iconBg="#DBEAFE" iconColor="#185FA5" title="Reinscripciones en proceso" value={kpi(metricas?.en_proceso)} trend={apiOk ? `${kpi(metricas?.total_en_alcance)} en tu alcance` : undefined} onClick={() => setFilters({ estatus: 'en_proceso' })} active={filters.estatus === 'en_proceso'} />
+                        <AlumnoKpiCard icon={CeIcons.lock} iconBg="#FEF3C7" iconColor="#BA7517" title="Bloqueadas" value={kpi(metricas?.bloqueadas)} onClick={() => setFilters({ estatus: 'bloqueada' })} active={filters.estatus === 'bloqueada'} />
+                        <AlumnoKpiCard icon={CeIcons.checkCircle} iconBg="#DCFCE7" iconColor="#0F6E56" title="Completadas" value={kpi(metricas?.completadas)} onClick={() => setFilters({ estatus: 'completada' })} active={filters.estatus === 'completada'} />
+                        <AlumnoKpiCard icon={CeIcons.alertTriangle} iconBg="#EEEDFE" iconColor="#534AB7" title="Adeudos detectados" value={kpi(metricas?.adeudos)} onClick={() => setFilters({ con_adeudos: '1' })} active={filters.con_adeudos === '1'} />
+                    </>
+                )}
+            </div>
 
+            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(260px, 320px)', gap: 16, alignItems: 'start' }}>
                 <div style={ceTheme.surface}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, gap: 8, flexWrap: 'wrap' }}>
-                        <h2 style={{ fontSize: 14, fontWeight: 600, color: '#0f172a', margin: 0 }}>
-                            Lista de reinscripciones <span style={{ color: '#94a3b8', fontSize: 12, fontWeight: 400 }}>ⓘ</span>
-                        </h2>
-                        
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                            <div style={{ position: 'relative', display: 'inline-block' }}>
-                                <span style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', display: 'flex', alignItems: 'center' }}>
-                                    {CeIcons.search}
-                                </span>
-                                <input
-                                    type="search"
-                                    value={search}
-                                    onChange={(e) => {
-                                        setSearch(e.target.value);
-                                        setPage(1);
-                                    }}
-                                    placeholder="Buscar por alumno, folio o periodo..."
-                                    style={{
-                                        height: 36, width: 280,
-                                        paddingLeft: 34, paddingRight: 12,
-                                        border: '1px solid #e2e8f0', borderRadius: 8,
-                                        fontSize: 13, color: '#0f172a', background: 'white',
-                                        outline: 'none',
-                                    }}
-                                />
-                            </div>
-                            <select
-                                value={perPage}
-                                onChange={(e) => {
-                                    setPerPage(Number(e.target.value));
-                                    setPage(1);
-                                }}
-                                style={{ height: 36, border: '1px solid #e2e8f0', borderRadius: 8, padding: '0 10px', fontSize: 13, background: 'white', color: '#0f172a', outline: 'none' }}
-                            >
-                                <option value={10}>10</option>
-                                <option value={25}>25</option>
-                                <option value={50}>50</option>
-                            </select>
+                    {selected.length > 0 ? (
+                        <div style={{ display: 'flex', gap: 8, marginBottom: 12, flexWrap: 'wrap', alignItems: 'center', padding: 10, background: '#EFF6FF', borderRadius: 8 }}>
+                            <span style={{ fontSize: 13, fontWeight: 600 }}>{selected.length} seleccionados</span>
+                            {canRei('desbloquear') ? <button type="button" onClick={abrirDesbloquear} style={{ height: 32, padding: '0 12px', borderRadius: 6, border: '1px solid #e2e8f0', background: '#fff', cursor: 'pointer' }}>Desbloquear</button> : null}
+                            {canRei('ficha') ? <button type="button" onClick={() => void abrirFicha(selected[0])} style={{ height: 32, padding: '0 12px', borderRadius: 6, border: '1px solid #e2e8f0', background: '#fff', cursor: 'pointer' }}>Generar ficha</button> : null}
                         </div>
+                    ) : null}
+
+                    <div style={{ display: 'flex', gap: 8, marginBottom: 12, flexWrap: 'wrap' }}>
+                        <input type="search" value={filters.search || ''} onChange={(e) => setFilters({ search: e.target.value })} placeholder="Buscar por alumno, matrícula, CURP o folio…" style={{ flex: 1, minWidth: 200, height: 36, borderRadius: 8, border: '1px solid #e2e8f0', padding: '0 12px', fontSize: 13 }} />
+                        <button type="button" onClick={() => setFiltrosAbiertos((v) => !v)} style={{ height: 36, padding: '0 12px', borderRadius: 8, border: '1px solid #e2e8f0', background: '#fff', cursor: 'pointer' }}>
+                            Filtros {filtrosActivos > 0 ? `(${filtrosActivos})` : ''}
+                        </button>
+                        <button type="button" onClick={limpiarFiltros} style={{ height: 36, padding: '0 12px', border: 'none', background: 'transparent', color: '#185FA5', cursor: 'pointer' }}>Limpiar</button>
                     </div>
 
-                    <div style={{ overflowX: 'auto' }}>
-                        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                            <thead>
-                                <tr>
-                                    {['Folio', 'Alumno', 'Periodo', 'Motivo Bloqueo', 'Estatus', 'Acciones'].map((h) => (
-                                        <th
-                                            key={h}
-                                            style={{
-                                                padding: '12px 10px',
-                                                textAlign: h === 'Acciones' ? 'center' : 'left',
-                                                fontSize: 12,
-                                                fontWeight: 600,
-                                                color: '#64748b',
-                                                borderBottom: '1px solid #e2e8f0',
-                                                whiteSpace: 'nowrap',
-                                                background: ceColors.pageBg
-                                            }}
-                                        >
-                                            {h !== 'Acciones' ? `${h} ⇅` : h}
-                                        </th>
+                    {filtrosAbiertos ? (
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 8, marginBottom: 12, padding: 12, background: '#f8fafc', borderRadius: 8 }}>
+                            <select value={filters.estatus || ''} onChange={(e) => setFilters({ estatus: e.target.value })}>
+                                {(catalogos.estatus ?? []).map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+                            </select>
+                            <select value={filters.motivo_bloqueo || ''} onChange={(e) => setFilters({ motivo_bloqueo: e.target.value })}>
+                                <option value="">Motivo bloqueo</option>
+                                {(catalogos.motivos_bloqueo ?? []).map((m) => <option key={m.value} value={m.value}>{m.label}</option>)}
+                            </select>
+                            <select value={filters.programa_id || ''} onChange={(e) => setFilters({ programa_id: e.target.value })}>
+                                <option value="">Programa</option>
+                                {(catalogos.programas ?? []).map((p) => <option key={p.id} value={p.id}>{p.nombre}</option>)}
+                            </select>
+                            <button type="button" onClick={() => void recargar()} style={{ height: 34, border: 'none', borderRadius: 8, background: '#185FA5', color: '#fff', fontWeight: 600, cursor: 'pointer' }}>Aplicar filtros</button>
+                        </div>
+                    ) : null}
+
+                    {!loading && apiOk && rows.length === 0 ? (
+                        <div style={{ textAlign: 'center', padding: 48 }}>
+                            <p style={{ fontWeight: 700 }}>Aún no hay reinscripciones registradas</p>
+                            <p style={{ fontSize: 13, color: '#64748b' }}>Comienza iniciando una reinscripción para un alumno con matrícula activa.</p>
+                            <div style={{ display: 'flex', gap: 8, justifyContent: 'center', marginTop: 16 }}>
+                                {canRei('crear') ? <button type="button" onClick={() => setModalReinscribir(true)} style={{ height: 38, padding: '0 16px', borderRadius: 8, background: '#185FA5', color: '#fff', border: 'none', fontWeight: 600, cursor: 'pointer' }}>Reinscribir primer alumno</button> : null}
+                                <Link to="/app/control-escolar/alumnos" style={{ height: 38, padding: '0 16px', borderRadius: 8, background: '#fff', border: '1px solid #e2e8f0', display: 'inline-flex', alignItems: 'center', textDecoration: 'none', color: '#0f172a' }}>Ver alumnos elegibles</Link>
+                            </div>
+                        </div>
+                    ) : (
+                        <div style={{ overflowX: 'auto' }}>
+                            <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 1000 }}>
+                                <thead>
+                                    <tr style={{ borderBottom: '1px solid #e2e8f0', fontSize: 11, color: '#64748b' }}>
+                                        <th style={{ padding: 8 }}><input type="checkbox" checked={selected.length === rows.length && rows.length > 0} onChange={() => toggleAll(ids)} /></th>
+                                        <th style={{ textAlign: 'left', padding: 8 }}>Folio</th>
+                                        <th style={{ textAlign: 'left', padding: 8 }}>Alumno</th>
+                                        <th style={{ padding: 8 }}>Periodo</th>
+                                        <th style={{ padding: 8 }}>Motivo</th>
+                                        <th style={{ padding: 8 }}>Avance</th>
+                                        <th style={{ padding: 8 }}>Estatus</th>
+                                        <th style={{ padding: 8 }}>Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {loading && !rows.length ? (
+                                        <tr><td colSpan={8} style={{ padding: 24, textAlign: 'center' }}>Cargando…</td></tr>
+                                    ) : rows.map((r) => (
+                                        <tr key={r.reinscripcion_id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                                            <td style={{ padding: 8 }}><input type="checkbox" checked={selected.includes(r.reinscripcion_id)} onChange={() => toggleSelect(r.reinscripcion_id)} /></td>
+                                            <td style={{ padding: 8, fontWeight: 600, color: '#185FA5' }}>{r.folio}</td>
+                                            <td style={{ padding: 8 }}>
+                                                <div style={{ fontWeight: 600, fontSize: 13 }}>{sanitizeInstitutionalLabel(r.alumno)}</div>
+                                                <div style={{ fontSize: 11, color: '#64748b' }}>{r.matricula}</div>
+                                            </td>
+                                            <td style={{ padding: 8, fontSize: 12 }}>{sanitizeInstitutionalLabel(r.periodo)}</td>
+                                            <td style={{ padding: 8, fontSize: 12 }}>{r.motivo_bloqueo}</td>
+                                            <td style={{ padding: 8 }}><ReinscripcionProgressBar avance={r.avance} /></td>
+                                            <td style={{ padding: 8 }}><ReinscripcionStatusBadge estatus={r.estatus} /></td>
+                                            <td style={{ padding: 8 }}>
+                                                <div style={{ display: 'flex', gap: 4, justifyContent: 'center' }}>
+                                                    {canRei('desbloquear') && r.puede_desbloquear ? <button type="button" title="Desbloquear" onClick={() => { setSelected([r.reinscripcion_id]); setModalDesbloquear(true); }} style={{ width: 28, height: 28, border: '1px solid #e2e8f0', borderRadius: 6, background: '#fff', cursor: 'pointer' }}>{CeIcons.lock}</button> : null}
+                                                    {canRei('ficha') && r.puede_ficha ? <button type="button" title="Generar ficha" onClick={() => void abrirFicha(r.reinscripcion_id)} style={{ width: 28, height: 28, border: '1px solid #e2e8f0', borderRadius: 6, background: '#fff', cursor: 'pointer' }}>{CeIcons.file}</button> : null}
+                                                    {canRei('expediente') ? <Link to={r.urls?.expediente} title="Expediente" style={{ width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #e2e8f0', borderRadius: 6 }}>{CeIcons.folder}</Link> : null}
+                                                    {canRei('trayectoria') ? <Link to={r.urls?.trayectoria} title="Trayectoria" style={{ width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #e2e8f0', borderRadius: 6 }}>{CeIcons.graduationCap}</Link> : null}
+                                                </div>
+                                            </td>
+                                        </tr>
                                     ))}
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {loading && rows.length === 0 ? (
-                                    <tr>
-                                        <td colSpan={6} style={{ padding: 24, textAlign: 'center', color: '#64748b', fontSize: 13 }}>
-                                            Cargando reinscripciones…
-                                        </td>
-                                    </tr>
-                                ) : !loading && rows.length === 0 ? (
-                                    <tr>
-                                        <td colSpan={6} style={{ padding: 24, textAlign: 'center', color: '#64748b', fontSize: 13 }}>
-                                            No hay reinscripciones en tu alcance con los filtros actuales.
-                                        </td>
-                                    </tr>
-                                ) : rows.map((r, i) => {
-                                    const expedienteUrl = r.expediente_url ?? `/app/alumnos/${r.alumno_id}/expediente`;
-                                    return (
-                                    <tr
-                                        key={r.folio ?? r.reinscripcion_id ?? i}
-                                        style={{ borderBottom: '1px solid #f1f5f9', transition: 'background 0.2s' }}
-                                        onMouseEnter={(e) => e.currentTarget.style.background = '#f8fafc'}
-                                        onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
-                                    >
-                                        <td style={{ padding: '14px 10px', fontSize: 13, color: '#64748b', fontWeight: 500 }}>
-                                            {r.folio}
-                                        </td>
-                                        <td style={{ padding: '14px 10px' }}>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                                                <div
-                                                    style={{
-                                                        ...ceAvatarStyle(i),
-                                                        width: 32, height: 32, borderRadius: '50%',
-                                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                                        fontSize: 11, fontWeight: 700, flexShrink: 0,
-                                                    }}
-                                                >
-                                                    {ceInitials(r.alumno)}
-                                                </div>
-                                                <div>
-                                                    <p style={{ fontSize: 13, fontWeight: 600, color: '#0f172a', margin: 0 }}>{r.alumno}</p>
-                                                    <p style={{ fontSize: 11, color: '#64748b', margin: '2px 0 0 0' }}>{r.matricula}</p>
-                                                </div>
-                                            </div>
-                                        </td>
-                                        <td style={{ padding: '14px 10px', fontSize: 13, color: '#475569' }}>{r.periodo}</td>
-                                        <td style={{ padding: '14px 10px', fontSize: 13, color: '#64748b' }}>{r.motivo === '—' ? 'Ninguno' : r.motivo}</td>
-                                        <td style={{ padding: '14px 10px' }}>
-                                            <CeStatusBadge>{r.estatus}</CeStatusBadge>
-                                        </td>
-                                        <td style={{ padding: '14px 10px' }}>
-                                            <div style={{ display: 'flex', gap: 6, alignItems: 'center', justifyContent: 'center' }}>
-                                                {[
-                                                    { icon: CeIcons.eye, title: 'Revisar', color: '#185FA5', bg: '#EFF6FF' },
-                                                    { icon: CeIcons.refreshCw, title: 'Reinscribir', color: '#0F6E56', bg: '#DCFCE7' },
-                                                    { icon: CeIcons.lock, title: 'Desbloquear', color: '#BA7517', bg: '#FEF3C7' },
-                                                    { icon: CeIcons.file, title: 'Imprimir', color: '#534AB7', bg: '#F5F3FF' },
-                                                    { icon: CeIcons.folder, title: 'Expediente', color: '#185FA5', bg: '#F8FAFC', link: expedienteUrl }
-                                                ].map((btn, idx) => (
-                                                    btn.link ? (
-                                                        <Link
-                                                            key={idx}
-                                                            to={btn.link}
-                                                            title={btn.title}
-                                                            style={{
-                                                                width: 28, height: 28, borderRadius: 6, border: '1px solid #e2e8f0',
-                                                                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                                                color: btn.color, background: btn.bg, cursor: 'pointer', flexShrink: 0,
-                                                                textDecoration: 'none',
-                                                            }}
-                                                        >
-                                                            {btn.icon}
-                                                        </Link>
-                                                    ) : (
-                                                    <div
-                                                        key={idx}
-                                                        title={btn.title}
-                                                        style={{
-                                                            width: 28, height: 28, borderRadius: 6, border: '1px solid #e2e8f0',
-                                                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                                            color: btn.color, background: btn.bg, cursor: 'pointer', flexShrink: 0
-                                                        }}
-                                                    >
-                                                        {btn.icon}
-                                                    </div>
-                                                    )
-                                                ))}
-                                            </div>
-                                        </td>
-                                    </tr>
-                                    );
-                                })}
-                            </tbody>
-                        </table>
-                    </div>
+                                </tbody>
+                            </table>
+                        </div>
+                    )}
 
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 16, paddingTop: 16, borderTop: '1px solid #f1f5f9', flexWrap: 'wrap', gap: 8 }}>
-                        <span style={{ fontSize: 12, color: '#64748b' }}>
-                            {meta.from && meta.to
-                                ? `Mostrando ${meta.from} a ${meta.to} de ${formatCeNum(meta.total)} resultados`
-                                : 'Sin resultados'}
-                        </span>
+                    <div style={{ marginTop: 16, display: 'flex', justifyContent: 'space-between', fontSize: 12, color: '#64748b' }}>
+                        <span>{meta.from && meta.to ? `Mostrando ${meta.from} a ${meta.to} de ${meta.total} resultados` : ''}</span>
                         <div style={{ display: 'flex', gap: 6 }}>
-                            <button
-                                type="button"
-                                disabled={page <= 1 || loading}
-                                onClick={() => setPage((p) => Math.max(1, p - 1))}
-                                style={{
-                                    minWidth: 32, height: 32, padding: '0 8px', borderRadius: 6,
-                                    border: '1px solid #e2e8f0', background: 'white', color: '#475569',
-                                    fontSize: 13, cursor: page <= 1 || loading ? 'not-allowed' : 'pointer',
-                                    opacity: page <= 1 || loading ? 0.5 : 1,
-                                }}
-                            >
-                                «
-                            </button>
-                            <span style={{ alignSelf: 'center', fontSize: 13, color: '#475569', padding: '0 8px' }}>
-                                {meta.current_page ?? page} / {meta.last_page ?? 1}
-                            </span>
-                            <button
-                                type="button"
-                                disabled={page >= (meta.last_page ?? 1) || loading}
-                                onClick={() => setPage((p) => p + 1)}
-                                style={{
-                                    minWidth: 32, height: 32, padding: '0 8px', borderRadius: 6,
-                                    border: '1px solid #e2e8f0', background: 'white', color: '#475569',
-                                    fontSize: 13, cursor: page >= (meta.last_page ?? 1) || loading ? 'not-allowed' : 'pointer',
-                                    opacity: page >= (meta.last_page ?? 1) || loading ? 0.5 : 1,
-                                }}
-                            >
-                                »
-                            </button>
+                            <button type="button" disabled={(Number(filters.page) || 1) <= 1} onClick={() => setFilters({ page: String((Number(filters.page) || 1) - 1) }, { resetPage: false })}>«</button>
+                            <span>{meta.current_page ?? filters.page} / {meta.last_page ?? 1}</span>
+                            <button type="button" disabled={(Number(filters.page) || 1) >= (meta.last_page ?? 1)} onClick={() => setFilters({ page: String((Number(filters.page) || 1) + 1) }, { resetPage: false })}>»</button>
                         </div>
                     </div>
                 </div>
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                    
                     <div style={ceTheme.surface}>
-                        <p style={ceTheme.surfaceTitle}>
-                            Motivos de bloqueo
-                            <Link to="/app/control-escolar/reinscripciones" style={{ fontSize: 12, fontWeight: 500, color: '#185FA5', textDecoration: 'none' }}>Ver todos</Link>
-                        </p>
-                        <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
-                            {motivosBloqueo.length === 0 ? (
-                                <li style={{ fontSize: 12, color: '#64748b', padding: '8px 0' }}>Sin bloqueos académicos registrados.</li>
-                            ) : null}
-                            {motivosBloqueo.map((m, i) => (
-                                <li key={m.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 0', borderBottom: i < motivosBloqueo.length - 1 ? '1px solid #f1f5f9' : 'none' }}>
-                                    <span style={{ fontSize: 12, color: '#475569', fontWeight: 500 }}>{m.label}</span>
-                                    <span style={{ fontSize: 12, fontWeight: 600, color: '#185FA5', background: '#DBEAFE', padding: '2px 8px', borderRadius: 6 }}>{m.n}</span>
-                                </li>
-                            ))}
-                        </ul>
+                        <p style={ceTheme.surfaceTitle}>Motivos de bloqueo</p>
+                        {motivos.length === 0 ? <p style={{ fontSize: 12, color: '#94a3b8' }}>Sin bloqueos académicos registrados.</p> : motivos.map((m) => (
+                            <button key={m.codigo ?? m.label} type="button" onClick={() => setFilters({ motivo_bloqueo: m.filtro ?? m.codigo })} style={{ width: '100%', display: 'flex', justifyContent: 'space-between', padding: '10px 0', border: 'none', borderBottom: '1px solid #f1f5f9', background: 'transparent', cursor: 'pointer', textAlign: 'left' }}>
+                                <span style={{ fontSize: 12, color: '#475569' }}>{m.nombre ?? m.label}</span>
+                                <span style={{ fontSize: 12, fontWeight: 600, color: '#185FA5', background: '#DBEAFE', padding: '2px 8px', borderRadius: 6 }}>{m.total ?? m.n}</span>
+                            </button>
+                        ))}
                     </div>
-
                     <div style={ceTheme.surface}>
-                        <p style={ceTheme.surfaceTitle}>
-                            Flujo de reinscripción
-                            <Link to="/app/guias" style={{ fontSize: 12, fontWeight: 500, color: '#185FA5', textDecoration: 'none' }}>Ver guía</Link>
-                        </p>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 16, marginTop: 10 }}>
-                            {[
-                                { num: 1, color: '#185FA5', title: 'Solicitud iniciada', desc: 'Alumno solicita reinscripción.' },
-                                { num: 2, color: '#BA7517', title: 'Validación y revisión', desc: 'Revisión de documentos y adeudos.' },
-                                { num: 3, color: '#534AB7', title: 'Aprobación / Desbloqueo', desc: 'Se autoriza el proceso.' },
-                                { num: 4, color: '#0F6E56', title: 'Reinscripción completada', desc: 'Alumno reinscrito exitosamente.' }
-                            ].map((step) => (
-                                <div key={step.num} style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
-                                    <div style={{ width: 26, height: 26, borderRadius: '50%', background: step.color, color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 'bold', flexShrink: 0 }}>
-                                        {step.num}
-                                    </div>
-                                    <div>
-                                        <p style={{ fontSize: 13, fontWeight: 600, color: '#0f172a', margin: 0 }}>{step.title}</p>
-                                        <p style={{ fontSize: 11, color: '#64748b', margin: '4px 0 0 0', lineHeight: 1.4 }}>{step.desc}</p>
-                                    </div>
+                        <p style={ceTheme.surfaceTitle}>Flujo de reinscripción</p>
+                        {(flujo.length ? flujo : []).map((step) => (
+                            <div key={step.codigo} style={{ display: 'flex', gap: 12, marginBottom: 12 }}>
+                                <div style={{ width: 26, height: 26, borderRadius: '50%', background: step.estado === 'completado' ? '#0F6E56' : step.estado === 'en_proceso' ? '#185FA5' : '#94a3b8', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, flexShrink: 0 }}>
+                                    {step.orden}
                                 </div>
-                            ))}
+                                <div>
+                                    <p style={{ margin: 0, fontSize: 13, fontWeight: 600 }}>{step.nombre}</p>
+                                    <p style={{ margin: '2px 0 0', fontSize: 11, color: '#64748b' }}>{step.descripcion} · {step.total_relacionado} en alcance</p>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                    <div style={ceTheme.surface}>
+                        <p style={ceTheme.surfaceTitle}>Atajos rápidos</p>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                            {canRei('crear') ? <button type="button" onClick={() => setModalReinscribir(true)} style={{ padding: 10, borderRadius: 8, border: '1px solid #e2e8f0', background: '#fff', cursor: 'pointer', fontSize: 12 }}>Reinscribir alumno</button> : null}
+                            {canRei('desbloquear') ? <button type="button" onClick={abrirDesbloquear} style={{ padding: 10, borderRadius: 8, border: '1px solid #e2e8f0', background: '#fff', cursor: 'pointer', fontSize: 12 }}>Desbloquear</button> : null}
                         </div>
                     </div>
-
                 </div>
             </div>
 
-            <p style={{ marginTop: 32, textAlign: 'center', fontSize: 12, color: '#94a3b8' }}>
-                © 2025 SICES v2 – Control Escolar de Escuela. Todos los derechos reservados. &nbsp;&nbsp; Versión 2.0.0
-            </p>
+            <ReinscribirAlumnoModal open={modalReinscribir} onClose={() => setModalReinscribir(false)} onSuccess={recargar} />
+            <DesbloquearReinscripcionModal open={modalDesbloquear} onClose={() => setModalDesbloquear(false)} ids={selected} onSuccess={recargar} />
+            <ObservarReinscripcionModal open={modalObservar} onClose={() => setModalObservar(false)} ids={selected} onSuccess={recargar} />
         </div>
     );
 }

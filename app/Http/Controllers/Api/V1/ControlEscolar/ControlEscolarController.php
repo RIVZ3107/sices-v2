@@ -5,6 +5,9 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Api\V1\ControlEscolar;
 
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\Api\V1\ControlEscolar\ControlEscolarExpedienteController;
+use App\Http\Requests\Certificacion\StoreAlumnoCapturaRequest;
+use App\Http\Requests\ControlEscolar\ImportarAlumnosCeRequest;
 use App\Services\ControlEscolar\ControlEscolarAlumnosService;
 use App\Services\ControlEscolar\ControlEscolarBajasCambiosService;
 use App\Services\ControlEscolar\ControlEscolarCalificacionesService;
@@ -60,17 +63,13 @@ class ControlEscolarController extends Controller
             403
         );
 
-        $search = trim((string) $request->query('search', $request->query('q', '')));
-        $page = (int) $request->integer('page', 1);
-        $perPage = (int) $request->integer('per_page', 10);
-
         return response()->json([
             'ok' => true,
-            'data' => $this->alumnosService->gestion($user, $search !== '' ? $search : null, $page, $perPage),
+            'data' => $this->alumnosService->gestion($user, $this->filtrosAlumnos($request)),
         ]);
     }
 
-    public function expedientes(Request $request): JsonResponse
+    public function alumnosResumen(Request $request): JsonResponse
     {
         $user = $request->user();
         abort_unless($user !== null, 403);
@@ -79,14 +78,96 @@ class ControlEscolarController extends Controller
             403
         );
 
-        $search = trim((string) $request->query('search', $request->query('q', '')));
-        $page = (int) $request->integer('page', 1);
-        $perPage = (int) $request->integer('per_page', 10);
+        return response()->json([
+            'ok' => true,
+            'data' => [
+                'metricas' => $this->alumnosService->resumen($user),
+                'actualizado_en' => now()->toIso8601String(),
+            ],
+        ]);
+    }
+
+    public function alumnosRecientes(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        abort_unless($user !== null, 403);
+        abort_unless(
+            $user->can('ver_alumnos') || $user->can('alumnos.ver') || $user->can('expedientes.ver'),
+            403
+        );
+
+        $limit = max(1, min(20, (int) $request->integer('limit', 5)));
 
         return response()->json([
             'ok' => true,
-            'data' => $this->expedientesService->gestion($user, $search !== '' ? $search : null, $page, $perPage),
+            'data' => $this->alumnosService->recientes($user, $limit),
         ]);
+    }
+
+    public function alumnosStore(StoreAlumnoCapturaRequest $request): JsonResponse
+    {
+        $user = $request->user();
+        abort_unless($user !== null, 403);
+
+        return response()->json([
+            'ok' => true,
+            'data' => $this->alumnosService->crear($user, $request->validated()),
+        ], 201);
+    }
+
+    public function alumnosImportar(ImportarAlumnosCeRequest $request): JsonResponse
+    {
+        $user = $request->user();
+        abort_unless($user !== null, 403);
+
+        /** @var \Illuminate\Http\UploadedFile $archivo */
+        $archivo = $request->file('archivo');
+
+        return response()->json([
+            'ok' => true,
+            'data' => $this->alumnosService->importarCsv($user, $archivo),
+        ]);
+    }
+
+    public function alumnosExportar(Request $request): \Symfony\Component\HttpFoundation\StreamedResponse
+    {
+        $user = $request->user();
+        abort_unless($user !== null, 403);
+        abort_unless(
+            $user->can('alumnos.exportar')
+            || $user->can('reportes.ver')
+            || $user->can('exportar_reportes')
+            || $user->can('ver_alumnos')
+            || $user->can('alumnos.ver'),
+            403
+        );
+
+        return $this->alumnosService->exportarCsv($user, $this->filtrosAlumnos($request));
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function filtrosAlumnos(Request $request): array
+    {
+        return [
+            'search' => trim((string) $request->query('search', $request->query('q', ''))),
+            'estatus' => trim((string) $request->query('estatus', '')),
+            'programa_id' => $request->integer('programa_id'),
+            'plan_id' => $request->integer('plan_id'),
+            'sede_id' => $request->integer('sede_id'),
+            'periodo' => trim((string) $request->query('periodo', '')),
+            'expediente' => trim((string) $request->query('expediente', '')),
+            'sort_by' => trim((string) $request->query('sort_by', 'updated_at')),
+            'sort_dir' => trim((string) $request->query('sort_dir', 'desc')),
+            'page' => (int) $request->integer('page', 1),
+            'per_page' => (int) $request->integer('per_page', 10),
+        ];
+    }
+
+    public function expedientes(Request $request): JsonResponse
+    {
+        return app(ControlEscolarExpedienteController::class)->index($request);
     }
 
     public function inscripciones(Request $request): JsonResponse
@@ -101,37 +182,28 @@ class ControlEscolarController extends Controller
             403
         );
 
-        $search = trim((string) $request->query('search', $request->query('q', '')));
-        $page = (int) $request->integer('page', 1);
-        $perPage = (int) $request->integer('per_page', 10);
-
         return response()->json([
             'ok' => true,
-            'data' => $this->inscripcionesService->gestion($user, $search !== '' ? $search : null, $page, $perPage),
+            'data' => $this->inscripcionesService->gestion($user, [
+                'search' => trim((string) $request->query('search', $request->query('q', ''))),
+                'estatus' => trim((string) $request->query('estatus', '')),
+                'programa_id' => $request->integer('programa_id'),
+                'sede_id' => $request->integer('sede_id'),
+                'documentos_pendientes' => $request->query('documentos_pendientes'),
+                'con_observaciones' => $request->query('con_observaciones'),
+                'fecha_desde' => trim((string) $request->query('fecha_desde', '')),
+                'fecha_hasta' => trim((string) $request->query('fecha_hasta', '')),
+                'sort' => trim((string) $request->query('sort', 'updated_at')),
+                'direction' => trim((string) $request->query('direction', 'desc')),
+                'page' => (int) $request->integer('page', 1),
+                'per_page' => (int) $request->integer('per_page', 10),
+            ]),
         ]);
     }
 
     public function reinscripciones(Request $request): JsonResponse
     {
-        $user = $request->user();
-        abort_unless($user !== null, 403);
-        abort_unless(
-            $user->can('reinscripciones.ver')
-            || $user->can('reinscripciones.revisar')
-            || $user->can('reinscripciones.crear')
-            || $user->can('ver_alumnos')
-            || $user->can('alumnos.ver'),
-            403
-        );
-
-        $search = trim((string) $request->query('search', $request->query('q', '')));
-        $page = (int) $request->integer('page', 1);
-        $perPage = (int) $request->integer('per_page', 10);
-
-        return response()->json([
-            'ok' => true,
-            'data' => $this->reinscripcionesService->gestion($user, $search !== '' ? $search : null, $page, $perPage),
-        ]);
+        return app(ControlEscolarReinscripcionController::class)->index($request);
     }
 
     public function trayectoria(Request $request): JsonResponse

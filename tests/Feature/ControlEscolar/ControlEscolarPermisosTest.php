@@ -49,6 +49,9 @@ final class ControlEscolarPermisosTest extends TestCase
 
         $this->assertTrue($user->can('alumnos.ver'));
         $this->assertTrue($user->can('expedientes.ver'));
+        $this->assertTrue($user->can('expedientes.validar'));
+        $this->assertTrue($user->can('expedientes.exportar'));
+        $this->assertTrue($user->can('expedientes.documentos.cargar'));
         $this->assertTrue($user->can('inscripciones.ver'));
         $this->assertTrue($user->can('reinscripciones.ver'));
         $this->assertTrue($user->can('trayectoria.ver'));

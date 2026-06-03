@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
     CertFilterField,
     CertificacionFilters,
@@ -7,17 +7,16 @@ import {
     certInputStyle,
     certTheme,
 } from '../../components/certificacion';
-import { InstitutionalBandejaActions, ejecutarAccionBandeja } from '../../components/bandeja/InstitutionalBandejaActions';
+import { CertificadorBandejaActions } from '../../components/certificacion/CertificadorBandejaActions';
 import { useCertificacionBandeja } from '../../hooks/useCertificacionBandeja';
 import { InstitutionalRoleBanner } from '../../components/ui/InstitutionalRoleBanner';
+import { InstitutionalEmptyState } from '../../components/ui/InstitutionalEmptyState';
 import { EMPTY_BANDEJA } from '../../utils/bandejaWorkflow';
-import { uxEsCertificadorOperativo } from '../../utils/uxInstitucional';
-
-const TABS_CERTIFICADOR = [
-    { key: 'en-validacion-certificador', label: 'Pendientes de validar' },
-    { key: 'observado-por-certificador', label: 'Observados / devueltos' },
-    { key: 'validado-por-certificador', label: 'Validados' },
-];
+import { columnasBandejaCertificador } from '../../utils/certificadorBandeja';
+import { CERTIFICADOR_TABS } from '../../utils/certificadorUx';
+import { EMPTY_BY_ROLE, UX_COPY, uxEsCertificadorOperativo } from '../../utils/uxInstitucional';
+import { InstitutionalBandejaActions, ejecutarAccionBandeja } from '../../components/bandeja/InstitutionalBandejaActions';
+import { fetchTiposDocumentosAcademicos } from '../../utils/documentosAcademicosTipos';
 
 export function DocumentosACertificarPage() {
     const esCert = uxEsCertificadorOperativo();
@@ -25,10 +24,18 @@ export function DocumentosACertificarPage() {
     const [filters, setFilters] = useState({ q: '', tipo_documento: '' });
     const [busyId, setBusyId] = useState(null);
     const [msg, setMsg] = useState('');
+    const [tiposOpts, setTiposOpts] = useState([]);
 
     const { rows, error, loading, recargar } = useCertificacionBandeja(tab, filters);
 
-    const tabs = esCert ? TABS_CERTIFICADOR : [{ key: 'validado-por-certificador', label: 'Validados por certificador' }];
+    const tabs = esCert
+        ? CERTIFICADOR_TABS
+        : [{ key: 'validado-por-certificador', label: 'Validados por certificador', activa: false }];
+
+    useEffect(() => {
+        if (!esCert) return;
+        void fetchTiposDocumentosAcademicos('NORMAL').then((items) => setTiposOpts(items));
+    }, [esCert]);
 
     async function onAccion(accion, row) {
         setBusyId(row.id);
@@ -44,18 +51,22 @@ export function DocumentosACertificarPage() {
         }
     }
 
+    const lista = Array.isArray(rows) ? rows : [];
+    const emptyCert = EMPTY_BY_ROLE.certificador;
+    const showEmptyInstitutional = esCert && !loading && !error && lista.length === 0;
+
     return (
         <div style={certTheme.pageShell}>
             <CertificacionPageHeader
                 title={esCert ? 'Validación académica' : 'Documentos a certificar'}
                 subtitle={
                     esCert
-                        ? 'Revise expedientes pendientes de validación. No procesa ni firma documentos.'
+                        ? 'Revise solicitudes documentales enviadas por Control Escolar. No procesa, firma ni asigna folio.'
                         : 'Seguimiento institucional de documentos en trámite.'
                 }
             />
 
-            <InstitutionalRoleBanner />
+            <InstitutionalRoleBanner message={esCert ? UX_COPY.certificador : undefined} />
 
             {msg ? <p style={{ fontSize: 13, color: '#0F6E56', margin: 0 }}>{msg}</p> : null}
 
@@ -78,30 +89,48 @@ export function DocumentosACertificarPage() {
                         style={certInputStyle()}
                         value={filters.q}
                         onChange={(e) => setFilters((f) => ({ ...f, q: e.target.value }))}
-                        placeholder="Alumno, folio o CURP"
+                        placeholder="Alumno, CURP o matrícula"
                     />
                 </CertFilterField>
-                <CertFilterField label="Tipo">
+                <CertFilterField label="Tipo documental">
                     <select
                         style={certInputStyle()}
                         value={filters.tipo_documento}
                         onChange={(e) => setFilters((f) => ({ ...f, tipo_documento: e.target.value }))}
                     >
                         <option value="">Todos</option>
-                        <option value="certificado">Certificado</option>
+                        {tiposOpts.map((t) => (
+                            <option key={t.key} value={t.key}>
+                                {t.label}
+                            </option>
+                        ))}
                     </select>
                 </CertFilterField>
             </CertificacionFilters>
 
-            <CertificacionTable
-                rows={rows}
-                loading={loading}
-                error={error}
-                emptyMessage={esCert ? EMPTY_BANDEJA.certificador : EMPTY_BANDEJA.educacion_superior}
-                renderActions={(row) => (
-                    <InstitutionalBandejaActions row={row} busy={busyId === row.id} onAccion={onAccion} />
-                )}
-            />
+            {showEmptyInstitutional ? (
+                <InstitutionalEmptyState title={emptyCert.title} description={emptyCert.description} />
+            ) : (
+                <CertificacionTable
+                    rows={lista}
+                    loading={loading}
+                    error={error}
+                    columns={esCert ? columnasBandejaCertificador() : undefined}
+                    emptyMessage={esCert ? emptyCert.title : EMPTY_BANDEJA.educacion_superior}
+                    emptyDescription={
+                        esCert
+                            ? 'Cuando Control Escolar envíe solicitudes documentales, aparecerán aquí.'
+                            : undefined
+                    }
+                    renderActions={(row) =>
+                        esCert ? (
+                            <CertificadorBandejaActions row={row} />
+                        ) : (
+                            <InstitutionalBandejaActions row={row} busy={busyId === row.id} onAccion={onAccion} />
+                        )
+                    }
+                />
+            )}
         </div>
     );
 }

@@ -60,6 +60,11 @@ class BandejaDocumentoAcademicoResource extends JsonResource
             ]),
             'programa' => $this->whenLoaded('ofertaAcademica', fn () => [
                 'nombre' => $this->ofertaAcademica?->programaEstudio?->nombre,
+                'clave' => $this->ofertaAcademica?->programaEstudio?->clave,
+            ]),
+            'plan' => $this->whenLoaded('ofertaAcademica', fn () => [
+                'nombre' => $this->ofertaAcademica?->planEstudio?->nombre,
+                'clave' => $this->ofertaAcademica?->planEstudio?->clave,
             ]),
             'alumno' => $this->whenLoaded('alumno', fn () => [
                 'id' => $this->alumno?->id,
