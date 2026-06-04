@@ -9,7 +9,8 @@
 | `EntidadFederativaSeeder`, `MunicipioSeeder`, `SubsistemasSeeder`, … | Catálogos | Geografía, subsistemas, tipos documentales |
 | `RolesAndPermissionsSeeder`, `SystemMenusSeeder` | Menús / RBAC | Roles, permisos, menús |
 | `Demo/*` | Demo / desarrollo | Requiere `ALLOW_DEMO_SEEDERS=true` |
-| `MenuSeeder`, `RoleMenuSeeder` | Deprecated | Alias o no-op; usar `SystemMenusSeeder` |
+| `MenuSeeder` | Deprecated | Alias; usar `SystemMenusSeeder` |
+| `Deprecated/README.md` | Referencia | Seeders/clases retiradas o movidas |
 | `sices:seed-dataset-visual-roles` (comando) | Testing visual | Dataset semirreal; no productivo |
 
 ## Uso

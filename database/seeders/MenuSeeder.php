@@ -7,7 +7,7 @@ namespace Database\Seeders;
 use Illuminate\Database\Seeder;
 
 /**
- * Alias de {@see SystemMenusSeeder} para scripts/documentación que invocan `MenuSeeder`.
+ * @deprecated Alias de compatibilidad. Usar {@see SystemMenusSeeder}.
  */
 class MenuSeeder extends Seeder
 {

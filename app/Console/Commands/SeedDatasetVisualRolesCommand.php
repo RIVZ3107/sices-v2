@@ -7,6 +7,11 @@ namespace App\Console\Commands;
 use App\Services\DatasetVisualRoles\SeedDatasetVisualRolesService;
 use Illuminate\Console\Command;
 
+/**
+ * Dataset visual para tableros (no productivo). No forma parte del flujo de datos reales.
+ *
+ * @deprecated Preferir datos reales e importadores controlados. Ver docs/sices-v2/datos-reales/importacion-controlada.md
+ */
 final class SeedDatasetVisualRolesCommand extends Command
 {
     protected $signature = 'sices:seed-dataset-visual-roles

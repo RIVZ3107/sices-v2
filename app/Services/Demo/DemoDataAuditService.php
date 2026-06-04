@@ -10,54 +10,82 @@ final class DemoDataAuditService
 {
     public function __construct(
         private readonly DemoDataScope $scope = new DemoDataScope,
+        private readonly DemoDataCatalogClassifier $classifier = new DemoDataCatalogClassifier,
     ) {}
 
     /**
      * @return array{
      *     patrones: list<string>,
+     *     clasificacion: array{
+     *         demo_activo: array<string, int>,
+     *         demo_soft_deleted: array<string, int>,
+     *         demo_purgable: array<string, int>,
+     *         catalogos_activos_reales: array<string, int>,
+     *         totales: array{activo: int, soft_deleted: int, purgable: int}
+     *     },
      *     conteos: array<string, int>,
      *     total_candidatos: int,
-     *     tablas_sospechosas: list<array{tabla: string, registros: int, criterio: string}>
+     *     tablas_sospechosas: list<array{tabla: string, activo: int, soft_deleted: int, purgable: int, criterio: string}>
      * }
      */
-    public function auditar(): array
+    public function auditar(bool $incluirUsuariosDemo = false): array
     {
+        $clasificacion = $this->classifier->clasificar($incluirUsuariosDemo);
         $conteos = $this->scope->conteos();
-        $tablas = [
-            ['tabla' => 'users', 'registros' => $conteos['usuarios_demo'], 'criterio' => 'email @sices.local o *.dataset@sices.local'],
-            ['tabla' => 'alumnos', 'registros' => $conteos['alumnos_demo'], 'criterio' => 'metadata.origen=demo_control_escolar o nombre DemoSynthetic'],
-            ['tabla' => 'matriculas', 'registros' => $conteos['matriculas_demo'], 'criterio' => 'metadata demo o alumno demo'],
-            ['tabla' => 'materias', 'registros' => $conteos['materias_demo'], 'criterio' => 'plan demo o nombre (demo)/sintético'],
-            ['tabla' => 'plan_materias', 'registros' => $conteos['plan_materias_demo'], 'criterio' => 'planes demo'],
-            ['tabla' => 'materias_cursadas', 'registros' => $conteos['materias_cursadas_demo'], 'criterio' => 'metadata demo o alumno demo'],
-            ['tabla' => 'cargas_academicas', 'registros' => $conteos['cargas_academicas_demo'], 'criterio' => 'metadata demo o matrícula demo'],
-            ['tabla' => 'inscripciones_periodo', 'registros' => $conteos['inscripciones_demo'], 'criterio' => 'metadata demo o matrícula demo'],
-            ['tabla' => 'trayectorias_academicas', 'registros' => $conteos['trayectorias_demo'], 'criterio' => 'metadata demo o alumno/matrícula demo'],
-            ['tabla' => 'documentos_academicos', 'registros' => $conteos['documentos_academicos_demo'], 'criterio' => 'metadata demo o alumno demo'],
-            ['tabla' => 'documento_observaciones', 'registros' => $conteos['observaciones_demo'], 'criterio' => 'metadata demo o documento demo'],
-            ['tabla' => 'ciclos_escolares', 'registros' => $conteos['ciclos_demo'], 'criterio' => 'clave SXCE-DEMO-* o nombre ciclo demo'],
-            ['tabla' => 'programas_estudio', 'registros' => $conteos['programas_demo'], 'criterio' => 'clave SXCE-DEMO-* o metadata demo'],
-            ['tabla' => 'planes_estudio', 'registros' => $conteos['planes_demo'], 'criterio' => 'clave SXCE-DEMO-* o metadata demo'],
-            ['tabla' => 'ofertas_academicas', 'registros' => $conteos['ofertas_demo'], 'criterio' => 'metadata.origen demo o clave SXCE-DEMO'],
+
+        $criterios = [
+            'documento_observaciones' => 'documento demo o metadata demo (soft-deleted purgable)',
+            'documento_estados_historial' => 'documento demo o metadata demo (soft-deleted purgable)',
+            'documento_materias_snapshot' => 'documento demo o metadata demo (soft-deleted purgable)',
+            'documentos_academicos' => 'metadata demo o alumno demo',
+            'trayectorias_academicas' => 'metadata demo o alumno/matrícula demo',
+            'materias_cursadas' => 'metadata demo o alumno demo',
+            'cargas_academicas' => 'metadata demo o matrícula demo',
+            'inscripciones_periodo' => 'metadata demo o matrícula demo',
+            'matriculas' => 'metadata demo o alumno demo',
+            'alumnos' => 'metadata.origen=demo_control_escolar o nombre DemoSynthetic',
+            'plan_materias' => 'plan demo o metadata demo',
+            'materias' => 'plan demo o nombre (demo)/sintético',
+            'ofertas_academicas' => 'metadata.origen demo o clave SXCE-DEMO',
+            'planes_estudio' => 'clave SXCE-DEMO-* o metadata demo',
+            'programas_estudio' => 'clave SXCE-DEMO-* o metadata demo',
+            'ciclos_escolares' => 'clave SXCE-DEMO-* o nombre ciclo demo',
+            'users' => 'email @sices.local (solo con --usuarios-demo en limpieza)',
         ];
 
-        $sospechosas = array_values(array_filter(
-            $tablas,
-            static fn (array $row): bool => $row['registros'] > 0,
-        ));
+        $tablas = [];
+        foreach (DemoDataCatalogClassifier::TABLAS as $cfg) {
+            $tabla = $cfg['tabla'];
+            if ($tabla === 'users' && ! $incluirUsuariosDemo) {
+                continue;
+            }
+
+            $activo = $clasificacion['demo_activo'][$tabla] ?? 0;
+            $soft = $clasificacion['demo_soft_deleted'][$tabla] ?? 0;
+            $purgable = $clasificacion['demo_purgable'][$tabla] ?? 0;
+
+            if ($activo > 0 || $soft > 0 || $purgable > 0) {
+                $tablas[] = [
+                    'tabla' => $tabla,
+                    'activo' => $activo,
+                    'soft_deleted' => $soft,
+                    'purgable' => $purgable,
+                    'criterio' => $criterios[$tabla] ?? 'patrón demo + deleted_at para purga',
+                ];
+            }
+        }
 
         return [
             'patrones' => [
-                'DemoSynthetic',
-                'demo_control_escolar',
-                'demo_dataset',
-                'SXCE-DEMO-*',
-                '@sices.local',
-                'synthetic / sintético en nombres de materias',
+                'clave contiene DEMO o SXCE-DEMO',
+                'nombre contiene demo',
+                'metadata: demo_control_escolar, demo_dataset, synthetic, control_escolar_v1',
+                'DemoSynthetic / @sices.local (usuarios con --usuarios-demo)',
             ],
+            'clasificacion' => $clasificacion,
             'conteos' => $conteos,
-            'total_candidatos' => array_sum($conteos),
-            'tablas_sospechosas' => $sospechosas,
+            'total_candidatos' => $clasificacion['totales']['activo'] + $clasificacion['totales']['purgable'],
+            'tablas_sospechosas' => $tablas,
         ];
     }
 }

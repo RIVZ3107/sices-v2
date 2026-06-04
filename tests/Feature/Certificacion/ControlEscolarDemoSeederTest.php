@@ -15,7 +15,7 @@ use App\Models\Subsistema;
 use App\Models\TrayectoriaAcademica;
 use App\Models\User;
 use App\Services\ControlEscolar\ResetDemoControlEscolarService;
-use Database\Seeders\CertificacionControlEscolarDemoSeeder;
+use Database\Seeders\Demo\CertificacionControlEscolarDemoSeeder;
 use Database\Seeders\DatabaseSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;

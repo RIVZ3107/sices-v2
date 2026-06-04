@@ -5,10 +5,15 @@ declare(strict_types=1);
 namespace Tests\Feature\Seeders;
 
 use App\Models\Alumno;
+use App\Models\CicloEscolar;
+use App\Models\NivelAcademico;
+use App\Models\ProgramaEstudio;
 use App\Models\User;
 use App\Services\ControlEscolar\ResetDemoControlEscolarService;
 use App\Services\Demo\DemoDataCleanupService;
+use App\Services\Demo\DemoSoftDeletedPurgeService;
 use Database\Seeders\DatabaseSeeder;
+use Illuminate\Support\Facades\DB;
 use Database\Seeders\Demo\CertificacionControlEscolarDemoSeeder;
 use Database\Seeders\Demo\DemoBundleSeeder;
 use Database\Seeders\Demo\DemoUsuariosPorRolSeeder;
@@ -139,5 +144,96 @@ final class DemoDataIsolationTest extends TestCase
         $plan = (new DemoDataCleanupService)->plan(false);
 
         $this->assertGreaterThan(0, $plan['alumnos_demo']);
+    }
+
+    public function test_purge_soft_deleted_dry_run_no_borra(): void
+    {
+        putenv('ALLOW_DEMO_SEEDERS=true');
+        $_ENV['ALLOW_DEMO_SEEDERS'] = 'true';
+
+        $this->seed(DatabaseSeeder::class);
+        $this->seed(CertificacionControlEscolarDemoSeeder::class);
+        Artisan::call('sices:limpiar-demo', ['--confirm' => true]);
+
+        $trashedAntes = CicloEscolar::onlyTrashed()->where('clave', 'SXCE-DEMO-CICLO-2026')->count();
+        $this->assertGreaterThan(0, $trashedAntes);
+
+        Artisan::call('sices:limpiar-demo', ['--purge-soft-deleted' => true, '--dry-run' => true]);
+
+        $this->assertSame($trashedAntes, CicloEscolar::onlyTrashed()->where('clave', 'SXCE-DEMO-CICLO-2026')->count());
+    }
+
+    public function test_purge_soft_deleted_sin_confirm_no_borra(): void
+    {
+        putenv('ALLOW_DEMO_SEEDERS=true');
+        $_ENV['ALLOW_DEMO_SEEDERS'] = 'true';
+
+        $this->seed(DatabaseSeeder::class);
+        $this->seed(CertificacionControlEscolarDemoSeeder::class);
+        Artisan::call('sices:limpiar-demo', ['--confirm' => true]);
+
+        $trashedAntes = CicloEscolar::onlyTrashed()->where('clave', 'SXCE-DEMO-CICLO-2026')->count();
+
+        Artisan::call('sices:limpiar-demo', ['--purge-soft-deleted' => true]);
+
+        $this->assertSame($trashedAntes, CicloEscolar::onlyTrashed()->where('clave', 'SXCE-DEMO-CICLO-2026')->count());
+    }
+
+    public function test_purge_soft_deleted_confirm_borra_solo_demo_trashed(): void
+    {
+        putenv('ALLOW_DEMO_SEEDERS=true');
+        $_ENV['ALLOW_DEMO_SEEDERS'] = 'true';
+
+        $this->seed(DatabaseSeeder::class);
+        $this->seed(CertificacionControlEscolarDemoSeeder::class);
+        Artisan::call('sices:limpiar-demo', ['--confirm' => true]);
+
+        $this->assertGreaterThan(0, CicloEscolar::onlyTrashed()->where('clave', 'SXCE-DEMO-CICLO-2026')->count());
+
+        Artisan::call('sices:limpiar-demo', ['--confirm' => true, '--purge-soft-deleted' => true]);
+
+        $this->assertSame(0, DB::table('ciclos_escolares')->where('clave', 'SXCE-DEMO-CICLO-2026')->count());
+        $this->assertSame(0, CicloEscolar::withTrashed()->where('clave', 'SXCE-DEMO-CICLO-2026')->count());
+        $this->assertSame(0, Alumno::withTrashed()->where('nombre', 'DemoSynthetic')->count());
+    }
+
+    public function test_purge_no_borra_activos_ni_reales_soft_deleted(): void
+    {
+        putenv('ALLOW_DEMO_SEEDERS=true');
+        $_ENV['ALLOW_DEMO_SEEDERS'] = 'true';
+
+        $this->seed(DatabaseSeeder::class);
+
+        $nivel = NivelAcademico::query()->where('clave', 'LIC')->firstOrFail();
+        $real = ProgramaEstudio::query()->create([
+            'nivel_academico_id' => $nivel->id,
+            'clave' => 'PROG-REAL-INST-01',
+            'nombre' => 'Licenciatura institucional real',
+            'activo' => true,
+        ]);
+        $real->delete();
+
+        $this->seed(CertificacionControlEscolarDemoSeeder::class);
+        Artisan::call('sices:limpiar-demo', ['--confirm' => true]);
+        Artisan::call('sices:limpiar-demo', ['--confirm' => true, '--purge-soft-deleted' => true]);
+
+        $this->assertSame(1, ProgramaEstudio::onlyTrashed()->where('clave', 'PROG-REAL-INST-01')->count());
+        $this->assertSame(0, ProgramaEstudio::query()->where('clave', 'PROG-REAL-INST-01')->count());
+        $this->assertSame(0, ProgramaEstudio::onlyTrashed()->whereIn('clave', ResetDemoControlEscolarService::PROGRAMAS_DEMO_CLAVES)->count());
+    }
+
+    public function test_purge_plan_detecta_candidatos_trashed(): void
+    {
+        putenv('ALLOW_DEMO_SEEDERS=true');
+        $_ENV['ALLOW_DEMO_SEEDERS'] = 'true';
+
+        $this->seed(DatabaseSeeder::class);
+        $this->seed(CertificacionControlEscolarDemoSeeder::class);
+        Artisan::call('sices:limpiar-demo', ['--confirm' => true]);
+
+        $plan = (new DemoSoftDeletedPurgeService)->plan(false);
+
+        $this->assertGreaterThan(0, $plan['ciclos_escolares'] ?? 0);
+        $this->assertGreaterThan(0, ($plan['programas_estudio'] ?? 0) + ($plan['planes_estudio'] ?? 0));
     }
 }

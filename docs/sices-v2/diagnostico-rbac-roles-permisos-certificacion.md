@@ -176,7 +176,7 @@ Fuente: `SystemMenusSeeder` + `UserMenuService` + `SidebarPro` (API `GET v1/me/m
 
 ### Bajo
 
-13. `RoleMenuSeeder` es no-op (documentado).
+13. `RoleMenuSeeder` fue retirado; usar solo `SystemMenusSeeder`.
 14. Tests sin cobertura de rutas documento/firma/XML por rol.
 15. `RequirePermission` sin soporte OR.
 

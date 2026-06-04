@@ -29,6 +29,22 @@ database/seeders/
 
 `DatabaseSeeder` ejecuta solo `InstitutionalBaseSeeder`. El bundle demo corre **únicamente** si `ALLOW_DEMO_SEEDERS=true` y el entorno **no** es `production`.
 
+## Diagnóstico completo de base
+
+Antes de importar datos reales, genere un reporte de solo lectura:
+
+```bash
+php artisan sices:diagnosticar-base
+```
+
+Salida:
+
+- Consola (resumen de tablas y riesgos)
+- `storage/app/reportes/diagnostico-base/diagnostico_base_YYYYMMDD_HHMMSS.md`
+- `storage/app/reportes/diagnostico-base/diagnostico_base_YYYYMMDD_HHMMSS.json`
+
+El diagnóstico usa `Schema::hasTable()`, `Schema::hasColumn()` y listados dinámicos; **no asume** columnas como `estatus` o `clave` si no existen.
+
 ## Auditoría y limpieza
 
 Comandos de solo lectura / limpieza segura:
@@ -40,14 +56,21 @@ php artisan sices:auditar-datos
 # Simulación de borrado
 php artisan sices:limpiar-demo --dry-run
 
-# Borrado real (requiere confirmación explícita)
+# Borrado lógico (soft delete) de registros demo activos
 php artisan sices:limpiar-demo --confirm
+
+# Purga física de registros demo ya soft-deleted (no afecta activos ni catálogos reales)
+php artisan sices:limpiar-demo --purge-soft-deleted --dry-run
+php artisan sices:limpiar-demo --confirm --purge-soft-deleted
 
 # Incluir usuarios @sices.local
 php artisan sices:limpiar-demo --confirm --usuarios-demo
+php artisan sices:limpiar-demo --confirm --purge-soft-deleted --usuarios-demo
 ```
 
 En **production** la limpieza está bloqueada salvo `--force-local` (no recomendado).
+
+El comando `sices:reset-demo-control-escolar` está **deprecado**; use `sices:limpiar-demo`.
 
 ### Qué no se borra
 

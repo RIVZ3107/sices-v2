@@ -7,6 +7,9 @@ namespace App\Console\Commands;
 use App\Services\DatasetVisualRoles\ResetDatasetVisualRolesService;
 use Illuminate\Console\Command;
 
+/**
+ * @deprecated Dataset visual de desarrollo; no usar en preparación de datos reales.
+ */
 final class ResetDatasetVisualRolesCommand extends Command
 {
     protected $signature = 'sices:reset-dataset-visual-roles
