@@ -28,11 +28,5 @@ class AdmisionAspirantesTest extends TestCase
         $this->assertTrue($user->can('observaciones.crear'));
         $this->assertFalse($user->can('matriculas.asignar'));
         $this->assertFalse($user->can('firma.ejecutar'));
-
-        $demo = (string) file_get_contents(base_path('resources/js/data/admisionDemoData.js'));
-        $this->assertStringContainsString('Licenciatura en Pedagogía', $demo);
-        $this->assertStringContainsString('Universidad Pedagógica Nacional Unidad 151 Toluca', $demo);
-        $this->assertStringNotContainsString('Ingeniería en Sistemas', $demo);
-        $this->assertStringNotContainsString('Universidad Tecnológica Metropolitana', $demo);
     }
 }

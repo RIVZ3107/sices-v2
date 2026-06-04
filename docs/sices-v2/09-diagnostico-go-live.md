@@ -47,7 +47,7 @@
 - [ ] `SINCE_FIRMA_ENABLED` solo tras UAT
 - [ ] `INFORMIX_*` / `SICES_LEGACY_*` revisados
 - [ ] Deshabilitar Telescope en prod
-- [ ] No ejecutar `DemoUsuariosPorRolSeeder` en prod
+- [ ] `ALLOW_DEMO_SEEDERS` no aplica (sin seeders demo en repo)
 
 ### Datos y RBAC
 
@@ -108,8 +108,8 @@ docs/sices-v2/
 ├── 04-base-datos-relaciones.md
 ├── 05-roles-menus-matriz.md
 ├── 06-seguridad-integraciones.md
-├── 07-ux-ui-redundancias.md
 ├── 08-flujos-certificacion.md
+├── datos-reales/importacion-controlada.md
 ├── 09-diagnostico-go-live.md
 └── (docs especializados existentes)
 ```
@@ -125,7 +125,8 @@ docs/sices-v2/
 | Matriz de roles | [05](./05-roles-menus-matriz.md) |
 | Seeders (integración roles/menús) | [05](./05-roles-menus-matriz.md) |
 | Seguridad y claves | [06](./06-seguridad-integraciones.md) |
-| UX/UI y redundancias | [07](./07-ux-ui-redundancias.md) |
+| UX CE ↔ certificación | [ux-control-escolar-certificacion.md](./ux-control-escolar-certificacion.md) |
+| Importación datos reales | [datos-reales/importacion-controlada.md](./datos-reales/importacion-controlada.md) |
 | Flujos e integraciones | [08](./08-flujos-certificacion.md) |
 | Escalabilidad y diagnóstico | Este archivo + [00](./00-vision-general-arquitectura.md) |
 

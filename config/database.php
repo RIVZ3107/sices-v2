@@ -156,6 +156,29 @@ return [
             'prefix_indexes' => true,
         ],
 
+        /*
+         * Dump MySQL local de catálogos SISEES (solo lectura desde Laravel).
+         * Nunca apuntar a producción: restaurar dump en BD sisees_legacy en localhost.
+         */
+        'mysql_sisees_legacy' => [
+            'driver' => 'mysql',
+            'host' => env('SICEES_LEGACY_HOST', '127.0.0.1'),
+            'port' => env('SICEES_LEGACY_PORT', '3306'),
+            'database' => env('SICEES_LEGACY_DATABASE', 'sisees_legacy'),
+            'username' => env('SICEES_LEGACY_USERNAME', 'root'),
+            'password' => env('SICEES_LEGACY_PASSWORD', ''),
+            'unix_socket' => env('SICEES_LEGACY_SOCKET', ''),
+            'charset' => env('SICEES_LEGACY_CHARSET', 'utf8mb4'),
+            'collation' => env('SICEES_LEGACY_COLLATION', 'utf8mb4_unicode_ci'),
+            'prefix' => '',
+            'prefix_indexes' => true,
+            'strict' => true,
+            'engine' => null,
+            'options' => extension_loaded('pdo_mysql') ? [
+                PDO::ATTR_EMULATE_PREPARES => false,
+            ] : [],
+        ],
+
     ],
 
     /*

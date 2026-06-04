@@ -51,14 +51,6 @@ final class DireccionEscuelaUiContratoVisualTest extends TestCase
         $this->assertStringNotContainsString('Confirmar inscripción', $src);
     }
 
-    public function test_reinscripciones_sin_colegiatura_en_demo(): void
-    {
-        $path = base_path('resources/js/data/direccionEscuelaDemoData.js');
-        $src = strtolower((string) file_get_contents($path));
-        $this->assertStringNotContainsString('colegiatura', $src);
-        $this->assertStringNotContainsString('adeudo', $src);
-    }
-
     public function test_documentos_sin_firma_ni_sellos_en_copy(): void
     {
         $path = base_path('resources/js/pages/direccion/DireccionDocumentosPage.jsx');

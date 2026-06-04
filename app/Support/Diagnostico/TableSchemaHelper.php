@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Support\Diagnostico;
 
+use App\Support\Demo\DemoHeuristicCriteria;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
@@ -198,39 +199,9 @@ final class TableSchemaHelper
             return 0;
         }
 
-        $cols = $this->columns($table);
-        $query = DB::table($table)->where(function ($q) use ($table, $cols): void {
-            $added = false;
-            foreach ($cols as $col) {
-                if (in_array($col, ['id', 'created_at', 'updated_at', 'deleted_at', 'password', 'remember_token'], true)) {
-                    continue;
-                }
-                if ($col === 'email') {
-                    $q->orWhere($col, 'like', '%@sices.local');
-                    $q->orWhere($col, 'like', '%.dataset@sices.local');
-                    $added = true;
-                }
-                if ($col === 'nombre') {
-                    $q->orWhere($col, 'DemoSynthetic');
-                    $q->orWhere($col, 'like', '%demo%');
-                    $added = true;
-                }
-                if (in_array($col, ['clave', 'matricula', 'route', 'label', 'name'], true)) {
-                    $q->orWhere($col, 'like', '%SXCE-DEMO%');
-                    $q->orWhere($col, 'like', '%demo%');
-                    $q->orWhere($col, 'like', '%synthetic%');
-                    $added = true;
-                }
-                if ($col === 'metadata') {
-                    $q->orWhere('metadata->origen', 'demo_control_escolar');
-                    $q->orWhere('metadata->demo_dataset', 'control_escolar_v1');
-                    $added = true;
-                }
-            }
-            if (! $added) {
-                $q->whereRaw('1 = 0');
-            }
-        });
+        $query = DB::table($table);
+        DemoHeuristicCriteria::applyDemoPatterns($query, $table);
+        DemoHeuristicCriteria::whereNotRealSiseesImport($query, $table);
 
         return (int) $query->count();
     }

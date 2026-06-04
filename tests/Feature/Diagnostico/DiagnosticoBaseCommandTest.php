@@ -15,18 +15,8 @@ final class DiagnosticoBaseCommandTest extends TestCase
 {
     use RefreshDatabase;
 
-    protected function tearDown(): void
-    {
-        putenv('ALLOW_DEMO_SEEDERS');
-        unset($_ENV['ALLOW_DEMO_SEEDERS'], $_SERVER['ALLOW_DEMO_SEEDERS']);
-        parent::tearDown();
-    }
-
     public function test_comando_existe_y_corre_sin_borrar_datos(): void
     {
-        putenv('ALLOW_DEMO_SEEDERS=false');
-        $_ENV['ALLOW_DEMO_SEEDERS'] = 'false';
-
         $this->seed(DatabaseSeeder::class);
         $usersAntes = User::query()->count();
 

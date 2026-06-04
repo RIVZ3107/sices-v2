@@ -33,21 +33,21 @@ final class DemoPatternQuery
             }
 
             if (Schema::hasColumn($table, 'nombre')) {
-                $q->orWhereRaw('LOWER(nombre) LIKE ?', ['%demo%']);
-                if ($table === 'alumnos') {
-                    $q->orWhere('nombre', 'DemoSynthetic');
-                }
+                $q->orWhere('nombre', 'DemoSynthetic');
+                $q->orWhere('nombre', 'like', '%(demo)%');
+                $q->orWhereRaw('LOWER(nombre) LIKE ?', ['%plan demo%']);
+                $q->orWhereRaw('LOWER(nombre) LIKE ?', ['%ciclo demo%']);
+                DemoHeuristicCriteria::orWhereNombreDemoTokenOnEloquent($q);
                 $matched = true;
             }
 
             if (Schema::hasColumn($table, 'metadata')) {
                 $q->orWhere('metadata->origen', ResetDemoControlEscolarService::ORIGEN);
                 $q->orWhere('metadata->demo_dataset', ResetDemoControlEscolarService::DATASET);
-                $meta = strtolower(ResetDemoControlEscolarService::DATASET);
-                self::orWhereMetadataContains($q, 'synthetic');
-                self::orWhereMetadataContains($q, 'demo_control_escolar');
-                self::orWhereMetadataContains($q, $meta);
-                self::orWhereMetadataContains($q, 'control_escolar_v1');
+                DemoHeuristicCriteria::orWhereMetadataContainsOnEloquent($q, 'synthetic');
+                DemoHeuristicCriteria::orWhereMetadataContainsOnEloquent($q, 'demo_control_escolar');
+                DemoHeuristicCriteria::orWhereMetadataContainsOnEloquent($q, strtolower(ResetDemoControlEscolarService::DATASET));
+                DemoHeuristicCriteria::orWhereMetadataContainsOnEloquent($q, 'control_escolar_v1');
                 $matched = true;
             }
 
@@ -61,6 +61,8 @@ final class DemoPatternQuery
                 $q->whereRaw('1 = 0');
             }
         });
+
+        DemoHeuristicCriteria::whereNotRealSiseesImport($query, $table);
     }
 
     public static function hasTable(string $table): bool
@@ -78,6 +80,6 @@ final class DemoPatternQuery
      */
     private static function orWhereMetadataContains(Builder $q, string $needle): void
     {
-        $q->orWhereRaw('LOWER(COALESCE(CAST(metadata AS CHAR), \'\')) LIKE ?', ['%'.$needle.'%']);
+        DemoHeuristicCriteria::orWhereMetadataContainsOnEloquent($q, $needle);
     }
 }

@@ -6,7 +6,7 @@
 **Archivos revisados prioritariamente:**
 
 - `database/seeders/RolesAndPermissionsSeeder.php`
-- `database/seeders/MenuSeeder.php` → `SystemMenusSeeder.php`
+- Menús: `database/seeders/SystemMenusSeeder.php`
 - `database/seeders/DatabaseSeeder.php`
 - `database/seeders/Support/SicesPermissionsCatalog.php`
 - `config/permission.php`

@@ -63,14 +63,6 @@ final class ControlEscolarUiContratoVisualTest extends TestCase
         $this->assertStringContainsString('controlEscolarApi', $src);
     }
 
-    public function test_reinscripciones_sin_colegiatura_en_datos_demo(): void
-    {
-        $path = base_path('resources/js/data/controlEscolarDemoData.js');
-        $src = (string) file_get_contents($path);
-        $this->assertStringContainsString('CE_DEMO_REINSCRIPCIONES', $src);
-        $this->assertStringNotContainsString('colegiatura', strtolower($src));
-    }
-
     public function test_calificaciones_conecta_api(): void
     {
         $path = base_path('resources/js/pages/controlEscolar/CalificacionesCePage.jsx');

@@ -20,6 +20,9 @@
 /storage/*.key
 /storage/pail
 /storage/app/reportes/
+storage/app/reportes/**/*.md
+storage/app/reportes/**/*.json
+storage/app/reportes/importacion-sisees/
 /vendor
 _ide_helper.php
 Homestead.json

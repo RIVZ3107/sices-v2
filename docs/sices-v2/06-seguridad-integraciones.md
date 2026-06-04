@@ -117,11 +117,11 @@ Siempre con:
 
 ## Seeders y datos demo
 
-`DemoUsuariosPorRolSeeder` **no corre en production** (`DatabaseSeeder`).
+`DatabaseSeeder` solo ejecuta catálogos institucionales (`InstitutionalBaseSeeder`); no hay seeders demo en el repositorio.
 
 Contraseñas demo no deben existir en prod.
 
 ## Siguiente lectura
 
 - [09 - Diagnóstico y go-live](./09-diagnostico-go-live.md)
-- [auditoria-sices-v2-contra-legacy-certificacion.md](./auditoria-sices-v2-contra-legacy-certificacion.md)
+- [datos-reales/importacion-controlada.md](./datos-reales/importacion-controlada.md)

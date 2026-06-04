@@ -136,6 +136,6 @@ Chunks manuales: `react-vendor`, `http-vendor`, `app`.
 
 ## Siguiente lectura
 
-- [07 - UX/UI y redundancias](./07-ux-ui-redundancias.md)
+- [ux-control-escolar-certificacion.md](./ux-control-escolar-certificacion.md)
 - [05 - Matriz de roles y menús](./05-roles-menus-matriz.md)
 - `resources/js/README_FRONTEND.md` (parcial, puede estar desactualizado)
