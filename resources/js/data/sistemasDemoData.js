@@ -163,34 +163,6 @@ export const SIS_MENUS_TABLA = [
     { nombre: 'Reportes académicos', ruta: '/app/direccion/reportes', icono: 'report', orden: 40, tipo: 'Raíz', visible: false, estado: 'Oculto' },
 ];
 
-export const SIS_CATALOGO_FILAS = [
-    { nombre: 'Subsistemas', total: 4, actualizado: '18/05/2025', responsable: 'Sistemas', estado: 'Activo' },
-    { nombre: 'Instituciones', total: 128, actualizado: '19/05/2025', responsable: 'Sistemas', estado: 'Activo' },
-    { nombre: 'Sedes', total: 342, actualizado: '19/05/2025', responsable: 'Sistemas', estado: 'Activo' },
-    { nombre: 'Municipios', total: 125, actualizado: '10/05/2025', responsable: 'Sistemas', estado: 'Activo' },
-    { nombre: 'Niveles académicos', total: 6, actualizado: '02/05/2025', responsable: 'Sistemas', estado: 'Activo' },
-    { nombre: 'Programas académicos', total: 214, actualizado: '17/05/2025', responsable: 'ES', estado: 'Activo' },
-    { nombre: 'Planes de estudio', total: 198, actualizado: '17/05/2025', responsable: 'ES', estado: 'Activo' },
-    { nombre: 'Materias', total: 1840, actualizado: '16/05/2025', responsable: 'ES', estado: 'Activo' },
-    { nombre: 'Ciclos escolares', total: 12, actualizado: '01/05/2025', responsable: 'Sistemas', estado: 'Activo' },
-    { nombre: 'Tipos de documento', total: 22, actualizado: '12/05/2025', responsable: 'Sistemas', estado: 'Activo' },
-    { nombre: 'Tipos de trámite', total: 31, actualizado: '12/05/2025', responsable: 'Sistemas', estado: 'Activo' },
-    { nombre: 'Estados de documento', total: 9, actualizado: '11/05/2025', responsable: 'Sistemas', estado: 'Activo' },
-    { nombre: 'Estados de matrícula', total: 8, actualizado: '11/05/2025', responsable: 'Sistemas', estado: 'Activo' },
-    { nombre: 'Estados de inscripción', total: 7, actualizado: '11/05/2025', responsable: 'Sistemas', estado: 'Activo' },
-    { nombre: 'Motivos de baja', total: 14, actualizado: '09/05/2025', responsable: 'Sistemas', estado: 'Activo' },
-    { nombre: 'Motivos de observación', total: 19, actualizado: '09/05/2025', responsable: 'Sistemas', estado: 'Activo' },
-    { nombre: 'Plantillas documentales', total: 36, actualizado: '15/05/2025', responsable: 'Sistemas', estado: 'Activo' },
-    { nombre: 'Tipos de certificación', total: 5, actualizado: '08/05/2025', responsable: 'Sistemas', estado: 'Activo' },
-];
-
-export const SIS_CATALOGO_METRICAS = [
-    { title: 'Catálogos activos', value: '27', trend: '↑ 8% vs. ciclo anterior', tone: 'blue' },
-    { title: 'Elementos registrados', value: '2,845', trend: '↑ 6% vs. ciclo anterior', tone: 'green' },
-    { title: 'Catálogos pendientes', value: '3', trend: '↓ 25% vs. ciclo anterior', tone: 'orange' },
-    { title: 'Cambios recientes', value: '48', trend: '↑ 12% vs. ciclo anterior', tone: 'purple' },
-];
-
 export const SIS_INTEGRACIONES = [
     { servicio: 'RENAPO / validación CURP', tipo: 'API REST', estado: 'Activo', ultima: '20/05/2025 08:12', responsable: 'Equipo de Sistemas' },
     { servicio: 'SEP / DGAIR', tipo: 'API REST', estado: 'Activo', ultima: '20/05/2025 07:55', responsable: 'Equipo de Sistemas' },

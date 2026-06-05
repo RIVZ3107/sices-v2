@@ -14,7 +14,8 @@ export function CatalogoDataTable({
     onRowClick,
     selectedId = null,
 }) {
-    const headers = columns.map((c) => c.label);
+    const cols = Array.isArray(columns) ? columns : [];
+    const headers = cols.map((c) => c.label);
     if (modoTecnico) {
         headers.push('Información técnica');
     }
@@ -36,7 +37,7 @@ export function CatalogoDataTable({
                         }}
                         onClick={onRowClick ? () => onRowClick(row) : undefined}
                     >
-                        {columns.map((col) => (
+                        {cols.map((col) => (
                             <td key={col.key} style={esTheme.td}>
                                 {renderCatalogoCell(row, col)}
                             </td>

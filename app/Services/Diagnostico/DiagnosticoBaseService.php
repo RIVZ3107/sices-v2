@@ -19,7 +19,9 @@ final class DiagnosticoBaseService
         'users', 'roles', 'permissions', 'menus',
         'subsistemas', 'regiones', 'instituciones', 'sedes', 'niveles_academicos',
         'ciclos_escolares', 'programas_estudio', 'planes_estudio', 'ofertas_academicas',
-        'materias', 'plan_materias', 'periodos_escolares', 'alumnos', 'matriculas', 'inscripciones_periodo',
+        'materias', 'plan_materias', 'periodos_escolares',
+        'estatus_academicos', 'estatus_matricula', 'escalas_calificacion',
+        'alumnos', 'matriculas', 'inscripciones_periodo',
         'cargas_academicas', 'materias_cursadas', 'trayectorias_academicas',
         'documentos_academicos', 'documento_observaciones', 'folios', 'url_short_tokens',
         'documento_payloads', 'documento_firmas', 'documento_versiones',
@@ -52,6 +54,7 @@ final class DiagnosticoBaseService
             'limpieza_demo' => $this->demoAudit->auditar(),
             'demo_clasificacion' => $this->demoClassifier->clasificar(),
             'ciclos_periodos' => $this->diagnosticarCiclosPeriodos(),
+            'catalogos_control_escolar' => $this->diagnosticarCatalogosControlEscolar(),
             'recomendaciones' => $this->generarRecomendaciones(),
         ];
     }
@@ -512,6 +515,11 @@ final class DiagnosticoBaseService
             $riesgos[] = 'No hay ciclo escolar marcado como actual; configure uno en Catálogos → Ciclos y periodos.';
         }
 
+        $catalogosCe = $this->diagnosticarCatalogosControlEscolar();
+        if (($catalogosCe['escalas_calificacion']['sin_escala_activa'] ?? false) === true) {
+            $riesgos[] = 'No hay escalas de calificación activas; la captura de calificaciones puede quedar bloqueada.';
+        }
+
         $postPurga = [];
         if ($activo === 0 && $purgable === 0) {
             $postPurga[] = 'Importar ciclos, programas y planes institucionales reales (sin prefijo SXCE-DEMO).';
@@ -578,5 +586,53 @@ final class DiagnosticoBaseService
                 'inactivos' => max(0, $totalPeriodos - $activosPeriodos),
             ],
         ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function diagnosticarCatalogosControlEscolar(): array
+    {
+        $out = [
+            'estatus_academicos' => ['existe' => false, 'total' => 0, 'activos' => 0],
+            'estatus_matricula' => ['existe' => false, 'total' => 0, 'activos' => 0],
+            'escalas_calificacion' => ['existe' => false, 'total' => 0, 'activos' => 0, 'sin_escala_activa' => true],
+        ];
+
+        if ($this->schema->exists('estatus_academicos')) {
+            $total = $this->schema->countAll('estatus_academicos');
+            $activos = (int) DB::table('estatus_academicos')->where('activo', true)->whereNull('deleted_at')->count();
+            $out['estatus_academicos'] = [
+                'existe' => true,
+                'total' => $total,
+                'activos' => $activos,
+                'inactivos' => max(0, $total - $activos),
+            ];
+        }
+
+        if ($this->schema->exists('estatus_matricula')) {
+            $total = $this->schema->countAll('estatus_matricula');
+            $activos = (int) DB::table('estatus_matricula')->where('activo', true)->whereNull('deleted_at')->count();
+            $out['estatus_matricula'] = [
+                'existe' => true,
+                'total' => $total,
+                'activos' => $activos,
+                'inactivos' => max(0, $total - $activos),
+            ];
+        }
+
+        if ($this->schema->exists('escalas_calificacion')) {
+            $total = $this->schema->countAll('escalas_calificacion');
+            $activos = (int) DB::table('escalas_calificacion')->where('activo', true)->whereNull('deleted_at')->count();
+            $out['escalas_calificacion'] = [
+                'existe' => true,
+                'total' => $total,
+                'activos' => $activos,
+                'inactivos' => max(0, $total - $activos),
+                'sin_escala_activa' => $activos === 0,
+            ];
+        }
+
+        return $out;
     }
 }

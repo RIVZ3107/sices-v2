@@ -56,8 +56,17 @@ class RolesAndPermissionsSeeder extends Seeder
                 ['name' => $nombre, 'guard_name' => $guard],
             );
 
-            if ($nombre === 'superadmin' || $nombre === 'admin') {
+            if ($nombre === 'superadmin') {
                 $role->syncPermissions($todos);
+
+                continue;
+            }
+
+            if ($nombre === 'admin') {
+                $role->syncPermissions(array_values(array_diff(
+                    $todos,
+                    SicesPermissionsCatalog::forbiddenForAdmin(),
+                )));
 
                 continue;
             }

@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\V1\Admin\UserManagementController;
 use App\Http\Controllers\Api\V1\Certificacion\AlumnoCapturaController;
 use App\Http\Controllers\Api\Catalogos\DocumentoAcademicoTipoController;
 use App\Http\Controllers\Api\V1\Catalogos\CatalogosAcademicosController;
+use App\Http\Controllers\Api\V1\Catalogos\CatalogosControlEscolarController;
 use App\Http\Controllers\Api\V1\Catalogos\CiclosEscolaresController;
 use App\Http\Controllers\Api\V1\Certificacion\CatalogoCapturaController;
 use App\Http\Controllers\Api\V1\Certificacion\DocumentoAcademicoProcesoController;
@@ -133,6 +134,37 @@ Route::prefix('v1/catalogos-academicos')
             Route::patch('ciclos-escolares/{ciclo}/marcar-actual', [CiclosEscolaresController::class, 'marcarActual'])->whereNumber('ciclo');
             Route::put('periodos-escolares/{periodo}', [CiclosEscolaresController::class, 'updatePeriodo'])->whereNumber('periodo');
             Route::patch('periodos-escolares/{periodo}/activar', [CiclosEscolaresController::class, 'activarPeriodo'])->whereNumber('periodo');
+        });
+    });
+
+Route::prefix('v1/catalogos-control-escolar')
+    ->middleware('auth:sanctum')
+    ->group(function () {
+        $verCatalogosCe = 'permission_or:control_escolar.catalogos.ver|estatus_academicos.ver|estatus_matricula.ver|escalas_calificacion.ver|catalogos.ver|ver_catalogos|dashboard.ver';
+        $crearCatalogosCe = 'permission_or:control_escolar.catalogos.configurar|estatus_academicos.crear|estatus_matricula.crear|escalas_calificacion.crear|catalogos.configurar|gestionar_catalogos';
+        $editarCatalogosCe = 'permission_or:control_escolar.catalogos.configurar|estatus_academicos.editar|estatus_matricula.editar|escalas_calificacion.editar|catalogos.configurar|gestionar_catalogos';
+
+        Route::middleware($verCatalogosCe)->group(function () {
+            Route::get('resumen', [CatalogosControlEscolarController::class, 'resumen']);
+            Route::get('escalas-calificacion/tipos', [CatalogosControlEscolarController::class, 'tiposEscala']);
+            Route::get('estatus-academicos', [CatalogosControlEscolarController::class, 'indexEstatusAcademicos']);
+            Route::get('estatus-matricula', [CatalogosControlEscolarController::class, 'indexEstatusMatricula']);
+            Route::get('escalas-calificacion', [CatalogosControlEscolarController::class, 'indexEscalasCalificacion']);
+        });
+
+        Route::middleware($crearCatalogosCe)->group(function () {
+            Route::post('estatus-academicos', [CatalogosControlEscolarController::class, 'storeEstatusAcademico']);
+            Route::post('estatus-matricula', [CatalogosControlEscolarController::class, 'storeEstatusMatricula']);
+            Route::post('escalas-calificacion', [CatalogosControlEscolarController::class, 'storeEscalaCalificacion']);
+        });
+
+        Route::middleware($editarCatalogosCe)->group(function () {
+            Route::put('estatus-academicos/{id}', [CatalogosControlEscolarController::class, 'updateEstatusAcademico'])->whereNumber('id');
+            Route::patch('estatus-academicos/{id}/activar', [CatalogosControlEscolarController::class, 'activarEstatusAcademico'])->whereNumber('id');
+            Route::put('estatus-matricula/{id}', [CatalogosControlEscolarController::class, 'updateEstatusMatricula'])->whereNumber('id');
+            Route::patch('estatus-matricula/{id}/activar', [CatalogosControlEscolarController::class, 'activarEstatusMatricula'])->whereNumber('id');
+            Route::put('escalas-calificacion/{id}', [CatalogosControlEscolarController::class, 'updateEscalaCalificacion'])->whereNumber('id');
+            Route::patch('escalas-calificacion/{id}/activar', [CatalogosControlEscolarController::class, 'activarEscalaCalificacion'])->whereNumber('id');
         });
     });
 

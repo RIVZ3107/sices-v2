@@ -33,7 +33,6 @@ export function AdminDashboardPage() {
                 { label: 'Materias / calificaciones', to: '/app/materias-cursadas' },
                 { label: 'Trayectorias', to: '/app/trayectorias' },
                 { label: 'Importaciones', to: '/app/importaciones' },
-                { label: 'Catalogos', to: '/app/admin/catalogos' },
                 { label: 'Usuarios operativos', to: '/app/admin/usuarios-roles' },
                 { label: 'Reportes basicos', to: '/app/admin/reportes-basicos' },
             ]}

@@ -32,7 +32,7 @@ export function CatalogoTabbedView({
 }) {
     const [searchParams, setSearchParams] = useSearchParams();
     const tabId = searchParams.get('tab') || initialTab || tabs[0]?.id;
-    const tab = tabs.find((t) => t.id === tabId) ?? tabs[0];
+    const tab = tabs.find((t) => t.id === tabId) ?? tabs[0] ?? null;
 
     const [resumen, setResumen] = useState(null);
     const [filtros, setFiltros] = useState({ subsistemas: [], instituciones: [], programas: [], planes: [], regiones: [] });
@@ -97,6 +97,13 @@ export function CatalogoTabbedView({
     }, [programaId]);
 
     const cargarTabla = useCallback(() => {
+        if (!tab) {
+            setRows([]);
+            setMeta({ current_page: 1, last_page: 1, total: 0, per_page: 25 });
+            setPlanInfo(null);
+            return;
+        }
+
         if (tab.isEstructura && !planId) {
             setRows([]);
             setMeta({ current_page: 1, last_page: 1, total: 0, per_page: 25 });
@@ -151,14 +158,18 @@ export function CatalogoTabbedView({
     }, [resumen, resumenKeys]);
 
     const showFilter = (name) => {
+        if (!tab) return false;
+        const tabFilters = tab.filters ?? [];
         if (name === 'trazabilidad_migracion') {
-            return modoTecnico && tab.filters.includes(name);
+            return modoTecnico && tabFilters.includes(name);
         }
         if (fixedFilters.institucion_id && name === 'institucion') return false;
-        return tab.filters.includes(name);
+        return tabFilters.includes(name);
     };
 
-    const emptyMessage = tab.isEstructura && !planId
+    const emptyMessage = !tab
+        ? 'No hay pestañas configuradas para este catálogo.'
+        : tab.isEstructura && !planId
         ? 'Seleccione un plan de estudio para consultar la estructura curricular.'
         : hayFiltrosActivos({ search, subsistemaId, institucionId, programaId, planId, regionId, activo, soloTrazabilidad })
             ? 'No se encontraron registros con los filtros seleccionados.'
@@ -168,12 +179,23 @@ export function CatalogoTabbedView({
         return <EsPageLayout loading loadingText="Cargando catálogos..." title="" />;
     }
 
+    if (!tab) {
+        return (
+            <EsPageLayout
+                breadcrumbCurrent={breadcrumb}
+                title={title}
+                subtitle={subtitle}
+                error="No se pudo inicializar la vista de catálogos."
+                showSplit={false}
+            />
+        );
+    }
+
     return (
         <EsPageLayout
             breadcrumbCurrent={breadcrumb}
             title={title}
             subtitle={subtitle}
-            metrics={null}
             error={error || undefined}
             showSplit={false}
         >
@@ -216,7 +238,7 @@ export function CatalogoTabbedView({
                         {showFilter('subsistema') ? (
                             <select value={subsistemaId} onChange={(e) => { setSubsistemaId(e.target.value); setPage(1); }} style={esTheme.inputSearch}>
                                 <option value="">Todos los subsistemas</option>
-                                {filtros.subsistemas.map((s) => (
+                                {(filtros.subsistemas ?? []).map((s) => (
                                     <option key={s.id} value={s.id}>{sanitizeInstitutionalLabel(s.nombre ?? s.clave)}</option>
                                 ))}
                             </select>
@@ -240,7 +262,7 @@ export function CatalogoTabbedView({
                         {showFilter('programa') ? (
                             <select value={programaId} onChange={(e) => { setProgramaId(e.target.value); setPlanId(''); setPage(1); }} style={esTheme.inputSearch}>
                                 <option value="">Todos los programas</option>
-                                {filtros.programas.map((p) => (
+                                {(filtros.programas ?? []).map((p) => (
                                     <option key={p.id} value={p.id}>{p.nombre}</option>
                                 ))}
                             </select>

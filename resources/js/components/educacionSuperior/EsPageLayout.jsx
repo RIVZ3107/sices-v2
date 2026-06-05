@@ -72,11 +72,12 @@ export function EsHeaderAction({ to, icon, label, variant = 'secondary', onClick
 }
 
 export function EsMetricsStrip({ metrics = [], wide = false }) {
-    if (!metrics.length) return null;
+    const list = Array.isArray(metrics) ? metrics : [];
+    if (!list.length) return null;
 
     return (
         <div style={wide ? esTheme.metricsGridWide : esTheme.metricsGrid}>
-            {metrics.map((m) => (
+            {list.map((m) => (
                 <EsMetricCard
                     key={m.key ?? m.title}
                     icon={m.icon ?? (m.iconKey ? EsIcons[m.iconKey] : null)}
@@ -238,7 +239,7 @@ export function EsPageLayout({
                     <ErrorState message={error} />
                 </div>
             ) : null}
-            <EsMetricsStrip metrics={metrics} wide={metricsWide} />
+            <EsMetricsStrip metrics={metrics ?? []} wide={metricsWide} />
             {body}
         </div>
     );

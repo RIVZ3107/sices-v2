@@ -82,13 +82,18 @@ class SystemMenusSeeder extends Seeder
         $mk('sa_est', 'sa_ciclos', 'Ciclos y periodos', '/app/catalogos/ciclos-periodos', 'panel', 3, 'ESTRUCTURA', 'catalogos.academicos.ver', ['superadmin', 'admin']);
         $mk('sa_est', 'sa_mun', 'Municipios', '/app/catalogos/municipios', 'settings', 4, 'ESTRUCTURA', 'catalogos.ver', ['superadmin', 'admin']);
         $mk('sa_est', 'sa_prog', 'Programas y ofertas', '/app/catalogos/programas-ofertas', 'panel', 5, 'ESTRUCTURA', 'catalogos.ver', ['superadmin', 'admin']);
-        $mk(null, 'sa_users', 'Usuarios', '/app/admin/usuarios-roles', 'users', 10, 'ADMIN', 'usuarios.ver', ['superadmin', 'admin']);
-        $mk(null, 'sa_roles', 'Roles y permisos', '/app/admin/usuarios-roles', 'users', 11, 'ADMIN', 'roles.ver', ['superadmin', 'admin']);
-        $mk(null, 'sa_menus', 'Menús del sistema', '/app/admin/menus', 'panel', 12, 'ADMIN', 'menus.administrar', ['superadmin', 'admin']);
-        $mk(null, 'sa_look', 'Apariencia del sistema', '/app/sistema/apariencia', 'settings', 13, 'ADMIN', 'apariencia_sistema.administrar', ['superadmin', 'admin']);
-        $mk(null, 'sa_conf', 'Configuración', '/app/admin/parametros', 'settings', 20, 'ADMIN', 'configuracion.ver', ['superadmin', 'admin']);
+        $mk(null, 'sa_ce_grp', 'Control escolar', '#', 'matriculas', 7, 'CONTROL ESCOLAR', null, ['superadmin', 'admin'], ['group_heading' => true]);
+        $mk('sa_ce_grp', 'sa_ce_config', 'Configuración académica', '/app/control-escolar/catalogos', 'settings', 8, 'CONTROL ESCOLAR', 'control_escolar.catalogos.configurar', ['superadmin', 'admin']);
+        $mk(null, 'sa_sys', 'Sistema', '#', 'settings', 10, 'SISTEMA', null, ['superadmin', 'admin'], ['group_heading' => true]);
+        $mk('sa_sys', 'sa_users', 'Usuarios', '/app/admin/usuarios-roles', 'users', 1, 'SISTEMA', 'usuarios.ver', ['superadmin', 'admin']);
+        $mk('sa_sys', 'sa_roles', 'Roles y permisos', '/app/admin/usuarios-roles', 'users', 2, 'SISTEMA', 'roles.ver', ['superadmin', 'admin']);
+        $mk('sa_sys', 'sa_menus', 'Menús del sistema', '/app/admin/menus', 'panel', 3, 'SISTEMA', 'menus.administrar', ['superadmin', 'admin']);
+        $mk('sa_sys', 'sa_conf', 'Configuración', '/app/admin/parametros', 'settings', 4, 'SISTEMA', 'configuracion.ver', ['superadmin', 'admin']);
+        $mk('sa_sys', 'sa_cat_tec', 'Catálogos técnicos', '/app/admin/catalogos', 'settings', 5, 'SISTEMA', 'catalogos.tecnicos.ver', ['superadmin']);
+        $mk(null, 'sa_look', 'Apariencia del sistema', '/app/sistema/apariencia', 'settings', 13, 'SISTEMA', 'apariencia_sistema.administrar', ['superadmin', 'admin']);
         $mk(null, 'sa_aud', 'Auditoría', '/app/auditoria', 'audit', 30, 'OPERACION', 'auditoria.ver', ['superadmin', 'admin']);
         $mk(null, 'sa_rep', 'Reportes globales', '/app/admin/reportes-basicos', 'report', 31, 'OPERACION', 'reportes.ver', ['superadmin', 'admin']);
+        $mk(null, 'sa_doc_conf', 'Configuración documental', '/app/admin/parametros', 'settings', 39, 'TECNICO', 'configuracion.configurar', ['superadmin'], ['technical_only' => true]);
         $mk(null, 'sa_int', 'Integraciones', '/app/sistemas/configuracion', 'integrations', 40, 'TECNICO', 'integraciones.ver', ['superadmin', 'admin'], ['technical_only' => true]);
         $mk(null, 'sa_logs', 'Logs técnicos', '/app/sistemas/logs', 'logs', 41, 'TECNICO', 'logs.ver', ['superadmin', 'admin'], ['technical_only' => true]);
 
@@ -101,12 +106,15 @@ class SystemMenusSeeder extends Seeder
         $mk('sys_est', 'sys_est_ciclos', 'Ciclos y periodos', '/app/catalogos/ciclos-periodos', 'panel', 3, 'ESTRUCTURA', 'catalogos.academicos.ver', ['sistemas']);
         $mk('sys_est', 'sys_est_mun', 'Municipios', '/app/catalogos/municipios', 'settings', 4, 'ESTRUCTURA', 'catalogos.ver', ['sistemas']);
         $mk('sys_est', 'sys_est_prog', 'Programas y ofertas', '/app/catalogos/programas-ofertas', 'panel', 5, 'ESTRUCTURA', 'catalogos.ver', ['sistemas']);
-        $mk(null, 'sys_users', 'Usuarios', '/app/admin/usuarios-roles', 'users', 5, 'ADMIN', 'usuarios.ver', ['sistemas']);
-        $mk(null, 'sys_roles', 'Roles y permisos', '/app/admin/usuarios-roles', 'users', 6, 'ADMIN', 'roles.ver', ['sistemas']);
-        $mk(null, 'sys_menus', 'Menús por rol', '/app/admin/menus', 'panel', 7, 'ADMIN', 'menus.administrar', ['sistemas']);
-        $mk(null, 'sys_look', 'Apariencia del sistema', '/app/sistema/apariencia', 'settings', 7, 'ADMIN', 'apariencia_sistema.administrar', ['sistemas']);
-        $mk(null, 'sys_cat', 'Catálogos técnicos', '/app/admin/catalogos', 'settings', 8, 'ADMIN', 'catalogos.ver', ['sistemas']);
-        $mk(null, 'sys_conf', 'Configuración', '/app/admin/parametros', 'settings', 9, 'ADMIN', 'configuracion.ver', ['sistemas']);
+        $mk(null, 'sys_ce_grp', 'Control escolar', '#', 'matriculas', 6, 'CONTROL ESCOLAR', null, ['sistemas'], ['group_heading' => true]);
+        $mk('sys_ce_grp', 'sys_ce_config', 'Configuración académica', '/app/control-escolar/catalogos', 'settings', 1, 'CONTROL ESCOLAR', 'control_escolar.catalogos.configurar', ['sistemas']);
+        $mk(null, 'sys_sys', 'Sistema', '#', 'settings', 8, 'SISTEMA', null, ['sistemas'], ['group_heading' => true]);
+        $mk('sys_sys', 'sys_users', 'Usuarios', '/app/admin/usuarios-roles', 'users', 1, 'SISTEMA', 'usuarios.ver', ['sistemas']);
+        $mk('sys_sys', 'sys_roles', 'Roles y permisos', '/app/admin/usuarios-roles', 'users', 2, 'SISTEMA', 'roles.ver', ['sistemas']);
+        $mk('sys_sys', 'sys_menus', 'Menús del sistema', '/app/admin/menus', 'panel', 3, 'SISTEMA', 'menus.administrar', ['sistemas']);
+        $mk('sys_sys', 'sys_conf', 'Configuración', '/app/admin/parametros', 'settings', 4, 'SISTEMA', 'configuracion.ver', ['sistemas']);
+        $mk('sys_sys', 'sys_cat', 'Catálogos técnicos', '/app/admin/catalogos', 'settings', 5, 'SISTEMA', 'catalogos.tecnicos.ver', ['sistemas']);
+        $mk(null, 'sys_look', 'Apariencia del sistema', '/app/sistema/apariencia', 'settings', 9, 'SISTEMA', 'apariencia_sistema.administrar', ['sistemas']);
         $mk(null, 'sys_int', 'Integraciones', '/app/sistemas/configuracion', 'integrations', 20, 'TECNICO', 'integraciones.ver', ['sistemas'], ['technical_only' => true]);
         $mk(null, 'sys_jobs', 'Jobs / colas', '/app/sistemas/dashboard', 'status', 21, 'TECNICO', 'jobs.ver', ['sistemas'], ['technical_only' => true]);
         $mk(null, 'sys_logs', 'Logs técnicos', '/app/sistemas/logs', 'logs', 22, 'TECNICO', 'logs.ver', ['sistemas'], ['technical_only' => true]);
@@ -117,6 +125,7 @@ class SystemMenusSeeder extends Seeder
         $mk('sys_pte', 'sys_pte_pen', 'Pendientes técnicos', '/app/sistemas/proceso-tecnico-certificacion?bandeja=pendientes-tecnicos', 'status', 2, 'TECNICO', 'xml.generar', ['sistemas'], ['technical_only' => true]);
         $mk('sys_pte', 'sys_pte_err', 'Errores de firma', '/app/sistemas/proceso-tecnico-certificacion?bandeja=errores-firma', 'audit', 3, 'TECNICO', 'firma.ver', ['sistemas'], ['technical_only' => true]);
         $mk(null, 'sys_proc', 'Procesos documentales técnicos', '#', 'docs', 30, 'TECNICO', 'xml.ver', ['sistemas'], ['group_heading' => true, 'technical_only' => true]);
+        $mk('sys_proc', 'sys_doc_conf', 'Configuración documental', '/app/admin/parametros', 'settings', 0, 'TECNICO', 'configuracion.configurar', ['sistemas'], ['technical_only' => true]);
         $mk('sys_proc', 'sys_cadena', 'Cadena original', '/app/sistemas/configuracion', 'integrations', 1, 'TECNICO', 'cadena_original.generar', ['sistemas'], ['technical_only' => true]);
         $mk('sys_proc', 'sys_xml', 'XML', '/app/sistemas/configuracion', 'integrations', 2, 'TECNICO', 'xml.generar', ['sistemas'], ['technical_only' => true]);
         $mk('sys_proc', 'sys_firma', 'Firma', '/app/sistemas/proceso-tecnico-certificacion', 'validate', 3, 'TECNICO', 'firma.ver', ['sistemas'], ['technical_only' => true]);
@@ -130,7 +139,8 @@ class SystemMenusSeeder extends Seeder
         $mk(null, 'es_sed', 'Sedes / Subsedes', '/app/educacion-superior/sedes', 'settings', 3, 'OPERACION', 'sedes.ver', ['educacion_superior']);
         $mk(null, 'es_pro', 'Programas académicos', '/app/educacion-superior/programas', 'panel', 4, 'OPERACION', 'programas.ver', ['educacion_superior']);
         $mk(null, 'es_plan', 'Planes de estudio', '/app/educacion-superior/planes', 'panel', 5, 'OPERACION', 'planes_estudio.ver', ['educacion_superior']);
-        $mk(null, 'es_cat_acad', 'Catálogos académicos', '/app/catalogos-academicos', 'panel', 55, 'OPERACION', 'catalogos.academicos.ver', ['educacion_superior']);
+        $mk(null, 'es_est', 'Estructura académica', '#', 'panel', 55, 'ESTRUCTURA', null, ['educacion_superior'], ['group_heading' => true]);
+        $mk('es_est', 'es_cat_acad', 'Catálogos académicos', '/app/catalogos-academicos', 'panel', 0, 'ESTRUCTURA', 'catalogos.academicos.ver', ['educacion_superior']);
         $mk(null, 'es_sol', 'Solicitudes de matrícula', '/app/solicitudes-matricula', 'matriculas', 6, 'OPERACION', 'solicitudes_matricula.ver', ['educacion_superior']);
         $mk(null, 'es_val', 'Validaciones normativas', '/app/educacion-superior/validaciones-normativas', 'validate', 7, 'OPERACION', 'validaciones_normativas.ver', ['educacion_superior']);
         $mk(null, 'es_norm_grp', 'Normales', '#', 'docs', 8, 'OPERACION', 'certificacion.ver', ['educacion_superior'], ['group_heading' => true]);
@@ -164,23 +174,25 @@ class SystemMenusSeeder extends Seeder
 
         // ——— Control Escolar (operación Normal / UPN; vistas unificadas /app/control-escolar/*) ———
         $mk(null, 'ce_ini', 'Dashboard', '/app/dashboard', 'home', 1, 'MAIN', 'dashboard.ver', ['control_escolar_escuela']);
-        $mk(null, 'ce_alu', 'Alumnos', '/app/control-escolar/alumnos', 'users', 2, 'OPERACION', 'alumnos.ver', ['control_escolar_escuela']);
-        $mk(null, 'ce_exp', 'Expedientes', '/app/control-escolar/expedientes', 'docs', 3, 'OPERACION', 'expedientes.ver', ['control_escolar_escuela']);
-        $mk(null, 'ce_ins', 'Inscripciones', '/app/control-escolar/inscripciones', 'matriculas', 4, 'OPERACION', 'inscripciones.ver', ['control_escolar_escuela']);
-        $mk(null, 'ce_rei', 'Reinscripciones', '/app/control-escolar/reinscripciones', 'matriculas', 5, 'OPERACION', 'reinscripciones.ver', ['control_escolar_escuela']);
-        $mk(null, 'ce_trk', 'Trayectoria académica', '/app/control-escolar/trayectoria', 'trayectoria', 6, 'OPERACION', 'trayectoria.ver', ['control_escolar_escuela']);
-        $mk(null, 'ce_cal', 'Calificaciones', '/app/control-escolar/calificaciones', 'materias', 7, 'OPERACION', 'calificaciones.ver', ['control_escolar_escuela']);
-        $mk(null, 'ce_doc', 'Documentos', '/app/control-escolar/documentos', 'docs', 8, 'OPERACION', 'documentos.ver', ['control_escolar_escuela']);
-        $mk(null, 'ce_cert', 'Certificación escolar', '#', 'docs', 15, 'OPERACION', 'documentos.crear_borrador', ['control_escolar_escuela'], ['group_heading' => true]);
-        $mk('ce_cert', 'ce_cert_sol', 'Solicitud documental', '/app/certificacion/solicitud', 'docs', 1, 'OPERACION', 'documentos.crear_borrador', ['control_escolar_escuela']);
-        $mk('ce_cert', 'ce_cert_bor', 'Borradores', '/app/documentos/bandejas/borradores', 'docs', 2, 'OPERACION', 'documentos.ver', ['control_escolar_escuela']);
-        $mk('ce_cert', 'ce_cert_rev', 'En revisión', '/app/documentos/bandejas/en-revision', 'validate', 3, 'OPERACION', 'documentos.ver', ['control_escolar_escuela']);
-        $mk(null, 'ce_baj', 'Bajas y cambios', '/app/control-escolar/bajas-cambios', 'audit', 9, 'OPERACION', 'expedientes.editar', ['control_escolar_escuela']);
-        $mk(null, 'ce_sol', 'Solicitudes', '/app/control-escolar/solicitudes', 'matriculas', 10, 'OPERACION', 'expedientes.ver', ['control_escolar_escuela']);
-        $mk(null, 'ce_imp', 'Importaciones', '/app/control-escolar/importaciones', 'import', 11, 'OPERACION', 'importaciones_academicas.ver', ['control_escolar_escuela']);
-        $mk(null, 'ce_obs', 'Observaciones', '/app/control-escolar/observaciones', 'audit', 12, 'OPERACION', 'observaciones.ver', ['control_escolar_escuela']);
-        $mk(null, 'ce_rep', 'Reportes', '/app/control-escolar/reportes', 'report', 13, 'OPERACION', 'reportes.ver', ['control_escolar_escuela']);
-        $mk(null, 'ce_not', 'Notificaciones', '/app/control-escolar/notificaciones', 'status', 14, 'OPERACION', 'notificaciones.ver', ['control_escolar_escuela']);
+        $mk(null, 'ce_grp', 'Control escolar', '#', 'matriculas', 2, 'CONTROL ESCOLAR', null, ['control_escolar_escuela'], ['group_heading' => true]);
+        $mk('ce_grp', 'ce_alu', 'Alumnos', '/app/control-escolar/alumnos', 'users', 1, 'CONTROL ESCOLAR', 'alumnos.ver', ['control_escolar_escuela']);
+        $mk('ce_grp', 'ce_exp', 'Expedientes', '/app/control-escolar/expedientes', 'docs', 2, 'CONTROL ESCOLAR', 'expedientes.ver', ['control_escolar_escuela']);
+        $mk('ce_grp', 'ce_ins', 'Inscripciones', '/app/control-escolar/inscripciones', 'matriculas', 3, 'CONTROL ESCOLAR', 'inscripciones.ver', ['control_escolar_escuela']);
+        $mk('ce_grp', 'ce_rei', 'Reinscripciones', '/app/control-escolar/reinscripciones', 'matriculas', 4, 'CONTROL ESCOLAR', 'reinscripciones.ver', ['control_escolar_escuela']);
+        $mk('ce_grp', 'ce_trk', 'Trayectoria', '/app/control-escolar/trayectoria', 'trayectoria', 5, 'CONTROL ESCOLAR', 'trayectoria.ver', ['control_escolar_escuela']);
+        $mk('ce_grp', 'ce_cal', 'Calificaciones', '/app/control-escolar/calificaciones', 'materias', 6, 'CONTROL ESCOLAR', 'calificaciones.ver', ['control_escolar_escuela']);
+        $mk('ce_grp', 'ce_doc', 'Documentos', '/app/control-escolar/documentos', 'docs', 7, 'CONTROL ESCOLAR', 'documentos.ver', ['control_escolar_escuela']);
+        $mk('ce_grp', 'ce_config', 'Configuración académica', '/app/control-escolar/catalogos', 'settings', 8, 'CONTROL ESCOLAR', 'control_escolar.catalogos.ver', ['control_escolar_escuela']);
+        $mk(null, 'ce_cert', 'Certificación', '#', 'docs', 10, 'CERTIFICACIÓN', 'documentos.ver', ['control_escolar_escuela'], ['group_heading' => true]);
+        $mk('ce_cert', 'ce_cert_band', 'Bandejas', '/app/documentos/bandejas/por-rol', 'docs', 1, 'CERTIFICACIÓN', 'documentos.ver', ['control_escolar_escuela']);
+        $mk('ce_cert', 'ce_cert_sol', 'Solicitud documental', '/app/certificacion/solicitud', 'docs', 2, 'CERTIFICACIÓN', 'documentos.crear_borrador', ['control_escolar_escuela']);
+        $mk('ce_cert', 'ce_cert_gen', 'Folios y emisión', '/app/certificacion/generacion-documentos', 'docs', 3, 'CERTIFICACIÓN', 'documentos.ver', ['control_escolar_escuela']);
+        $mk(null, 'ce_baj', 'Bajas y cambios', '/app/control-escolar/bajas-cambios', 'audit', 20, 'OPERACION', 'expedientes.editar', ['control_escolar_escuela']);
+        $mk(null, 'ce_sol', 'Solicitudes', '/app/control-escolar/solicitudes', 'matriculas', 21, 'OPERACION', 'expedientes.ver', ['control_escolar_escuela']);
+        $mk(null, 'ce_imp', 'Importaciones', '/app/control-escolar/importaciones', 'import', 22, 'OPERACION', 'importaciones_academicas.ver', ['control_escolar_escuela']);
+        $mk(null, 'ce_obs', 'Observaciones', '/app/control-escolar/observaciones', 'audit', 23, 'OPERACION', 'observaciones.ver', ['control_escolar_escuela']);
+        $mk(null, 'ce_rep', 'Reportes', '/app/control-escolar/reportes', 'report', 24, 'OPERACION', 'reportes.ver', ['control_escolar_escuela']);
+        $mk(null, 'ce_not', 'Notificaciones', '/app/control-escolar/notificaciones', 'status', 25, 'OPERACION', 'notificaciones.ver', ['control_escolar_escuela']);
 
         // ——— Responsable admisión ———
         $mk(null, 'ra_ini', 'Inicio', '/app/dashboard', 'home', 1, 'MAIN', 'admision.ver', ['responsable_admision']);
@@ -198,18 +210,15 @@ class SystemMenusSeeder extends Seeder
         $mk(null, 'rev_cor', 'Correcciones', '/app/coordinador/dashboard', 'audit', 9, 'EVAL', 'correcciones_calificacion.ver', ['responsable_evaluacion']);
         $mk(null, 'rev_rep', 'Reportes', '/app/admin/reportes-basicos', 'report', 20, 'EVAL', 'reportes.ver', ['responsable_evaluacion']);
 
-        // ——— Responsable certificación (módulo visual /app/certificacion/*) ———
+        // ——— Responsable certificación (operación documental; sin catálogos en menú) ———
         $mk(null, 'rc_ini', 'Inicio', '/app/certificacion/dashboard', 'home', 1, 'MAIN', 'certificacion.ver', ['responsable_certificacion_titulacion']);
-        $mk(null, 'rc_mod', 'Certificación', '#', 'docs', 2, 'CERT', 'certificacion.ver', ['responsable_certificacion_titulacion'], ['group_heading' => true]);
-        $mk('rc_mod', 'rc_sol', 'Solicitudes', '/app/certificacion/solicitudes', 'inbox', 1, 'CERT', 'certificacion.ver', ['responsable_certificacion_titulacion']);
-        $mk('rc_mod', 'rc_docac', 'Documentos a certificar', '/app/certificacion/documentos-a-certificar', 'docs', 2, 'CERT', 'documentos.ver', ['responsable_certificacion_titulacion']);
-        $mk('rc_mod', 'rc_gen', 'Generación de documentos', '/app/certificacion/generacion-documentos', 'file', 3, 'CERT', 'documentos.ver', ['responsable_certificacion_titulacion']);
-        $mk('rc_mod', 'rc_firma', 'Firma electrónica (seguimiento)', '/app/certificacion/firma-electronica', 'signature', 4, 'CERT', 'certificacion.ver', ['responsable_certificacion_titulacion']);
-        $mk('rc_mod', 'rc_ent', 'Entrega y seguimiento', '/app/certificacion/entrega-seguimiento', 'truck', 5, 'CERT', 'documentos.ver', ['responsable_certificacion_titulacion']);
-        $mk('rc_mod', 'rc_rev', 'Revisión institucional', '/app/certificacion/revision', 'validate', 6, 'CERT', 'certificacion.ver', ['responsable_certificacion_titulacion']);
-        $mk('rc_mod', 'rc_rep', 'Reportes', '/app/certificacion/reportes', 'report', 7, 'CERT', 'reportes.ver', ['responsable_certificacion_titulacion']);
-        $mk('rc_mod', 'rc_not', 'Notificaciones', '/app/certificacion/notificaciones', 'status', 8, 'CERT', 'notificaciones.ver', ['responsable_certificacion_titulacion']);
-        $mk(null, 'rc_cp', 'Consulta pública', '/app/consulta/documentos', 'validate', 11, 'CERT', 'consulta_publica.ver', ['responsable_certificacion_titulacion']);
+        $mk(null, 'rc_mod', 'Certificación', '#', 'docs', 2, 'CERTIFICACIÓN', 'certificacion.ver', ['responsable_certificacion_titulacion'], ['group_heading' => true]);
+        $mk('rc_mod', 'rc_band', 'Bandejas', '/app/documentos/bandejas/por-rol', 'docs', 1, 'CERTIFICACIÓN', 'documentos.ver', ['responsable_certificacion_titulacion']);
+        $mk('rc_mod', 'rc_docac', 'Documentos académicos', '/app/certificacion/documentos-a-certificar', 'docs', 2, 'CERTIFICACIÓN', 'documentos.ver', ['responsable_certificacion_titulacion']);
+        $mk('rc_mod', 'rc_fol', 'Folios y emisión', '/app/certificacion/generacion-documentos', 'docs', 3, 'CERTIFICACIÓN', 'documentos.ver', ['responsable_certificacion_titulacion']);
+        $mk('rc_mod', 'rc_firma', 'Firma y proceso documental', '/app/certificacion/firma-electronica', 'validate', 4, 'CERTIFICACIÓN', 'certificacion.ver', ['responsable_certificacion_titulacion']);
+        $mk('rc_mod', 'rc_hist', 'Historial', '/app/certificacion/entrega-seguimiento', 'history', 5, 'CERTIFICACIÓN', 'documentos.ver', ['responsable_certificacion_titulacion']);
+        $mk(null, 'rc_cp', 'Consulta pública', '/app/consulta/documentos', 'validate', 11, 'CONSULTA', 'consulta_publica.ver', ['responsable_certificacion_titulacion']);
 
         // ——— Docente ———
         $mk(null, 'doc_ini', 'Inicio', '/app/docente/dashboard', 'home', 1, 'MAIN', 'dashboard.ver', ['docente']);

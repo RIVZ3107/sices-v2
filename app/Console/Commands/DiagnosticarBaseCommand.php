@@ -41,6 +41,17 @@ final class DiagnosticarBaseCommand extends Command
             }
         }
 
+        $cce = $reporte['catalogos_control_escolar'] ?? [];
+        if (($cce['estatus_academicos']['existe'] ?? false) || ($cce['estatus_matricula']['existe'] ?? false) || ($cce['escalas_calificacion']['existe'] ?? false)) {
+            $this->newLine();
+            $this->line('Estatus académicos: '.($cce['estatus_academicos']['total'] ?? 0));
+            $this->line('Estatus de matrícula: '.($cce['estatus_matricula']['total'] ?? 0));
+            $this->line('Escalas de calificación: '.($cce['escalas_calificacion']['total'] ?? 0).' (activas: '.($cce['escalas_calificacion']['activos'] ?? 0).')');
+            if ($cce['escalas_calificacion']['sin_escala_activa'] ?? false) {
+                $this->warn('Advertencia: no hay escalas de calificación activas.');
+            }
+        }
+
         $this->newLine();
         $this->table(
             ['Tabla', 'Existe', 'Registros', 'Demo heur.'],

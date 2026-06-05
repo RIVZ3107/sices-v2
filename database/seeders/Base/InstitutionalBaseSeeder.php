@@ -9,6 +9,9 @@ use Database\Seeders\Catalogos\InstitucionesLegacyBaseSeeder;
 use Database\Seeders\Catalogos\InstitucionesSedesInicialSeeder;
 use Database\Seeders\Catalogos\InstitucionesSubsedesLegacySeeder;
 use Database\Seeders\EntidadFederativaSeeder;
+use Database\Seeders\EscalaCalificacionSeeder;
+use Database\Seeders\EstatusAcademicoSeeder;
+use Database\Seeders\EstatusMatriculaSeeder;
 use Database\Seeders\EstadoCatalogoSeeder;
 use Database\Seeders\FirmaConfiguracionSeeder;
 use Database\Seeders\MunicipioSeeder;
@@ -38,6 +41,9 @@ final class InstitutionalBaseSeeder extends Seeder
             SubsistemasSeeder::class,
             NivelAcademicoSeeder::class,
             EstadoCatalogoSeeder::class,
+            EstatusAcademicoSeeder::class,
+            EstatusMatriculaSeeder::class,
+            EscalaCalificacionSeeder::class,
             TipoDocumentoSeeder::class,
             TipoCertificacionSeeder::class,
             MotorDocumentoSeeder::class,

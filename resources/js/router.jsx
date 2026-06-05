@@ -58,6 +58,7 @@ import { ReinscripcionesCePage } from './pages/controlEscolar/ReinscripcionesCeP
 import { ReportesCePage } from './pages/controlEscolar/ReportesCePage';
 import { SolicitudesCePage } from './pages/controlEscolar/SolicitudesCePage';
 import { TrayectoriaCePage } from './pages/controlEscolar/TrayectoriaCePage';
+import { CatalogosControlEscolarPage } from './pages/controlEscolar/CatalogosControlEscolarPage';
 import { DireccionIndicadoresPage } from './pages/direccion/DireccionIndicadoresPage';
 import { DireccionAlumnosPage } from './pages/direccion/DireccionAlumnosPage';
 import { DireccionInscripcionesPage } from './pages/direccion/DireccionInscripcionesPage';
@@ -143,11 +144,22 @@ const PERM = {
     notificaciones: ['notificaciones.ver'],
     adminDashboard: ['dashboard.ver', 'ver_catalogos', 'catalogos.ver'],
     adminUsuarios: ['usuarios.ver', 'roles.ver'],
-    adminCatalogos: ['ver_catalogos', 'catalogos.ver', 'gestionar_catalogos', 'catalogos.configurar'],
+    adminCatalogos: ['catalogos.tecnicos.ver'],
+    technicalCatalogosHub: ['catalogos.tecnicos.ver'],
     catalogosAcademicos: ['ver_catalogos', 'catalogos.ver', 'catalogos.academicos.ver', 'ciclos_escolares.ver', 'periodos_escolares.ver', 'dashboard.ver'],
     adminParametros: ['configuracion.ver', 'configuracion.configurar'],
     adminReportes: ['reportes.ver'],
     ce: ['dashboard.ver', 'alumnos.ver', 'expedientes.ver'],
+    ceCatalogos: [
+        'control_escolar.catalogos.ver',
+        'estatus_academicos.ver',
+        'estatus_matricula.ver',
+        'escalas_calificacion.ver',
+        'control_escolar.catalogos.configurar',
+        'catalogos.ver',
+        'ver_catalogos',
+        'dashboard.ver',
+    ],
     direccion: ['dashboard.ver', 'indicadores.ver', 'alumnos.ver', 'expedientes.ver'],
     educacionSuperior: ['dashboard.ver', 'instituciones.ver', 'solicitudes_matricula.ver', 'certificacion.ver'],
     revisionInstitucional: [
@@ -334,6 +346,7 @@ export const router = createBrowserRouter([
                     { path: 'control-escolar/expedientes', element: <Guard anyOf={PERM.ce}><ExpedientesCePage /></Guard> },
                     { path: 'control-escolar/inscripciones', element: <Guard anyOf={PERM.ce}><InscripcionesCePage /></Guard> },
                     { path: 'control-escolar/reinscripciones', element: <Guard anyOf={PERM.ce}><ReinscripcionesCePage /></Guard> },
+                    { path: 'control-escolar/catalogos', element: <Guard anyOf={PERM.ceCatalogos}><CatalogosControlEscolarPage /></Guard> },
                     { path: 'control-escolar/trayectoria', element: <Guard anyOf={PERM.ce}><TrayectoriaCePage /></Guard> },
                     { path: 'control-escolar/calificaciones', element: <Guard anyOf={PERM.ce}><CalificacionesCePage /></Guard> },
                     { path: 'control-escolar/documentos', element: <Guard anyOf={PERM.docView}><DocumentosCePage /></Guard> },
@@ -562,12 +575,16 @@ export const router = createBrowserRouter([
                                 path: 'configuracion',
                                 element: <Guard anyOf={PERM.sistemas}><ConfiguracionTecnicaPage /></Guard>,
                             },
+                            {
+                                path: 'catalogos',
+                                element: <Navigate to="/app/admin/catalogos" replace />,
+                            },
                         ],
                     },
                     { path: 'admin/dashboard', element: <Guard anyOf={PERM.adminDashboard}><AdminDashboardPage /></Guard> },
                     { path: 'superadmin/dashboard', element: <Guard anyOf={PERM.adminDashboard}><SuperAdminDashboardPage /></Guard> },
                     { path: 'admin/usuarios-roles', element: <Guard anyOf={PERM.adminUsuarios}><UsuariosRolesPage /></Guard> },
-                    { path: 'admin/catalogos', element: <Guard anyOf={PERM.adminCatalogos}><CatalogosPage /></Guard> },
+                    { path: 'admin/catalogos', element: <Guard anyOf={PERM.technicalCatalogosHub}><CatalogosPage /></Guard> },
                     { path: 'catalogos-academicos', element: <Guard anyOf={PERM.catalogosAcademicos}><CatalogosAcademicosPage /></Guard> },
                     { path: 'catalogos/subsistemas-instituciones', element: <Guard anyOf={PERM.catalogosAcademicos}><SubsistemasInstitucionesPage /></Guard> },
                     { path: 'catalogos/sedes', element: <Guard anyOf={PERM.catalogosAcademicos}><SedesSubsedesPage /></Guard> },
