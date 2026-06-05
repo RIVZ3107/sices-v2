@@ -105,6 +105,7 @@ final class SicesPermissionsCatalog
             'exportar_reportes',
             'indicadores', 'egreso', 'autorizaciones', 'notificaciones',
             'validaciones_normativas', 'reportes_oficiales',
+            'ciclos_escolares', 'periodos_escolares',
         ];
     }
 
@@ -193,6 +194,10 @@ final class SicesPermissionsCatalog
                 'firma.reintentar',
                 'firma.preflight',
                 'sistemas.integraciones.ver',
+                'catalogos.academicos.ver',
+                'catalogos.academicos.configurar',
+                'ciclos_escolares.ver', 'ciclos_escolares.crear', 'ciclos_escolares.editar',
+                'periodos_escolares.ver', 'periodos_escolares.crear', 'periodos_escolares.editar',
             ],
         )));
     }
@@ -245,6 +250,9 @@ final class SicesPermissionsCatalog
             'apariencia_sistema.publicar',
             'apariencia_sistema.restaurar',
             'apariencia_sistema.subir_imagenes',
+            'catalogos.academicos.configurar',
+            'ciclos_escolares.ver', 'ciclos_escolares.crear', 'ciclos_escolares.editar',
+            'periodos_escolares.ver', 'periodos_escolares.crear', 'periodos_escolares.editar',
         ];
 
         return array_values(array_unique(array_merge(
@@ -265,7 +273,9 @@ final class SicesPermissionsCatalog
                 'roles.ver',
                 'permisos.ver',
                 'menus.ver', 'menus.administrar',
-                'catalogos.ver', 'catalogos.configurar',
+                'catalogos.ver', 'catalogos.configurar', 'catalogos.academicos.ver', 'catalogos.academicos.configurar',
+                'ciclos_escolares.ver', 'ciclos_escolares.crear', 'ciclos_escolares.editar',
+                'periodos_escolares.ver', 'periodos_escolares.crear', 'periodos_escolares.editar',
                 'configuracion.ver', 'configuracion.configurar',
                 'logs.ver',
                 'jobs.ver', 'jobs.reintentar',
@@ -299,6 +309,9 @@ final class SicesPermissionsCatalog
                 'programas.ver', 'programas.crear', 'programas.editar',
                 'planes_estudio.ver', 'planes_estudio.crear', 'planes_estudio.editar', 'planes_estudio.aprobar',
                 'ofertas_academicas.ver',
+                'catalogos.ver', 'catalogos.academicos.ver',
+                'ciclos_escolares.ver', 'periodos_escolares.ver',
+                'materias.ver',
                 'expedientes.ver',
                 'solicitudes_matricula.ver', 'solicitudes_matricula.revisar', 'solicitudes_matricula.aprobar',
                 'solicitudes_matricula.observar', 'solicitudes_matricula.rechazar', 'solicitudes_matricula.devolver',
@@ -357,6 +370,7 @@ final class SicesPermissionsCatalog
                 'constancias.generar', 'alumnos.kardex.ver',
                 'solicitudes_matricula.crear', 'solicitudes_matricula.enviar', 'solicitudes_matricula.atender_observaciones',
                 'matriculas.ver',
+                'ciclos_escolares.ver', 'periodos_escolares.ver',
                 'inscripciones.ver', 'inscripciones.crear', 'inscripciones.editar',
                 'reinscripciones.ver', 'reinscripciones.crear', 'reinscripciones.editar',
                 'reinscripciones.desbloquear', 'reinscripciones.completar', 'reinscripciones.observar',
@@ -404,6 +418,7 @@ final class SicesPermissionsCatalog
                 'documentos.observar',
                 'documentos.ver',
                 'documentos.validar',
+                'ciclos_escolares.ver', 'periodos_escolares.ver',
                 'documentos.validar_documentalmente',
                 'titulacion.ver',
                 'titulacion.revisar',

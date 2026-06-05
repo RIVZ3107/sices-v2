@@ -84,6 +84,7 @@ export function AppLayout() {
     const user = getUser();
     const navigate = useNavigate();
     const location = useLocation();
+    const [sidebarOpen, setSidebarOpen] = useState(false);
     const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
     const [darkMode, setDarkMode] = useState(() => window.localStorage.getItem('sices_dark_mode') === '1');
     const [notificationsOpen, setNotificationsOpen] = useState(false);
@@ -127,9 +128,9 @@ export function AppLayout() {
         <div className="admin-layout">
             <SidebarPro
                 user={user}
-                open={false}
+                open={sidebarOpen}
                 collapsed={sidebarCollapsed}
-                onClose={() => {}}
+                onClose={() => setSidebarOpen(false)}
                 onToggleCollapse={() => setSidebarCollapsed((prev) => !prev)}
                 onLogout={onLogout}
                 onEditProfile={() => navigate('/app/dashboard')}
@@ -138,6 +139,16 @@ export function AppLayout() {
             <main className="admin-main">
                 <header className="admin-topbar">
                     <div className="admin-topbar-left">
+                        <button
+                            type="button"
+                            className="admin-icon-btn admin-mobile-menu-btn"
+                            aria-label="Abrir menú"
+                            onClick={() => setSidebarOpen(true)}
+                        >
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-4 w-4">
+                                <path d="M4 7h16M4 12h16M4 17h16" strokeLinecap="round" />
+                            </svg>
+                        </button>
                         <div>
                             <p className="admin-topbar-title">SICES v2</p>
                             <p className="admin-topbar-subtitle">Panel institucional</p>

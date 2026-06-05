@@ -19,7 +19,7 @@ final class DiagnosticoBaseService
         'users', 'roles', 'permissions', 'menus',
         'subsistemas', 'regiones', 'instituciones', 'sedes', 'niveles_academicos',
         'ciclos_escolares', 'programas_estudio', 'planes_estudio', 'ofertas_academicas',
-        'materias', 'plan_materias', 'alumnos', 'matriculas', 'inscripciones_periodo',
+        'materias', 'plan_materias', 'periodos_escolares', 'alumnos', 'matriculas', 'inscripciones_periodo',
         'cargas_academicas', 'materias_cursadas', 'trayectorias_academicas',
         'documentos_academicos', 'documento_observaciones', 'folios', 'url_short_tokens',
         'documento_payloads', 'documento_firmas', 'documento_versiones',
@@ -51,6 +51,7 @@ final class DiagnosticoBaseService
             'permisos_menus' => $this->diagnosticarPermisosMenus(),
             'limpieza_demo' => $this->demoAudit->auditar(),
             'demo_clasificacion' => $this->demoClassifier->clasificar(),
+            'ciclos_periodos' => $this->diagnosticarCiclosPeriodos(),
             'recomendaciones' => $this->generarRecomendaciones(),
         ];
     }
@@ -504,6 +505,13 @@ final class DiagnosticoBaseService
             $riesgos[] = 'No hay usuario con rol superadmin; la operación institucional puede quedar bloqueada.';
         }
 
+        $ciclosStats = $this->diagnosticarCiclosPeriodos();
+        if (($ciclosStats['ciclos_escolares']['total'] ?? 0) === 0) {
+            $riesgos[] = 'No hay ciclos escolares registrados; matrícula e inscripción quedan bloqueadas.';
+        } elseif ($ciclosStats['sin_ciclo_actual'] ?? false) {
+            $riesgos[] = 'No hay ciclo escolar marcado como actual; configure uno en Catálogos → Ciclos y periodos.';
+        }
+
         $postPurga = [];
         if ($activo === 0 && $purgable === 0) {
             $postPurga[] = 'Importar ciclos, programas y planes institucionales reales (sin prefijo SXCE-DEMO).';
@@ -530,6 +538,45 @@ final class DiagnosticoBaseService
             'carga_real_despues_purga' => $postPurga,
             'riesgos' => $riesgos,
             'orden_carga_recomendado' => $ordenCarga,
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function diagnosticarCiclosPeriodos(): array
+    {
+        if (! $this->schema->exists('ciclos_escolares')) {
+            return ['existe' => false];
+        }
+
+        $totalCiclos = $this->schema->countAll('ciclos_escolares');
+        $activosCiclos = (int) DB::table('ciclos_escolares')->where('activo', true)->whereNull('deleted_at')->count();
+        $actual = DB::table('ciclos_escolares')->where('es_actual', true)->whereNull('deleted_at')->first();
+
+        $totalPeriodos = $this->schema->exists('periodos_escolares') ? $this->schema->countAll('periodos_escolares') : 0;
+        $activosPeriodos = $this->schema->exists('periodos_escolares')
+            ? (int) DB::table('periodos_escolares')->where('activo', true)->whereNull('deleted_at')->count()
+            : 0;
+
+        return [
+            'existe' => true,
+            'ciclos_escolares' => [
+                'total' => $totalCiclos,
+                'activos' => $activosCiclos,
+                'inactivos' => max(0, $totalCiclos - $activosCiclos),
+            ],
+            'ciclo_actual' => $actual ? [
+                'id' => $actual->id,
+                'clave' => $actual->clave,
+                'nombre' => $actual->nombre,
+            ] : null,
+            'sin_ciclo_actual' => $actual === null,
+            'periodos_escolares' => [
+                'total' => $totalPeriodos,
+                'activos' => $activosPeriodos,
+                'inactivos' => max(0, $totalPeriodos - $activosPeriodos),
+            ],
         ];
     }
 }

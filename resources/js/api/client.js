@@ -58,6 +58,15 @@ export async function apiPut(url, payload = {}, config = {}) {
     }
 }
 
+export async function apiPatch(url, payload = {}, config = {}) {
+    try {
+        const { data } = await axios.patch(url, payload, config);
+        return data;
+    } catch (error) {
+        throw normalizeApiError(error);
+    }
+}
+
 export async function apiDelete(url, config = {}) {
     try {
         const { data } = await axios.delete(url, config);

@@ -76,10 +76,12 @@ class SystemMenusSeeder extends Seeder
         // ——— Superadmin / Admin (estructura amplia) ———
         $mk(null, 'sa_inicio', 'Inicio', '/app/dashboard', 'home', 1, 'MAIN', 'dashboard.ver', ['superadmin', 'admin']);
         $mk(null, 'sa_est', 'Estructura académica', '#', 'settings', 5, 'ESTRUCTURA', null, ['superadmin', 'admin'], ['group_heading' => true]);
-        $mk('sa_est', 'sa_sub', 'Subsistemas / Instituciones', '/app/admin/catalogos', 'settings', 1, 'ESTRUCTURA', 'catalogos.ver', ['superadmin', 'admin']);
-        $mk('sa_est', 'sa_sedes', 'Sedes y subsedes', '/app/admin/catalogos', 'settings', 2, 'ESTRUCTURA', 'sedes.ver', ['superadmin', 'admin']);
-        $mk('sa_est', 'sa_mun', 'Municipios', '/app/admin/catalogos', 'settings', 3, 'ESTRUCTURA', 'catalogos.ver', ['superadmin', 'admin']);
-        $mk('sa_est', 'sa_prog', 'Programas y ofertas', '/app/admin/catalogos', 'panel', 4, 'ESTRUCTURA', 'catalogos.ver', ['superadmin', 'admin']);
+        $mk('sa_est', 'sa_cat_acad', 'Catálogos académicos', '/app/catalogos-academicos', 'panel', 0, 'ESTRUCTURA', 'catalogos.academicos.ver', ['superadmin', 'admin']);
+        $mk('sa_est', 'sa_sub', 'Subsistemas / Instituciones', '/app/catalogos/subsistemas-instituciones', 'settings', 1, 'ESTRUCTURA', 'catalogos.ver', ['superadmin', 'admin']);
+        $mk('sa_est', 'sa_sedes', 'Sedes y subsedes', '/app/catalogos/sedes', 'settings', 2, 'ESTRUCTURA', 'sedes.ver', ['superadmin', 'admin']);
+        $mk('sa_est', 'sa_ciclos', 'Ciclos y periodos', '/app/catalogos/ciclos-periodos', 'panel', 3, 'ESTRUCTURA', 'catalogos.academicos.ver', ['superadmin', 'admin']);
+        $mk('sa_est', 'sa_mun', 'Municipios', '/app/catalogos/municipios', 'settings', 4, 'ESTRUCTURA', 'catalogos.ver', ['superadmin', 'admin']);
+        $mk('sa_est', 'sa_prog', 'Programas y ofertas', '/app/catalogos/programas-ofertas', 'panel', 5, 'ESTRUCTURA', 'catalogos.ver', ['superadmin', 'admin']);
         $mk(null, 'sa_users', 'Usuarios', '/app/admin/usuarios-roles', 'users', 10, 'ADMIN', 'usuarios.ver', ['superadmin', 'admin']);
         $mk(null, 'sa_roles', 'Roles y permisos', '/app/admin/usuarios-roles', 'users', 11, 'ADMIN', 'roles.ver', ['superadmin', 'admin']);
         $mk(null, 'sa_menus', 'Menús del sistema', '/app/admin/menus', 'panel', 12, 'ADMIN', 'menus.administrar', ['superadmin', 'admin']);
@@ -92,6 +94,13 @@ class SystemMenusSeeder extends Seeder
 
         // ——— Sistemas ———
         $mk(null, 'sys_inicio', 'Inicio técnico', '/app/sistemas/proceso-tecnico-certificacion', 'home', 1, 'MAIN', 'cadena_original.generar', ['sistemas'], ['technical_only' => true]);
+        $mk(null, 'sys_est', 'Estructura académica', '#', 'settings', 4, 'ESTRUCTURA', null, ['sistemas'], ['group_heading' => true]);
+        $mk('sys_est', 'sys_est_cat', 'Catálogos académicos', '/app/catalogos-academicos', 'panel', 0, 'ESTRUCTURA', 'catalogos.academicos.ver', ['sistemas']);
+        $mk('sys_est', 'sys_est_sub', 'Subsistemas / Instituciones', '/app/catalogos/subsistemas-instituciones', 'settings', 1, 'ESTRUCTURA', 'catalogos.ver', ['sistemas']);
+        $mk('sys_est', 'sys_est_sedes', 'Sedes y subsedes', '/app/catalogos/sedes', 'settings', 2, 'ESTRUCTURA', 'sedes.ver', ['sistemas']);
+        $mk('sys_est', 'sys_est_ciclos', 'Ciclos y periodos', '/app/catalogos/ciclos-periodos', 'panel', 3, 'ESTRUCTURA', 'catalogos.academicos.ver', ['sistemas']);
+        $mk('sys_est', 'sys_est_mun', 'Municipios', '/app/catalogos/municipios', 'settings', 4, 'ESTRUCTURA', 'catalogos.ver', ['sistemas']);
+        $mk('sys_est', 'sys_est_prog', 'Programas y ofertas', '/app/catalogos/programas-ofertas', 'panel', 5, 'ESTRUCTURA', 'catalogos.ver', ['sistemas']);
         $mk(null, 'sys_users', 'Usuarios', '/app/admin/usuarios-roles', 'users', 5, 'ADMIN', 'usuarios.ver', ['sistemas']);
         $mk(null, 'sys_roles', 'Roles y permisos', '/app/admin/usuarios-roles', 'users', 6, 'ADMIN', 'roles.ver', ['sistemas']);
         $mk(null, 'sys_menus', 'Menús por rol', '/app/admin/menus', 'panel', 7, 'ADMIN', 'menus.administrar', ['sistemas']);
@@ -121,6 +130,7 @@ class SystemMenusSeeder extends Seeder
         $mk(null, 'es_sed', 'Sedes / Subsedes', '/app/educacion-superior/sedes', 'settings', 3, 'OPERACION', 'sedes.ver', ['educacion_superior']);
         $mk(null, 'es_pro', 'Programas académicos', '/app/educacion-superior/programas', 'panel', 4, 'OPERACION', 'programas.ver', ['educacion_superior']);
         $mk(null, 'es_plan', 'Planes de estudio', '/app/educacion-superior/planes', 'panel', 5, 'OPERACION', 'planes_estudio.ver', ['educacion_superior']);
+        $mk(null, 'es_cat_acad', 'Catálogos académicos', '/app/catalogos-academicos', 'panel', 55, 'OPERACION', 'catalogos.academicos.ver', ['educacion_superior']);
         $mk(null, 'es_sol', 'Solicitudes de matrícula', '/app/solicitudes-matricula', 'matriculas', 6, 'OPERACION', 'solicitudes_matricula.ver', ['educacion_superior']);
         $mk(null, 'es_val', 'Validaciones normativas', '/app/educacion-superior/validaciones-normativas', 'validate', 7, 'OPERACION', 'validaciones_normativas.ver', ['educacion_superior']);
         $mk(null, 'es_norm_grp', 'Normales', '#', 'docs', 8, 'OPERACION', 'certificacion.ver', ['educacion_superior'], ['group_heading' => true]);

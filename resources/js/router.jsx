@@ -29,6 +29,12 @@ import { AdminDashboardPage } from './pages/admin/AdminDashboardPage';
 import { SuperAdminDashboardPage } from './pages/superadmin/SuperAdminDashboardPage';
 import { UsuariosRolesPage } from './pages/admin/UsuariosRolesPage';
 import { CatalogosPage } from './pages/admin/CatalogosPage';
+import { CatalogosAcademicosPage } from './pages/catalogosAcademicos/CatalogosAcademicosPage';
+import { SubsistemasInstitucionesPage } from './pages/catalogos/SubsistemasInstitucionesPage';
+import { SedesSubsedesPage } from './pages/catalogos/SedesSubsedesPage';
+import { MunicipiosPage } from './pages/catalogos/MunicipiosPage';
+import { ProgramasOfertasPage } from './pages/catalogos/ProgramasOfertasPage';
+import { CiclosPeriodosPage } from './pages/catalogos/CiclosPeriodosPage';
 import { ParametrosSistemaPage } from './pages/admin/ParametrosSistemaPage';
 import { ReportesBasicosPage } from './pages/admin/ReportesBasicosPage';
 import { AuditorDashboardPage } from './pages/auditoria/AuditorDashboardPage';
@@ -138,6 +144,7 @@ const PERM = {
     adminDashboard: ['dashboard.ver', 'ver_catalogos', 'catalogos.ver'],
     adminUsuarios: ['usuarios.ver', 'roles.ver'],
     adminCatalogos: ['ver_catalogos', 'catalogos.ver', 'gestionar_catalogos', 'catalogos.configurar'],
+    catalogosAcademicos: ['ver_catalogos', 'catalogos.ver', 'catalogos.academicos.ver', 'ciclos_escolares.ver', 'periodos_escolares.ver', 'dashboard.ver'],
     adminParametros: ['configuracion.ver', 'configuracion.configurar'],
     adminReportes: ['reportes.ver'],
     ce: ['dashboard.ver', 'alumnos.ver', 'expedientes.ver'],
@@ -561,6 +568,12 @@ export const router = createBrowserRouter([
                     { path: 'superadmin/dashboard', element: <Guard anyOf={PERM.adminDashboard}><SuperAdminDashboardPage /></Guard> },
                     { path: 'admin/usuarios-roles', element: <Guard anyOf={PERM.adminUsuarios}><UsuariosRolesPage /></Guard> },
                     { path: 'admin/catalogos', element: <Guard anyOf={PERM.adminCatalogos}><CatalogosPage /></Guard> },
+                    { path: 'catalogos-academicos', element: <Guard anyOf={PERM.catalogosAcademicos}><CatalogosAcademicosPage /></Guard> },
+                    { path: 'catalogos/subsistemas-instituciones', element: <Guard anyOf={PERM.catalogosAcademicos}><SubsistemasInstitucionesPage /></Guard> },
+                    { path: 'catalogos/sedes', element: <Guard anyOf={PERM.catalogosAcademicos}><SedesSubsedesPage /></Guard> },
+                    { path: 'catalogos/municipios', element: <Guard anyOf={PERM.catalogosAcademicos}><MunicipiosPage /></Guard> },
+                    { path: 'catalogos/programas-ofertas', element: <Guard anyOf={PERM.catalogosAcademicos}><ProgramasOfertasPage /></Guard> },
+                    { path: 'catalogos/ciclos-periodos', element: <Guard anyOf={PERM.catalogosAcademicos}><CiclosPeriodosPage /></Guard> },
                     {
                         path: 'admin/menus',
                         element: (

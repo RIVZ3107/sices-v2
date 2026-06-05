@@ -1,142 +1,144 @@
 import { useEffect, useMemo, useState } from 'react';
-import { getUser } from '../../authStore';
-import { catalogosApi } from '../../api/catalogos';
-import { DashboardInstitutionalNotice } from '../../components/dashboard/DashboardInstitutionalNotice';
-import { DashboardMetricCard } from '../../components/dashboard/DashboardMetricCard';
-import { DashboardModuleGrid } from '../../components/dashboard/DashboardModuleGrid';
-import { DashboardQuickActions } from '../../components/dashboard/DashboardQuickActions';
+import { catalogosAcademicosApi } from '../../api/catalogosAcademicos';
+import { CatalogoModuleCard } from '../../components/catalogos/CatalogoModuleCard';
+import { CatalogoResumenCards } from '../../components/catalogos/CatalogoResumenCards';
 import { DashboardShell } from '../../components/dashboard/DashboardShell';
-import { DashboardStatusOverview } from '../../components/dashboard/DashboardStatusOverview';
+import { EsIcons } from '../../components/educacionSuperior';
 import { AlertBox } from '../../components/ui/AlertBox';
 import { ModuleHeader } from '../../components/ui/ModuleHeader';
+import { RESUMEN_CARDS } from '../catalogosAcademicos/catalogosAcademicosConfig';
+
+const MODULOS_ESTRUCTURA = [
+    {
+        key: 'academicos',
+        title: 'Catálogos académicos',
+        description: 'Instituciones, sedes, programas, planes de estudio, materias y estructura curricular.',
+        to: '/app/catalogos-academicos',
+        resumenKey: 'instituciones',
+        metricLabel: 'instituciones registradas',
+        icon: EsIcons.graduation,
+    },
+    {
+        key: 'subsistemas',
+        title: 'Subsistemas / Instituciones',
+        description: 'Consulta de subsistemas, instituciones y su organización académica.',
+        to: '/app/catalogos/subsistemas-instituciones',
+        resumenKey: 'instituciones',
+        metricLabel: 'instituciones registradas',
+        icon: EsIcons.building,
+    },
+    {
+        key: 'sedes',
+        title: 'Sedes y subsedes',
+        description: 'Consulta de sedes, subsedes y relación con instituciones.',
+        to: '/app/catalogos/sedes',
+        resumenKey: 'sedes',
+        metricLabel: 'sedes registradas',
+        icon: EsIcons.building,
+    },
+    {
+        key: 'municipios',
+        title: 'Municipios',
+        description: 'Catálogo territorial de municipios y entidades federativas.',
+        to: '/app/catalogos/municipios',
+        resumenKey: null,
+        metricLabel: null,
+        icon: EsIcons.mapPin,
+    },
+    {
+        key: 'ciclos',
+        title: 'Ciclos y periodos',
+        description: 'Configuración de ciclos escolares, periodos académicos y ventanas de operación.',
+        to: '/app/catalogos/ciclos-periodos',
+        resumenKey: 'ciclos_escolares',
+        metricLabel: 'ciclos registrados',
+        icon: EsIcons.clock,
+    },
+    {
+        key: 'programas',
+        title: 'Programas y ofertas',
+        description: 'Programas, planes de estudio, ofertas académicas y estructura curricular.',
+        to: '/app/catalogos/programas-ofertas',
+        resumenKey: 'programas_estudio',
+        metricLabel: 'programas de estudio',
+        icon: EsIcons.book,
+    },
+];
 
 export function CatalogosPage() {
-    const user = getUser();
-    const puedeVerLegacy = (user?.permissions ?? []).includes('ver_claves_legacy_catalogos');
-    const [sedes, setSedes] = useState([]);
-    const [loadingSedes, setLoadingSedes] = useState(false);
-    const [errorSedes, setErrorSedes] = useState('');
-    const [openLegacy, setOpenLegacy] = useState({});
+    const [resumen, setResumen] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [errorResumen, setErrorResumen] = useState('');
 
     useEffect(() => {
         let cancelled = false;
-        setLoadingSedes(true);
-        setErrorSedes('');
-        catalogosApi
-            .sedes({ estatus: 'A' })
+        setLoading(true);
+        setErrorResumen('');
+
+        catalogosAcademicosApi
+            .resumen()
             .then((res) => {
                 if (cancelled) return;
-                setSedes(Array.isArray(res?.data) ? res.data : []);
+                setResumen(res?.data ?? null);
             })
-            .catch((e) => {
+            .catch(() => {
                 if (cancelled) return;
-                setErrorSedes(e?.message ?? 'No fue posible cargar sedes.');
-                setSedes([]);
+                setResumen(null);
+                setErrorResumen('No fue posible cargar el resumen de catálogos.');
             })
             .finally(() => {
-                if (! cancelled) setLoadingSedes(false);
+                if (!cancelled) setLoading(false);
             });
+
         return () => {
             cancelled = true;
         };
     }, []);
 
-    const sedesConLegacy = useMemo(() => sedes.filter((s) => s?.legacy_kcve_subsede), [sedes]);
+    const modulos = useMemo(() => MODULOS_ESTRUCTURA.map((modulo) => ({
+        ...modulo,
+        metric: modulo.resumenKey && resumen?.[modulo.resumenKey]?.total != null
+            ? resumen[modulo.resumenKey].total
+            : null,
+    })), [resumen]);
 
     return (
         <DashboardShell>
-            <ModuleHeader title="Catálogos institucionales" subtitle="Consulta y gobierno de catálogos maestros del sistema." />
-            <DashboardInstitutionalNotice type="info" message="Catalogos administrativos en preparacion. Se habilitaran con endpoints de gestion dedicados." />
-            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-                <DashboardMetricCard title="Catalogos activos" value={0} subtitle="Informacion no disponible" />
-                <DashboardMetricCard title="Catalogos pendientes" value={0} subtitle="Informacion no disponible" />
-                <DashboardMetricCard title="Ultima actualizacion" value={0} subtitle="Informacion no disponible" />
-                <DashboardMetricCard title="Version catalogos" value={0} subtitle="Informacion no disponible" />
-            </div>
-            <DashboardQuickActions
-                title="Navegacion rapida"
-                actions={[
-                    { label: 'Dashboard admin', to: '/app/admin/dashboard' },
-                    { label: 'Usuarios y roles', to: '/app/admin/usuarios-roles' },
-                    { label: 'Reportes basicos', to: '/app/admin/reportes-basicos' },
-                    { label: 'Parametros', to: '/app/admin/parametros' },
-                ]}
+            <ModuleHeader
+                title="Catálogos institucionales"
+                subtitle="Consulta y administración de la estructura académica, territorial y operativa del sistema."
             />
-            <DashboardStatusOverview
-                title="Estado de catalogos"
-                items={[
-                    { label: 'Institucionales', value: 'Operativo parcial' },
-                    { label: 'Academicos', value: 'Operativo parcial' },
-                    { label: 'Administrativos', value: 'Pendiente backend' },
-                ]}
-            />
-            <DashboardModuleGrid
-                title="Funciones previstas"
-                modules={[
-                    { name: 'Versionado de catalogos', description: 'Control de versiones y vigencias.', status: 'Pendiente backend' },
-                    { name: 'Publicacion controlada', description: 'Flujo de cambios con validacion.', status: 'Pendiente backend' },
-                    { name: 'Trazabilidad de modificaciones', description: 'Bitacora institucional de cambios.', status: 'Pendiente backend' },
-                    { name: 'Dependencias academicas', description: 'Validacion de consistencia entre catalogos.', status: 'Pendiente backend' },
-                ]}
-            />
-            <section className="inst-surface p-4">
-                <h3 className="font-semibold text-slate-900">Catálogo avanzado de sedes/subsedes</h3>
-                <p className="text-xs text-slate-600 mt-1">Vista operativa sin claves legacy para Control Escolar y directivos.</p>
-                {errorSedes ? <AlertBox type="warning" message={errorSedes} /> : null}
-                {loadingSedes ? <p className="text-sm text-slate-600 mt-3">Cargando sedes...</p> : null}
-                {!loadingSedes ? (
-                    <div className="overflow-x-auto mt-3">
-                        <table className="inst-table min-w-full text-sm">
-                            <thead>
-                                <tr>
-                                    <th className="px-3 py-2 text-left">Sede/Subsede</th>
-                                    <th className="px-3 py-2 text-left">Institución</th>
-                                    <th className="px-3 py-2 text-left">Subsistema</th>
-                                    <th className="px-3 py-2 text-left">CCT oficial</th>
-                                    <th className="px-3 py-2 text-left">Estatus</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {sedes.slice(0, 30).map((s) => (
-                                    <tr key={s.id} className="border-t border-slate-100">
-                                        <td className="px-3 py-2">{s.nombre}</td>
-                                        <td className="px-3 py-2">{s.institucion ?? '—'}</td>
-                                        <td className="px-3 py-2">{s.subsistema ?? '—'}</td>
-                                        <td className="px-3 py-2">{s.cct ?? '—'}</td>
-                                        <td className="px-3 py-2">{s.estatus ?? 'A'}</td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
-                ) : null}
-                {puedeVerLegacy ? (
-                    <div className="mt-4">
-                        <h4 className="text-sm font-semibold text-slate-900">Referencias legacy</h4>
-                        <p className="text-xs text-slate-600 mt-1">Visible solo para perfiles técnicos autorizados.</p>
-                        <div className="mt-2 grid gap-2">
-                            {sedesConLegacy.slice(0, 20).map((s) => (
-                                <details
-                                    key={`legacy-${s.id}`}
-                                    open={openLegacy[s.id] === true}
-                                    onToggle={(e) => setOpenLegacy((prev) => ({ ...prev, [s.id]: e.currentTarget.open }))}
-                                    className="rounded border border-slate-200 p-2"
-                                >
-                                    <summary className="cursor-pointer text-xs font-medium text-slate-800">
-                                        {s.nombre}
-                                    </summary>
-                                    <div className="mt-2 text-xs text-slate-700">
-                                        <p><strong>kcve_subsede:</strong> {s.legacy_kcve_subsede ?? '—'}</p>
-                                        <p><strong>rcve_institucion:</strong> {s.legacy_rcve_institucion ?? '—'}</p>
-                                        <p><strong>rcvect:</strong> {s.legacy_rcvect ?? '—'}</p>
-                                        <p><strong>origen:</strong> {s?.metadata?.origen ?? '—'}</p>
-                                        <p><strong>fecha registro legacy:</strong> {s?.metadata?.legacy?.ifecreg ?? '—'}</p>
-                                    </div>
-                                </details>
-                            ))}
-                        </div>
-                    </div>
-                ) : null}
+
+            {errorResumen ? <AlertBox type="warning" message={errorResumen} /> : null}
+
+            {loading ? (
+                <p className="inst-muted mb-4 text-sm">Cargando resumen de catálogos...</p>
+            ) : null}
+
+            {!loading && resumen ? (
+                <div className="mb-6">
+                    <CatalogoResumenCards cards={RESUMEN_CARDS} resumen={resumen} />
+                </div>
+            ) : null}
+
+            <section>
+                <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500">
+                    Módulos de estructura
+                </h3>
+                <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                    {modulos.map((modulo) => (
+                        <CatalogoModuleCard
+                            key={modulo.key}
+                            title={modulo.title}
+                            description={modulo.description}
+                            to={modulo.to}
+                            metric={modulo.metric}
+                            metricLabel={modulo.metricLabel}
+                            status="Disponible"
+                            icon={modulo.icon}
+                        />
+                    ))}
+                </div>
             </section>
         </DashboardShell>
     );

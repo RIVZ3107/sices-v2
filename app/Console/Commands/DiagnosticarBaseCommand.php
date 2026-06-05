@@ -30,6 +30,17 @@ final class DiagnosticarBaseCommand extends Command
         $this->line('Demo soft-deleted: '.($tot['soft_deleted'] ?? 0));
         $this->line('Demo purgable: '.($tot['purgable'] ?? 0));
 
+        $cp = $reporte['ciclos_periodos'] ?? [];
+        if (($cp['existe'] ?? false) === true) {
+            $this->newLine();
+            $this->line('Ciclos escolares: '.($cp['ciclos_escolares']['total'] ?? 0).' (activos: '.($cp['ciclos_escolares']['activos'] ?? 0).')');
+            $this->line('Ciclo actual: '.($cp['ciclo_actual']['clave'] ?? '— ninguno —'));
+            $this->line('Periodos escolares: '.($cp['periodos_escolares']['total'] ?? 0).' (activos: '.($cp['periodos_escolares']['activos'] ?? 0).')');
+            if ($cp['sin_ciclo_actual'] ?? false) {
+                $this->warn('Advertencia: no hay ciclo escolar marcado como actual.');
+            }
+        }
+
         $this->newLine();
         $this->table(
             ['Tabla', 'Existe', 'Registros', 'Demo heur.'],

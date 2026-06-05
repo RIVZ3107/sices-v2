@@ -8,6 +8,8 @@ use App\Http\Controllers\Api\V1\Admin\RoleManagementController;
 use App\Http\Controllers\Api\V1\Admin\UserManagementController;
 use App\Http\Controllers\Api\V1\Certificacion\AlumnoCapturaController;
 use App\Http\Controllers\Api\Catalogos\DocumentoAcademicoTipoController;
+use App\Http\Controllers\Api\V1\Catalogos\CatalogosAcademicosController;
+use App\Http\Controllers\Api\V1\Catalogos\CiclosEscolaresController;
 use App\Http\Controllers\Api\V1\Certificacion\CatalogoCapturaController;
 use App\Http\Controllers\Api\V1\Certificacion\DocumentoAcademicoProcesoController;
 use App\Http\Controllers\Api\V1\Certificacion\DocumentoCertificadoVistaController;
@@ -91,6 +93,47 @@ Route::prefix('v1/academico')
         Route::post('importaciones/{historica_importacion}/prevalidar', [ImportacionHistoricaMateriasController::class, 'prevalidar']);
         Route::post('importaciones/{historica_importacion}/confirmar', [ImportacionHistoricaMateriasController::class, 'confirmar']);
         Route::post('importaciones/{historica_importacion}/cancelar', [ImportacionHistoricaMateriasController::class, 'cancelar']);
+    });
+
+Route::prefix('v1/catalogos-academicos')
+    ->middleware(['auth:sanctum', 'permission_or:ver_catalogos|catalogos.ver|catalogos.academicos.ver|dashboard.ver'])
+    ->group(function () {
+        Route::get('resumen', [CatalogosAcademicosController::class, 'resumen']);
+        Route::get('filtros', [CatalogosAcademicosController::class, 'filtros']);
+        Route::get('subsistemas', [CatalogosAcademicosController::class, 'subsistemas']);
+        Route::get('municipios', [CatalogosAcademicosController::class, 'municipios']);
+        Route::get('instituciones/{institucion}', [CatalogosAcademicosController::class, 'institucionDetalle'])->whereNumber('institucion');
+        Route::get('instituciones/{institucion}/sedes', [CatalogosAcademicosController::class, 'institucionSedes'])->whereNumber('institucion');
+        Route::get('instituciones/{institucion}/ofertas', [CatalogosAcademicosController::class, 'institucionOfertas'])->whereNumber('institucion');
+        Route::get('sedes/{sede}/ofertas', [CatalogosAcademicosController::class, 'sedeOfertas'])->whereNumber('sede');
+        Route::get('instituciones', [CatalogosAcademicosController::class, 'instituciones']);
+        Route::get('sedes', [CatalogosAcademicosController::class, 'sedes']);
+        Route::get('programas', [CatalogosAcademicosController::class, 'programas']);
+        Route::get('planes', [CatalogosAcademicosController::class, 'planes']);
+        Route::get('materias', [CatalogosAcademicosController::class, 'materias']);
+        Route::get('ofertas-academicas', [CatalogosAcademicosController::class, 'ofertasAcademicas']);
+        Route::get('planes/{plan}/materias', [CatalogosAcademicosController::class, 'planMaterias'])->whereNumber('plan');
+
+        Route::middleware('permission_or:ciclos_escolares.ver|periodos_escolares.ver|catalogos.academicos.ver|catalogos.academicos.configurar|catalogos.configurar|ver_catalogos|catalogos.ver|dashboard.ver')->group(function () {
+            Route::get('ciclos-escolares/resumen', [CiclosEscolaresController::class, 'resumen']);
+            Route::get('ciclos-escolares', [CiclosEscolaresController::class, 'index']);
+            Route::get('ciclos-escolares/{ciclo}', [CiclosEscolaresController::class, 'show'])->whereNumber('ciclo');
+            Route::get('periodos-escolares', [CiclosEscolaresController::class, 'periodosIndex']);
+            Route::get('ciclos-escolares/{ciclo}/periodos', [CiclosEscolaresController::class, 'periodosPorCiclo'])->whereNumber('ciclo');
+        });
+
+        Route::middleware('permission_or:ciclos_escolares.crear|periodos_escolares.crear|catalogos.academicos.configurar|catalogos.configurar|gestionar_catalogos')->group(function () {
+            Route::post('ciclos-escolares', [CiclosEscolaresController::class, 'store']);
+            Route::post('ciclos-escolares/{ciclo}/periodos', [CiclosEscolaresController::class, 'storePeriodo'])->whereNumber('ciclo');
+        });
+
+        Route::middleware('permission_or:ciclos_escolares.editar|periodos_escolares.editar|catalogos.academicos.configurar|catalogos.configurar|gestionar_catalogos')->group(function () {
+            Route::put('ciclos-escolares/{ciclo}', [CiclosEscolaresController::class, 'update'])->whereNumber('ciclo');
+            Route::patch('ciclos-escolares/{ciclo}/activar', [CiclosEscolaresController::class, 'activar'])->whereNumber('ciclo');
+            Route::patch('ciclos-escolares/{ciclo}/marcar-actual', [CiclosEscolaresController::class, 'marcarActual'])->whereNumber('ciclo');
+            Route::put('periodos-escolares/{periodo}', [CiclosEscolaresController::class, 'updatePeriodo'])->whereNumber('periodo');
+            Route::patch('periodos-escolares/{periodo}/activar', [CiclosEscolaresController::class, 'activarPeriodo'])->whereNumber('periodo');
+        });
     });
 
 Route::prefix('v1/certificacion')

@@ -59,4 +59,9 @@ class CicloEscolar extends Model
     {
         return $this->hasMany(Folio::class);
     }
+
+    public function periodosEscolares(): HasMany
+    {
+        return $this->hasMany(PeriodoEscolar::class);
+    }
 }
