@@ -13,14 +13,34 @@ class UsersSeeder extends Seeder
     {
         $users = [
             [
-                'name'  => 'Super Admin',
-                'email' => 'superadmin@sices.gob.mx',
+                'name'  => 'Superadmin SICES',
+                'email' => 'superadmin@sices.local',
                 'role'  => 'superadmin',
             ],
             [
-                'name'  => 'Administrador',
-                'email' => 'admin@sices.gob.mx',
+                'name'  => 'Admin SICES',
+                'email' => 'admin@sices.local',
                 'role'  => 'admin',
+            ],
+            [
+                'name'  => 'Control Escolar Escuela',
+                'email' => 'control.escolar@sices.local',
+                'role'  => 'control_escolar_escuela',
+            ],
+            [
+                'name'  => 'Director Escuela',
+                'email' => 'director.escuela@sices.local',
+                'role'  => 'director_escuela',
+            ],
+            [
+                'name'  => 'Educacion Superior',
+                'email' => 'educacion.superior@sices.local',
+                'role'  => 'educacion_superior',
+            ],
+            [
+                'name'  => 'Sistemas SICES',
+                'email' => 'sistemas@sices.local',
+                'role'  => 'sistemas',
             ],
         ];
 
