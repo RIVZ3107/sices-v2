@@ -346,7 +346,6 @@ export function CatalogosControlEscolarPage() {
 
     return (
         <EsPageLayout
-            breadcrumbCurrent="Control escolar"
             title="Configuración académica"
             subtitle="Estatus académicos, matrícula y escalas de calificación para la operación escolar."
             metrics={metrics}

@@ -117,7 +117,6 @@ export function ExpedientesCePage() {
     return (
         <div style={ceTheme.pageShell}>
             <CePageHeader
-                breadcrumbCurrent="Expedientes"
                 title="Expedientes de alumnos"
                 subtitle="Gestiona, valida y da seguimiento documental a los expedientes académicos de los alumnos."
                 updatedAt={

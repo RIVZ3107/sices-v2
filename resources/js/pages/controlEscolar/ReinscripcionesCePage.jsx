@@ -76,7 +76,6 @@ export function ReinscripcionesCePage() {
     return (
         <div style={ceTheme.pageShell}>
             <CePageHeader
-                breadcrumbCurrent="Reinscripciones"
                 title="Gestión de reinscripciones"
                 subtitle="Administra el proceso de reinscripción de alumnos con matrícula activa y continuidad académica."
                 updatedAt={(

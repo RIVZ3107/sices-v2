@@ -117,7 +117,6 @@ export function BajasCambiosPage() {
     return (
         <div style={{ ...ceTheme.pageShell }}>
             <CePageHeader
-                breadcrumbCurrent="Bajas y cambios de estatus"
                 title="Bajas y cambios de estatus"
                 subtitle="Administra y da seguimiento a las solicitudes de baja y cambios de estatus de los alumnos."
                 updatedAt={(

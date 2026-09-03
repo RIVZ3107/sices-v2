@@ -82,7 +82,6 @@ export function AlumnosCePage() {
             <style>{`@keyframes ceShimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }`}</style>
 
             <CePageHeader
-                breadcrumbCurrent="Alumnos"
                 title="Gestión de alumnos"
                 subtitle="Administra y consulta la información académica de los alumnos de tu institución."
                 updatedAt={loading && !actualizadoEn ? '…' : formatCeActualizado(actualizadoEn)}

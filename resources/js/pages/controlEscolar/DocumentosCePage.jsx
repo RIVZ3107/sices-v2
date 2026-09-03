@@ -113,7 +113,6 @@ export function DocumentosCePage() {
     return (
         <div style={{ ...ceTheme.pageShell }}>
             <CePageHeader
-                breadcrumbCurrent="Documentos escolares"
                 title="Documentos escolares"
                 subtitle="Solicitudes, envíos, revisiones y documentos institucionales generados para los alumnos."
                 updatedAt={(

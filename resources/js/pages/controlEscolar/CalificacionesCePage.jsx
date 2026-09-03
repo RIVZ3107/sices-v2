@@ -99,7 +99,6 @@ export function CalificacionesCePage() {
     return (
         <div style={{ ...ceTheme.pageShell }}>
             <CePageHeader
-                breadcrumbCurrent="Calificaciones"
                 title="Calificaciones"
                 subtitle="Captura, importa y da seguimiento operativo a las calificaciones por grupo, materia y periodo."
                 updatedAt={(

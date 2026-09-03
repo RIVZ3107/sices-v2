@@ -58,6 +58,7 @@ final class InstitutionalBaseSeeder extends Seeder
             InstitucionesSedesInicialSeeder::class,
             InstitucionesLegacyBaseSeeder::class,
             InstitucionesSubsedesLegacySeeder::class,
+            \Database\Seeders\UsersSeeder::class,
         ]);
     }
 }

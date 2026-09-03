@@ -271,7 +271,6 @@ export function TrayectoriaCePage() {
     return (
         <div style={{ ...ceTheme.pageShell }}>
             <CePageHeader
-                breadcrumbCurrent="Trayectoria académica"
                 title="Trayectoria académica"
                 subtitle="Consulta el historial académico, kardex, calificaciones y avance curricular del alumno."
                 updatedAt={(
