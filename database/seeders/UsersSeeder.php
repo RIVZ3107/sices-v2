@@ -49,7 +49,7 @@ class UsersSeeder extends Seeder
                 ['email' => $data['email']],
                 [
                     'name'              => $data['name'],
-                    'password'          => bcrypt('password'),
+                    'password'          => bcrypt('Sices2026*'),
                     'email_verified_at' => now(),
                 ],
             );
